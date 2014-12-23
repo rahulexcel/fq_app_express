@@ -11,32 +11,10 @@ module.exports = function(){
         function results( err, data ){
             if( data.length > 0 ){
                 raw_filters = data[0].get('filters').api_filters;
-                res.json(raw_filters);
-                process.exit(0);
-                
-                
-                
-                Object.keys(raw_filters).forEach(function(key){
-                    console.log(key);
-                });
-                process.exit(0);
-                console.log(raw_filters);
-                console.log('arun kumar');
-                res.json(raw_filters);
+                filters = raw_filters;
+                req.filters_to_show = filters;
+                next();
             }
-            //console.log(data.length);
-            //res.json( data );
-            //Object.keys(data).forEach(function(key){
-                //var x = data[key];
-                //filter = x.get('filter');
-                //if( filter == 'color' ){
-                    
-                //}
-                //console.log(filter);
-            //});
-            //res.json(data);
-            //process.exit(0);
         }
-        next();
     }
 }

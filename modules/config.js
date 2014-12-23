@@ -9,6 +9,10 @@ module.exports = function(){
             'father_key':'men',
             'father_text':'men',
             'page':1,
+            'filters':[
+                'filter__text__website__snapdeal',
+                'filter__range__price__500_600'
+            ],
             //filter : [{
                 //size : [size1,soze2             ]
             //}]

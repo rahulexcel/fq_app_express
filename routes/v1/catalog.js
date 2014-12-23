@@ -5,6 +5,10 @@ router.get('/list', function(req, res) {
     res.json(req.catalog);
 });
 router.get('/products',function(req,res){
+    var where = {};
+    var finalData  = {
+        'filters':req.filters_to_show,
+    };
     // --params are available in req.body -- in modules/config.js files
     var products_per_page = req.config.products_per_page;
     var params = req.body;
@@ -22,24 +26,77 @@ router.get('/products',function(req,res){
     var m_cat_id = cat_id;
     var m_sub_cat_id = sub_cat_id;
     if( m_cat_id == '' || m_cat_id == false ){
-        m_cat_id = 0;
+        //m_cat_id = 0;
+        where['cat_id'] = m_cat_id;
     }
     if( m_sub_cat_id == '' || m_sub_cat_id == false ){
-        m_sub_cat_id=0;
+        //m_sub_cat_id=0;
+        where['sub_cat_id'] = m_sub_cat_id;
     }
     
-    if( cat_id == false ){
-        cat_id = 0;
+    //if( cat_id == false ){
+        //cat_id = 0;
+   // }
+    
+    //if( cat_id != false ){
+        //where['cat_id'] = m_cat_id;
+    //}
+    
+    //var where = {
+        //'cat_id':m_cat_id,
+        //'sub_cat_id':m_sub_cat_id
+    //};
+    //-start-process set filters----------
+    function stringToArray(str, expby) {
+        var ret = new Array();
+        var split = str.split(expby);
+        for (i = 0; i < split.length; i++) {
+            ss = split[i];
+            ss = ss.trim();
+            if (ss.length > 0) {
+                ret.push(ss);
+            }
+        }
+        return ret;
     }
+    var applied_filters = params.filters;
+    if( applied_filters.length > 0){
+        console.log('applied filters');
+        console.log(applied_filters);
+        console.log('--------');
+        Object.keys(applied_filters).forEach(function(key){
+            fltr = applied_filters[key];
+            fltr_str_arr = stringToArray( fltr, '__');
+            check = fltr_str_arr[0];
+            if( check == 'filter' ){
+                fltr_type = fltr_str_arr[1];
+                fltr_key = fltr_str_arr[2];
+                fltr_val = fltr_str_arr[3];
+                if( fltr_type == 'text'){
+                    fltr_val = fltr_val.replace(/_/g, ' ');
+                    where[fltr_key] = new RegExp(fltr_val, "i");
+                }else if(  fltr_type == 'range'){
+                    range_arr = stringToArray( fltr_val ,'_');
+                    fltr_val_low = range_arr[0];
+                    fltr_val_high = range_arr[1];
+                    where[fltr_key] = {
+                        '$gte':fltr_val_low*1,
+                        '$lte':fltr_val_high*1
+                    };
+                }
+            }
+        });
+    }
+    //-end---process set filters---------
+    console.log('where');
+    console.log(where);
+    console.log('--------');
     
-    var where = {
-        'cat_id':m_cat_id,
-        'sub_cat_id':m_sub_cat_id
-    };
     
-    website_scrap_data.where( where ).skip( skip_count ).limit( products_per_page ).find( query_results );
+     website_scrap_data.where( where ).skip( skip_count ).limit( products_per_page ).find( query_results );
     function query_results( err, data ){
-        res.json(data);
+        finalData.products = data;
+        res.json(finalData);
     }
     
     /*
