@@ -1,10 +1,13 @@
 module.exports = function(){
+    
+    
     return function( req, res,next){
         var category = req.conn_category;
         var website_scrap_data = req.conn_website_scrap_data;
         category.find({
             'is_fashion':1
         },function(err,data){
+                
             req.category_list = data;
             cat_list = data;
             var catalog = {};
