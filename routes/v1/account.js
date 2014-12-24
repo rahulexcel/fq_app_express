@@ -5,7 +5,6 @@ var router = express.Router();
 router.all('/create', function (req, res) {
     var body = req.body;
     var user = body.user;
-    console.log(body);
 
     if (!user) {
         res.json({
@@ -36,32 +35,40 @@ router.all('/create', function (req, res) {
     } else {
         if (!user.name) {
             user.name = 'XXX';
+            type = 'login';
         }
         password = user.password;
     }
     user.password = password;
     user.type = type;
     var name = user.name;
+    var UserModel = req.User;
 
-    var User = req.User;
+    var userObj = user;
 
     if (name && name.length > 0 && password && password.length > 0 && email && email.length > 0) {
 
-        User.findOne({
+        UserModel.findOne({
             email: email
-        }).exec(function (err, row) {
+        }).exec(function (err, user) {
             if (err) {
                 res.json({
                     error: 2,
                     message: err.err
                 });
             } else {
-
-                if (row) {
+                if (user) {
+                    if (type == 'signup') {
+                        res.json({
+                            error: 1,
+                            message: 'Account Already Exists!'
+                        });
+                        return;
+                    }
                     if (is_auto_password) {
                         if (type == 'facebook') {
-                            if (user.get('fb_id') != -1) {
-                                if (row.fb_id == user.get('fb_id')) {
+                            if (user.get('fb_id') * 1 != -1) {
+                                if (userObj.fb_id == user.get('fb_id')) {
 
                                 } else {
                                     res.json({
@@ -72,19 +79,21 @@ router.all('/create', function (req, res) {
                                 }
                             } else {
 
-                                User.update({
-                                    _id: row.get('_id')
+                                UserModel.update({
+                                    _id: user.get('_id')
                                 }, {
                                     $set: {
-                                        fb_id: row.fb_id
+                                        fb_id: userObj.fb_id
                                     }
+                                }, function (err) {
+
                                 });
 
                             }
                         }
                         if (type == 'google') {
-                            if (user.get('google_id') == -1) {
-                                if (row.google_id == user.get('google_id')) {
+                            if (user.get('google_id') * 1 != -1) {
+                                if (userObj.google_id == user.get('google_id')) {
 
                                 } else {
                                     res.json({
@@ -94,12 +103,13 @@ router.all('/create', function (req, res) {
                                     return;
                                 }
                             } else {
-                                User.update({
-                                    _id: row.get('_id')
+                                UserModel.update({
+                                    _id: user.get('_id')
                                 }, {
                                     $set: {
-                                        google_id: row.google_id
+                                        google_id: userObj.google_id
                                     }
+                                }, function (err) {
                                 });
                             }
                         }
@@ -111,7 +121,8 @@ router.all('/create', function (req, res) {
                         var md5 = crypto.createHash('md5');
                         md5.update(password);
                         var pass_md5 = md5.digest('hex');
-                        if (pass_md5 == row.password) {
+                        console.log(pass_md5 + 'xxx' + userObj.password);
+                        if (pass_md5 == user.get('password')) {
 
                         } else {
                             res.json({
@@ -121,32 +132,36 @@ router.all('/create', function (req, res) {
                             return;
                         }
                     }
+                    var user = {
+                        id: user.get('_id'),
+                        email: user.get('email'),
+                        name: user.get('name'),
+                        picture: user.get('picture')
+                    };
                     res.json({
                         error: 0,
-                        data: {
-                            id: row.get('_id'),
-                            email: row.get('email')
-                        }
+                        data: user
                     });
 
 
                 } else {
 
+
                     var crypto = require('crypto');
                     var md5 = crypto.createHash('md5');
                     md5.update(password);
                     var pass_md5 = md5.digest('hex');
-                    user.password = pass_md5;
+                    userObj.password = pass_md5;
 
-                    if (!user.fb_id) {
-                        user.fb_id = -1;
+                    if (!userObj.fb_id) {
+                        userObj.fb_id = -1;
                     }
-                    if (!user.google_id) {
-                        user.google_id = -1;
+                    if (!userObj.google_id) {
+                        userObj.google_id = -1;
                     }
 
                     //send new account email with email/pass
-                    var model = new User(user);
+                    var model = new UserModel(userObj);
                     model.save(function (err) {
                         if (err) {
                             res.json({
@@ -155,12 +170,10 @@ router.all('/create', function (req, res) {
                             });
                         } else {
                             var id = model._id;
+                            userObj.id = id;
                             res.json({
                                 error: 0,
-                                data: {
-                                    id: id,
-                                    email: model.email
-                                }
+                                data: userObj
                             });
                         }
                     });
