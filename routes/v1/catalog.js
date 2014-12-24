@@ -113,6 +113,10 @@ router.get('/products',function(req,res){
     //res.json(req.body);
     //res.json('is products page');
 });
+router.get('/quickview/:mid',function(req,res){
+    var mid = req.param('mid'); // product mongo id
+    res.json(mid);
+});
 //router.get('/list', function(req, res,next) {
     // parameters will be found in body
     //var body =req.body;
