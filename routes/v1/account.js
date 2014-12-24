@@ -2,9 +2,18 @@ var express = require('express');
 var router = express.Router();
 
 
-router.get('/signup', function (req, res) {
+router.all('/create', function (req, res) {
     var body = req.body;
     var user = body.user;
+    console.log(body);
+
+    if (!user) {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+        return;
+    }
 
     var generatePassword = require('password-generator');
 

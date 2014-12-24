@@ -13,6 +13,7 @@ var module_config = require('./modules/config');
 var module_category = require('./modules/category');
 var module_filters = require('./modules/filters');
 var v1_routes_catalog = require('./routes/v1/catalog'); // arun :: 1st step
+var v1_routes_account = require('./routes/v1/account');
 
 var app = express();
 
@@ -42,7 +43,8 @@ app.use(module_config());
 app.use(module_category());
 app.use(module_filters());
 // work accroding to version basis 
-app.use('/v1/catalog', v1_routes_catalog);
+//app.use('/v1/catalog', v1_routes_catalog);
+app.use('/v1/account', v1_routes_account);
 //app.use('/products',routes_catalog); //arun :: 2nd step
 
 
