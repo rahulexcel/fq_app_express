@@ -10,7 +10,7 @@ var mongoose = require('mongoose');
 var module_conn_pricegenie = require('./modules/conn_pricegenie');
 var module_conn_db_scrap_db3 = require('./modules/conn_db_scrap_db3');
 var module_config = require('./modules/config');
-var module_category = require('./modules/category');
+//var module_category = require('./modules/category');
 var module_filters = require('./modules/filters');
 var v1_routes_catalog = require('./routes/v1/catalog'); // arun :: 1st step
 var v1_routes_account = require('./routes/v1/account');
@@ -40,7 +40,7 @@ app.use(function (req, res, next) {
 app.use(module_conn_pricegenie(mongoose));
 app.use(module_conn_db_scrap_db3(mongoose));
 app.use(module_config());
-app.use(module_category());
+//app.use(module_category());
 app.use(module_filters());
 // work accroding to version basis 
 //app.use('/v1/catalog', v1_routes_catalog);

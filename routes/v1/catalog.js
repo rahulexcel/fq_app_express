@@ -1,10 +1,149 @@
 var express = require('express');
 var router = express.Router();
 //console.log('res resr resr');
-router.post('/list', function (req, res) {
-    res.json(req.catalog);
+router.all('/list', function (req, res) {
+    var category = req.conn_category;
+    var website_scrap_data = req.conn_website_scrap_data;
+    category.find({
+        'is_fashion':1
+    },function(err,data){
+        if( err ){
+            res.json({
+                error:2,
+                message:err.err,
+            });
+        }else{
+            if( data.length == 0 ){
+                res.json({
+                    error:1,
+                    message:'empty raw category listing',
+                });
+            }else{
+                cat_list = data;
+                var catalog = {};
+                var father_wise_listing = new Array();
+                var catalog_cats = new Array();
+                Object.keys(cat_list).forEach(function(key){
+                    var x = cat_list[key];
+                    cat_id = x.get('cat_id');
+                    sub_cat_id = x.get('sub_cat_id');
+                    cat_name = x.get('name');
+                    parent_cat_id = x.get('cat_id');
+                    parent_cat_name = x.get('parent_cat_name');
+                    single_cat_id = x.get('single_cat_id');
+                    father_key = x.get('father_key');
+                    father_text = x.get('father_text');
+                    
+                    father_exists = false;
+                    parent_exists = false;
+                    father_wise_listing.forEach(function(val,key){
+                        if( val.father_key == father_key ){
+                            father_exists = true;
+                        }
+                    });
+                    if( father_exists == false ){
+                        generateFather = {};
+                        generateFather['father_key'] = father_key;
+                        generateFather['father_text'] = father_text;
+                        generateFather['parent_wise'] = new Array();
+                        father_wise_listing.push(generateFather);
+                    }else{
+                        father_wise_listing.forEach(function(val,key){
+                            
+                        });
+                    }
+                    
+                    /*
+                catalog_cats.forEach(function(val,key){
+                    if( val.cat_id == cat_id){
+                        parent_exists = true;
+                    }
+                });
+                if( parent_exists == false ){
+                    generateParent = {};
+                    generateParent['name'] = parent_cat_name;
+                    generateParent['cat_id'] = cat_id;
+                    generateParent['sub_cat_id'] = -1;
+                    generateParent['data'] = new Array();
+                    catalog_cats.push(generateParent);
+                }
+                if( sub_cat_id != -1 ){
+                    catalog_cats.forEach(function(val,key){
+                        if( val.cat_id == cat_id){
+                            generateSubCat = {};
+                            generateSubCat['name'] = cat_name;
+                            generateSubCat['cat_id'] = cat_id;
+                            generateSubCat['sub_cat_id'] = sub_cat_id;
+                            catalog_cats[key]['sub_cat_id'] = 1;
+                            catalog_cats[key]['data'].push(generateSubCat);
+                        }
+                    });
+                }
+                      */
+            });
+            res.json(father_wise_listing);
+            //catalog['cats'] = catalog_cats;
+            //res.json(catalog);
+            //req.catalog=catalog;
+                  
+                    
+                }
+            }
+            
+            
+            
+            
+            /*
+                
+            req.category_list = data;
+            cat_list = data;
+            var catalog = {};
+            var catalog_cats = new Array();
+            Object.keys(cat_list).forEach(function(key){
+                var x = cat_list[key];
+                cat_id = x.get('cat_id');
+                sub_cat_id = x.get('sub_cat_id');
+                cat_name = x.get('name');
+                parent_cat_id = x.get('cat_id');
+                parent_cat_name = x.get('parent_cat_name');
+                single_cat_id = x.get('single_cat_id');
+                parent_exists = false;
+                catalog_cats.forEach(function(val,key){
+                    if( val.cat_id == cat_id){
+                        parent_exists = true;
+                    }
+                });
+                if( parent_exists == false ){
+                    generateParent = {};
+                    generateParent['name'] = parent_cat_name;
+                    generateParent['cat_id'] = cat_id;
+                    generateParent['sub_cat_id'] = -1;
+                    generateParent['data'] = new Array();
+                    catalog_cats.push(generateParent);
+                }
+                if( sub_cat_id != -1 ){
+                    catalog_cats.forEach(function(val,key){
+                        if( val.cat_id == cat_id){
+                            generateSubCat = {};
+                            generateSubCat['name'] = cat_name;
+                            generateSubCat['cat_id'] = cat_id;
+                            generateSubCat['sub_cat_id'] = sub_cat_id;
+                            catalog_cats[key]['sub_cat_id'] = 1;
+                            catalog_cats[key]['data'].push(generateSubCat);
+                        }
+                    });
+                }
+            });
+            catalog['cats'] = catalog_cats;
+            //res.json(catalog);
+            req.catalog=catalog;
+            next();
+            */
+        });
+    //res.json(req.catalog);
+    
 });
-router.post('/products', function (req, res) {
+router.all('/products', function (req, res) {
     var where = {};
     var finalData = {
         'filters': req.filters_to_show,
@@ -95,8 +234,25 @@ router.post('/products', function (req, res) {
 
     website_scrap_data.where(where).skip(skip_count).limit(products_per_page).find(query_results);
     function query_results(err, data) {
-        finalData.products = data;
-        res.json(finalData);
+        if( err ){
+            res.json({
+                error:2,
+                message:err.err
+            });
+        }else{
+            if( data.length == 0){
+                res.json({
+                    error:1,
+                    message:'no product found'
+                });
+            }else{
+                finalData.products = data;
+                res.json({
+                    error:0,
+                    data:finalData,
+                });
+            }
+        }
     }
 
     /*
@@ -113,7 +269,7 @@ router.post('/products', function (req, res) {
     //res.json(req.body);
     //res.json('is products page');
 });
-router.get('/quickview/:mid', function (req, res) {
+router.all('/quickview/:mid', function (req, res) {
     var mid = req.param('mid'); // product mongo id
     res.json(mid);
 });
