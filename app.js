@@ -11,6 +11,7 @@ var module_conn_db_scrap_db3 = require('./modules/conn_db_scrap_db3');
 
 var v1_routes_catalog = require('./routes/v1/catalog'); // arun :: 1st step
 var v1_routes_account = require('./routes/v1/account');
+var v1_routes_wishlist = require('./routes/v1/wishlist');
 
 var app = express();
 
@@ -39,6 +40,7 @@ app.use(module_conn_db_scrap_db3(mongoose));
 // work accroding to version basis 
 app.use('/v1/catalog', v1_routes_catalog);
 app.use('/v1/account', v1_routes_account);
+app.use('/v1/wishlist', v1_routes_wishlist);
 //app.use('/products',routes_catalog); //arun :: 2nd step
 
 
