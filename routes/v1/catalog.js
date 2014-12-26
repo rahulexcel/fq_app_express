@@ -104,21 +104,77 @@ router.all('/products', function (req, res) {
         return ret;
     }
     var products_per_page = 20;
-    var product_data_list = 'name website price';
-    var body = {
-        'cat_id':30,
-        'sub_cat_id':3001,
-        'father_key':'men',
-        'father_text':'men',
-        'page':1,
-        'filters':[
-            'filter__text__website__snapdeal',
-            'filter__range__price__500_600'
-        ]
-    };
-    req.body = body;
+    var product_data_list = 'name website brand price img href offrate'; // add here to get fields in product info
+    //var body = {
+        //'cat_id':30,
+        //'sub_cat_id':3001,
+        //'father_key':'men',
+        //'father_text':'men',
+        //'page':1,
+        //'filters':[
+            //'filter__text__website__snapdeal',
+            //'filter__range__price__500_600'
+        //]
+        //'filters':[
+            //{name: 'Name',param: 'filter__text__website__snapdeal'},
+            //{name: 'Name',param: 'filter__range__price__500_600'},
+        //],
+        //'sortby':'pricehtl',
+    //};
+    //req.body = body;
+    //-start sorting---------------------------------------------------------------
+    var sortBy_arr = new Array;
+    sortBy_arr.push( {
+        'text':'New Arrivals',
+        'param':'new',
+        'sort': {   'is_new_insert':-1, 'time':-1   }
+    });
+    sortBy_arr.push({
+        'text':'Price -- Low to High',
+        'param':'pricelth',
+        'sort': {   'price':1 }
+    });
+    sortBy_arr.push({
+        'text':'Price -- High to Low',
+        'param':'pricehtl',
+        'sort': {   'price':-1 }
+    });
+    sortBy_arr.push({
+        'text':'Off % -- Low to High',
+        'param':'offlth',
+        'sort': {   'offrate':1 }
+    });
+    sortBy_arr.push({
+        'text':'Off % -- High to Low',
+        'param':'offhtl',
+        'sort': {   'offrate':-1 }
+    });
+    sortBy_arr.push({
+        'text':'Price Change',
+        'param':'pricechange',
+        'sort': {   'price_diff':-1 }
+    });
+    //console.log(sortBy_arr);
     
+    /*
+    $sortOptions['pricechange'] = array('sort' => array('price_diff' => -1), 'name' => 'Price Change');
+    if( sizeof( $premiumBrands) >  0){
+        $sortOptions['premium'] = array('sort' => array('is_premium' => -1,'time' => -1), 'name' => 'Premium Brands First');
+    }
+    if( sizeof( $designerBrands) >  0){
+        $sortOptions['designer'] = array('sort' => array('is_designer' => -1,'time'=> -1), 'name' => 'Designer Brands First');
+    }
+    $sortSelected = 'new';
+    if (isset($_REQUEST['sort'])) {
+        $sortSelected = $_REQUEST['sort'];
+    }
+    if (array_key_exists($sortSelected, $sortOptions)) {
+        $sortBY = $sortOptions[$sortSelected]['sort'];
+    }
+    */
+    //-end sorting---------------------------------------------------------------
     var finalData = {};
+    finalData.sort = sortBy_arr;
     //-------------------------------------------------------------------
     var filters_category_wise = req.conn_filters_category_wise;
     var where_filter = {
@@ -151,21 +207,38 @@ router.all('/products', function (req, res) {
                 var father_key = params.father_key;
                 var father_text = params.father_text;
                 var page = params.page;
+                if( typeof page === 'undefined'){
+                    page = 1;
+                }else{
+                    if( page == -1){
+                        page = 1;
+                    }
+                }
+                finalData.current_page = page; // page filters are set here
                 var skip_count = (page - 1) * products_per_page;
+                
                 console.log('page : ' + page);
                 console.log('per page : ' + products_per_page);
                 console.log('skip :' + skip_count);
                 var website_scrap_data = req.conn_website_scrap_data;
                 var m_cat_id = cat_id;
                 var m_sub_cat_id = sub_cat_id;
-                if (m_cat_id == '' || m_cat_id == false) {
+                
+                if( typeof cat_id != 'undefined'){
+                    where['cat_id'] = cat_id*1;
+                }
+                if( typeof sub_cat_id != 'undefined'){
+                    where['sub_cat_id'] = sub_cat_id*1;
+                }
+                
+//                if (m_cat_id == '' || m_cat_id == false) {
                     //m_cat_id = 0;
-                    where['cat_id'] = m_cat_id;
-                }
-                if (m_sub_cat_id == '' || m_sub_cat_id == false) {
+                    //where['cat_id'] = m_cat_id;
+                //}
+                //if (m_sub_cat_id == '' || m_sub_cat_id == false) {
                     //m_sub_cat_id=0;
-                    where['sub_cat_id'] = m_sub_cat_id;
-                }
+                    //where['sub_cat_id'] = m_sub_cat_id;
+                //}
                             //if( cat_id == false ){
                 //cat_id = 0;
                 // }
@@ -180,12 +253,12 @@ router.all('/products', function (req, res) {
                 //};
                 //-start-process set filters----------
                 var applied_filters = params.filters;
-                if ( applied_filters.length > 0 ) {
+                if ( typeof applied_filters != 'undefined' &&  applied_filters.length > 0 ) {
                     console.log('applied filters');
                     console.log(applied_filters);
                     console.log('--------');
                     Object.keys(applied_filters).forEach(function (key) {
-                        fltr = applied_filters[key];
+                        fltr = applied_filters[key].param;
                         fltr_str_arr = stringToArray(fltr, '__');
                         check = fltr_str_arr[0];
                         if (check == 'filter') {
@@ -208,10 +281,23 @@ router.all('/products', function (req, res) {
                     });
                 }
                 //-end---process set filters---------
+                //-start--process set sorting
+                var query_sort = {};
+                if( typeof params.sortby != 'undefined' ){
+                    sortBy_arr.forEach(function(val,key){
+                        if( val.param == params.sortby ){
+                            query_sort = val.sort;
+                        }
+                    });
+                }
+                //-end----process set sorting
                 console.log('where');
                 console.log(where);
                 console.log('--------');
-                website_scrap_data.where(where).skip(skip_count).limit(products_per_page).select( product_data_list ).find(query_results);
+                console.log('sorting by');
+                console.log(query_sort);
+                console.log('---------')
+                website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select( product_data_list ).find(query_results);
                 function query_results(err, data) {
                     if( err ){
                         res.json({
@@ -220,9 +306,10 @@ router.all('/products', function (req, res) {
                         });
                     }else{
                         if( data.length == 0){
+                            finalData.products = [];
                             res.json({
-                                error:1,
-                                message:'no product found'
+                                error:0,
+                                data:finalData
                             });
                         }else{
                             var modify_data = {};
@@ -254,8 +341,9 @@ router.all('/products', function (req, res) {
     //res.json(req.body);
     //res.json('is products page');
 });
-router.all('/quickview/:mid', function (req, res) {
-    var mid = req.param('mid'); // product mongo id
+router.all('/quickview', function (req, res) {
+    //var mid = req.param('mid'); // product mongo id
+    var mid = '546710fb3b10545a2fa9f7d9';
     res.json(mid);
 });
 //router.get('/list', function(req, res,next) {
