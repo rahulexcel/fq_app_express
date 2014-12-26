@@ -1,8 +1,9 @@
 module.exports = function(){
     return function( req, res, next){
-//        config = {
-//            'products_per_page':20,
-//        };
+        config = {
+            'products_per_page':20,
+            'product_data_list' : 'cat_id sub_cat_id name website brand price img href offrate', // add here to get fields in product info
+        };
 //        body = {
 //            'cat_id':30,
 //            'sub_cat_id':3001,
@@ -16,7 +17,7 @@ module.exports = function(){
 //                //size : [size1,soze2             ]
 //            //}]
 //        };
-//        req.config = config;
+        req.config = config;
 //        req.body = body;
         next();
     }

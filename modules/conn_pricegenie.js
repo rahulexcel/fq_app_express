@@ -6,6 +6,7 @@ module.exports = function(mongoose){
     });
     var category = conn.model('category',schema_category);
     return function( req, res, next){
+        req.mongoose = mongoose;
         req.conn_category = category;
         next();
     }
