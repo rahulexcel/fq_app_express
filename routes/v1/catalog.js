@@ -1,6 +1,11 @@
 var express = require('express');
 var router = express.Router();
 router.all('/list', function (req, res) {
+     if (req.method === 'OPTIONS') {
+        res.json('');
+    }else{
+        
+    
     var category = req.conn_category;
     var website_scrap_data = req.conn_website_scrap_data;
     category.find({
@@ -88,9 +93,16 @@ router.all('/list', function (req, res) {
                 });
             }
         }
+    
     });
+    }
 });
 router.all('/products', function (req, res) {
+    
+    if (req.method === 'OPTIONS') {
+        res.json('');
+    }else{
+    
     function stringToArray(str, expby) {
         var ret = new Array();
         var split = str.split(expby);
@@ -180,9 +192,11 @@ router.all('/products', function (req, res) {
     //-------------------------------------------------------------------
     var filters_category_wise = req.conn_filters_category_wise;
     var where_filter = {
-        'cat_id': req.body.cat_id,
-        'sub_cat_id': req.body.sub_cat_id,
+        'cat_id': req.body.cat_id*1,
+        'sub_cat_id': req.body.sub_cat_id*1,
     };
+    console.log('where filter');
+    console.log(where_filter);
     var filters = {};
     filters_category_wise.where(where_filter).find(results);
     function results(err, data) {
@@ -326,6 +340,7 @@ router.all('/products', function (req, res) {
             }
         }
     }
+    }
     //----------------------------------------------------------------------------
     // --params are available in req.body -- in modules/config.js files
     
@@ -343,15 +358,4 @@ router.all('/products', function (req, res) {
     //res.json(req.body);
     //res.json('is products page');
 });
-router.all('/quickview', function (req, res) {
-    //var mid = req.param('mid'); // product mongo id
-    var mid = '546710fb3b10545a2fa9f7d9';
-    res.json(mid);
-});
-//router.get('/list', function(req, res,next) {
-// parameters will be found in body
-//var body =req.body;
-//body.cat_id''
-//res.json('cat subc asdasd age');
-//});
 module.exports = router;
