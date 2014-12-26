@@ -103,8 +103,10 @@ router.all('/products', function (req, res) {
         }
         return ret;
     }
-    var products_per_page = 20;
-    var product_data_list = 'name website brand price img href offrate'; // add here to get fields in product info
+    //var products_per_page = 20;
+    //var product_data_list = 'name website brand price img href offrate'; // add here to get fields in product info
+    var products_per_page = req.config.products_per_page;
+    var product_data_list = req.config.product_data_list;
     //var body = {
         //'cat_id':30,
         //'sub_cat_id':3001,

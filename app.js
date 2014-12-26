@@ -6,12 +6,14 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 
+var module_config = require('./modules/config');
 var module_conn_pricegenie = require('./modules/conn_pricegenie');
 var module_conn_db_scrap_db3 = require('./modules/conn_db_scrap_db3');
 
 var v1_routes_catalog = require('./routes/v1/catalog'); // arun :: 1st step
 var v1_routes_account = require('./routes/v1/account');
 var v1_routes_wishlist = require('./routes/v1/wishlist');
+var v1_routes_product = require('./routes/v1/product');
 
 var app = express();
 
@@ -35,12 +37,14 @@ app.use(function (req, res, next) {
     next();
 });
 
+app.use(module_config());
 app.use(module_conn_pricegenie(mongoose));
 app.use(module_conn_db_scrap_db3(mongoose));
 // work accroding to version basis 
 app.use('/v1/catalog', v1_routes_catalog);
 app.use('/v1/account', v1_routes_account);
 app.use('/v1/wishlist', v1_routes_wishlist);
+app.use('/v1/product',v1_routes_product);
 //app.use('/products',routes_catalog); //arun :: 2nd step
 
 
