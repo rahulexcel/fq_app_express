@@ -52,10 +52,7 @@ router.all('/create', function (req, res) {
             email: email
         }).exec(function (err, user) {
             if (err) {
-                res.json({
-                    error: 2,
-                    message: err.err
-                });
+                next(err);
             } else {
                 if (user) {
                     if (type == 'signup') {
@@ -164,10 +161,7 @@ router.all('/create', function (req, res) {
                     var model = new UserModel(userObj);
                     model.save(function (err) {
                         if (err) {
-                            res.json({
-                                error: 2,
-                                message: err.err
-                            });
+                            next(err);
                         } else {
                             var id = model._id;
                             userObj.id = id;

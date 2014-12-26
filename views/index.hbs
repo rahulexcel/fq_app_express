@@ -1,0 +1,29 @@
+{{#if success}}
+<div style="text-align: center;">
+    <div>
+        <img src='{{url}}/uploads/header_top1.png'>
+    </div>
+    <br/>
+    <i style="color: green;margin: 25px 0 5px 0;" class="fa fa-check-circle fa-2x"></i>
+    <br/>
+    <div style="font-weight: bold;">
+        {{success}}
+    </div>
+    <br/>
+</div>
+{{/if}}
+
+{{#if error}}
+<div style="text-align: center;">
+    <div>
+        <img src='{{url}}/uploads/header_top1.png'>
+    </div>
+    <br/>
+    <i style="color: red;margin: 25px 0 5px 0;" class="fa fa-times-circle fa-2x"></i>
+    <br/>
+    <div style="font-weight: bold;">
+        {{error}}
+    </div>
+    <br/>
+</div>
+{{/if}}
