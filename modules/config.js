@@ -10,8 +10,7 @@ module.exports = function(){
 //            'father_text':'men',
 //            'page':1,
 //            'filters':[
-//                'filter__text__website__snapdeal',
-//                'filter__range__price__500_600'
+//                {name: 'Name',param: filter__text__website__snapdeal},
 //            ],
 //            //filter : [{
 //                //size : [size1,soze2             ]
