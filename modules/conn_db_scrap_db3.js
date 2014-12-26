@@ -21,11 +21,20 @@ module.exports = function (mongoose) {
         collection: 'user',
     });
     var User = conn.model('user', user_schema);
+
+    var wishlist_schema = mongoose.Schema({}, {
+        strict: false,
+        collection: 'wishlist',
+    });
+
+    var Wishlist = conn.model('wishlist', wishlist_schema);
+
     return function (req, res, next) {
         req.conn_final_fashion_filters = final_fashion_filters;
         req.conn_filters_category_wise = filters_category_wise;
         req.conn_website_scrap_data = website_scrap_data;
         req.User = User;
+        req.Wishlist = Wishlist;
         next();
     }
 }
