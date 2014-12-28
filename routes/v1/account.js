@@ -1,6 +1,95 @@
 var express = require('express');
+var fs = require('fs');
 var router = express.Router();
+var mongoose = require('mongoose');
 
+router.all('/picture/view/:filename', function (req, res) {
+    var filename = req.param('filename');
+    if (filename) {
+        var gfs = req.gfs;
+
+        gfs.files.find({filename: filename}).toArray(function (err, files) {
+
+            if (err) {
+                next(err);
+            }
+            if (files.length > 0) {
+                console.log(files);
+                var mime = 'image/jpeg';
+                res.set('Content-Type', mime);
+                var read_stream = gfs.createReadStream({filename: filename});
+                read_stream.pipe(res);
+            } else {
+                res.sendStatus(500);
+                res.json('File Not Found');
+            }
+        });
+
+    } else {
+        res.sendStatus(500);
+        res.send();
+    }
+})
+
+router.all('/picture', function (req, res) {
+    var gfs = req.gfs;
+    var body = req.body;
+    var user_id = body.user_id;
+
+    if (req.files && user_id) {
+        var filename = req.files.file.name;
+        var path = req.files.file.path;
+        var type = req.files.file.mimetype;
+        console.log('file upload for ' + user_id);
+        if (type.indexOf('image') != -1) {
+            var dirname = require('path').dirname(__dirname);
+
+            var mongo_filename = req.files.file.name;
+            console.log(dirname + "/../" + path);
+            var read_stream = fs.createReadStream(dirname + "/../" + path);
+            var writestream = gfs.createWriteStream({
+                filename: mongo_filename
+            });
+            writestream.on('error', function (err) {
+                console.log(err);
+            })
+            read_stream.on('error', function (err) {
+                console.log(err);
+            })
+            read_stream.pipe(writestream);
+            writestream.on('close', function () {
+                var UserModel = req.User;
+                UserModel.update({
+                    _id: mongoose.Types.ObjectId(user_id)
+                }, {
+                    $set: {
+                        picture: filename
+                    }
+                }, function (err) {
+                    if (err) {
+                        next(err);
+                    } else {
+                        res.json({
+                            error: 0,
+                            data: mongo_filename
+                        });
+                    }
+                })
+            });
+        } else {
+            res.json({
+                error: 1,
+                message: 'Only JPG, PNG and GIF files accepted.'
+            });
+        }
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request. No File Uploaded'
+        });
+    }
+
+})
 
 router.all('/create', function (req, res) {
     var body = req.body;

@@ -5,6 +5,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
+var multer = require('multer')
 
 var module_config = require('./modules/config');
 var module_conn_pricegenie = require('./modules/conn_pricegenie');
@@ -26,11 +27,12 @@ app.set('view engine', '.hbs');
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(__dirname + '/public/favicon.ico'));
+app.use(multer({dest: './uploads/'}))
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'uploads')));
 
 app.use(function (req, res, next) {
     console.log(req.body);
@@ -49,7 +51,7 @@ app.use('/v1/catalog', v1_routes_catalog);
 app.use('/v1/account', v1_routes_account);
 app.use('/v1/wishlist', v1_routes_wishlist);
 app.use('/v1/product', v1_routes_product);
-app.use('/v1/search',v1_routes_search);
+app.use('/v1/search', v1_routes_search);
 //app.use('/products',routes_catalog); //arun :: 2nd step
 
 
@@ -66,9 +68,11 @@ app.use(function (req, res, next) {
 // will print stacktrace
 if (app.get('env') === 'development') {
     app.use(function (err, req, res, next) {
-        res.status(err.status || 500);
+        if (err.status)
+            res.status(err.status);
         res.json({
             error: 2,
+            err: err,
             message: err.err
         });
     });
@@ -77,9 +81,11 @@ if (app.get('env') === 'development') {
 // production error handler
 // no stacktraces leaked to user
 app.use(function (err, req, res, next) {
-    res.status(err.status || 500);
+    if (err.status)
+        res.status(err.status);
     res.json({
         error: 2,
+        err: err,
         message: err.err
     });
 });

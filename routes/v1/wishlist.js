@@ -58,7 +58,7 @@ router.all('/list', function (req, res) {
                                     prod.href = href;
                                     prod.price = price;
                                     prod.website = website;
-                                    
+
                                     prod.created_at = moment(created_at).tz('Asia/Calcutta').format('Do MMM h:mm a');
 
                                     ret.push(prod);
@@ -103,7 +103,7 @@ router.all('/add', function (req, res) {
                 next(err);
             } else {
                 if (row) {
-                    Wisthlist.find({
+                    Wishlist.find({
                         user_id: user_id,
                         expired: 0
                     }, function (err, data) {
@@ -134,8 +134,8 @@ router.all('/add', function (req, res) {
 
                                         if (found) {
                                             res.json({
-                                                error: 0,
-                                                message: ''
+                                                error: 1,
+                                                message: 'Product Already In Your Wishlist'
                                             });
                                         } else {
 

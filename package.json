@@ -20,6 +20,9 @@
     "nodemailer-smtp-transport": "~0.1.13",
     "nodemailer-direct-transport": "~1.0.0",
     "express-handlebars": "~1.1.0",
-    "nodemailer-express-handlebars": "0.0.3"
+    "nodemailer-express-handlebars": "0.0.3",
+    "password-generator": "~0.2.3",
+    "gridfs-stream": "~0.5.3",
+    "multer": "~0.1.6"
   }
 }

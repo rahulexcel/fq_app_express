@@ -1,8 +1,8 @@
 module.exports = function (mongoose) {
     var conn = mongoose.createConnection('mongodb://127.0.0.1/scrap_db3');
-    
+
     var scrap_db3 = mongoose.connection;
-    
+
     var schema_final_fashion_filters = mongoose.Schema({}, {
         strict: false,
         collection: 'final_fashion_filters',
@@ -32,6 +32,10 @@ module.exports = function (mongoose) {
 
     var Wishlist = conn.model('wishlist', wishlist_schema);
 
+    var Grid = require('gridfs-stream');
+    Grid.mongo = mongoose.mongo;
+    var gfs = Grid(conn.db);
+
     return function (req, res, next) {
         req.scrap_db3 = scrap_db3;
         req.conn_final_fashion_filters = final_fashion_filters;
@@ -39,6 +43,7 @@ module.exports = function (mongoose) {
         req.conn_website_scrap_data = website_scrap_data;
         req.User = User;
         req.Wishlist = Wishlist;
+        req.gfs = gfs;
         next();
     }
 }
