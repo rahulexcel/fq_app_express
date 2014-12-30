@@ -5,7 +5,7 @@ router.all('/',function(req,res){
     var mongoose = req.mongoose;
     var body = req.body;
     var search_text = body.text;
-    search_text = 'adidas';
+    //search_text = 'adidas';
     var product_data_list = req.config.product_data_list;
     var final_data = new Array();
     var website_scrap_data = req.conn_website_scrap_data;
