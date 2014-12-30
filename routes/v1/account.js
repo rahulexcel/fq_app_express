@@ -3,8 +3,94 @@ var fs = require('fs');
 var router = express.Router();
 var mongoose = require('mongoose');
 
+router.all('/update', function (req, res) {
+    var body = req.body;
+    var user_id = body.user_id;
+
+    var name = body.name;
+    var password = body.pass;
+    var UserModel = req.User;
+    if (user_id) {
+        if (name.length > 0) {
+            UserModel.update({
+                _id: mongoose.Types.ObjectId(user_id)
+            }, {
+                $set: {
+                    name: name
+                }
+            }, function (err) {
+                if (err) {
+                    next(err);
+                } else {
+                    res.json({
+                        error: 0
+                    });
+                }
+            })
+        } else if (password.length > 0) {
+            var crypto = require('crypto');
+            var md5 = crypto.createHash('md5');
+            md5.update(password);
+            var pass_md5 = md5.digest('hex');
+            UserModel.update({
+                _id: mongoose.Types.ObjectId(user_id)
+            }, {
+                $set: {
+                    password: pass_md5
+                }
+            }, function (err) {
+                if (err) {
+                    next(err);
+                } else {
+                    res.json({
+                        error: 0
+                    });
+                }
+            })
+        } else {
+            res.send({
+                error: 1,
+                message: 'Invalid Request'
+            });
+        }
+    } else {
+        res.send({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+
+})
+router.all('/remove_picture', function (req, res) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var UserModel = req.User;
+    if (user_id) {
+        UserModel.update({
+            _id: mongoose.Types.ObjectId(user_id)
+        }, {
+            $set: {
+                picture: ''
+            }
+        }, function (err) {
+            if (err) {
+                next(err);
+            } else {
+                res.json({
+                    error: 0
+                });
+            }
+        })
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
 router.all('/picture/view/:filename', function (req, res) {
     var filename = req.param('filename');
+    console.log(filename + 'filename');
     if (filename) {
         var gfs = req.gfs;
 
@@ -20,14 +106,13 @@ router.all('/picture/view/:filename', function (req, res) {
                 var read_stream = gfs.createReadStream({filename: filename});
                 read_stream.pipe(res);
             } else {
-                res.sendStatus(500);
+                res.status(500);
                 res.json('File Not Found');
             }
         });
 
     } else {
         res.sendStatus(500);
-        res.send();
     }
 })
 
@@ -37,6 +122,7 @@ router.all('/picture', function (req, res) {
     var user_id = body.user_id;
 
     if (req.files && user_id) {
+        console.log(req.files);
         var filename = req.files.file.name;
         var path = req.files.file.path;
         var type = req.files.file.mimetype;
