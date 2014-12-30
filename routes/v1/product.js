@@ -3,7 +3,7 @@ var router = express.Router();
 
 router.all('/view', function(req,res){
     if( req.method === 'OPTIONS'){
-        
+        res.json('');
     }else{
     var mongoose = req.mongoose;
     var body = req.body;
