@@ -32,6 +32,13 @@ module.exports = function (mongoose) {
 
     var Wishlist = conn.model('wishlist', wishlist_schema);
 
+    var feedback_schema = mongoose.Schema({}, {
+        strict: false,
+        collection: 'feedback',
+    });
+
+    var Feedback = conn.model('feedback', feedback_schema);
+
     var Grid = require('gridfs-stream');
     Grid.mongo = mongoose.mongo;
     var gfs = Grid(conn.db);
