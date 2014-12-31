@@ -291,6 +291,10 @@ router.all('/products', function (req, res) {
                                 fltr_val = fltr_str_arr[3];
                                 if (fltr_type == 'text') {
                                     fltr_val = fltr_val.replace(/_/g, ' ');
+                                    if( fltr_key == 'brand'){
+                                        console.log(fltr_key+' ----- ');
+                                        //Object.keys(where).
+                                    }
                                     where[fltr_key] = new RegExp(fltr_val, "i");
                                 } else if (fltr_type == 'range') {
                                     range_arr = stringToArray(fltr_val, '_');
@@ -314,6 +318,9 @@ router.all('/products', function (req, res) {
                             }
                         });
                     }
+                    
+                    //where['name'] = 
+                    
                     //-end----process set sorting
                     console.log('final where applied');
                     console.log(where);
@@ -365,5 +372,56 @@ router.all('/products', function (req, res) {
      */
     //res.json(req.body);
     //res.json('is products page');
+});
+router.all('/search',function(req,res){
+    var mongoose = req.mongoose;
+    var body = req.body;
+    var search_text = body.text;
+    //search_text = 'adidas';
+    var product_data_list = req.config.product_data_list;
+    var final_data = new Array();
+    var website_scrap_data = req.conn_website_scrap_data;
+    if( typeof search_text === 'undefined' || search_text == ''){
+        res.json({
+            error:1,
+            message:'search text is empty'
+        });
+    }else{
+        var search_products = [];
+        final_data.text = search_text;
+        final_data.result = search_products;
+        website_scrap_data.db.db.command({
+            text: 'website_scrap_data', 
+            search: search_text,
+            limit: 20, 
+            select:product_data_list,
+            //filter : where_similar
+        },function(err,data){
+            if( err ){
+                res.json({
+                    error:2,
+                    message:err.err
+                });
+            }else{
+                if( data.results ){
+                    for(var i=0;i<data.results.length;i++){
+                        var row = data.results[i];
+                        var obj = row.obj
+                        search_products.push(obj);
+                    }
+                    final_data.result = search_products;
+                    res.json({
+                        error:0,
+                        data:search_products
+                    });
+                }else{
+                    res.json({
+                        error:1,
+                        data:'error in data.results'
+                    });
+                }
+            }        
+        });
+    }
 });
 module.exports = router;
