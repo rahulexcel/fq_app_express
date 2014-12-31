@@ -7,17 +7,15 @@ router.all('/update', function (req, res) {
     var body = req.body;
     var user_id = body.user_id;
 
-    var name = body.name;
-    var password = body.pass;
+    var profile = body.profile;
+    var password = body.password;
     var UserModel = req.User;
     if (user_id) {
-        if (name.length > 0) {
+        if (profile) {
             UserModel.update({
                 _id: mongoose.Types.ObjectId(user_id)
             }, {
-                $set: {
-                    name: name
-                }
+                $set: profile
             }, function (err) {
                 if (err) {
                     next(err);
@@ -124,13 +122,19 @@ router.all('/picture', function (req, res) {
     if (req.files && user_id) {
         console.log(req.files);
         var filename = req.files.file.name;
+
+        if (filename.indexOf('?') != -1) {
+            filename = filename.substring(0, filename.indexOf('?'));
+        }
+        console.log('new file name ' + filename);
+
         var path = req.files.file.path;
         var type = req.files.file.mimetype;
         console.log('file upload for ' + user_id);
         if (type.indexOf('image') != -1) {
             var dirname = require('path').dirname(__dirname);
 
-            var mongo_filename = req.files.file.name;
+            var mongo_filename = filename;
             console.log(dirname + "/../" + path);
             var read_stream = fs.createReadStream(dirname + "/../" + path);
             var writestream = gfs.createWriteStream({
@@ -308,7 +312,8 @@ router.all('/create', function (req, res) {
                         id: user.get('_id'),
                         email: user.get('email'),
                         name: user.get('name'),
-                        picture: user.get('picture')
+                        picture: user.get('picture'),
+                        gender: user.get('gender')
                     };
                     res.json({
                         error: 0,
