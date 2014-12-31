@@ -315,7 +315,7 @@ router.all('/products', function (req, res) {
                         });
                     }
                     //-end----process set sorting
-                    console.log('where');
+                    console.log('final where applied');
                     console.log(where);
                     console.log('--------');
                     console.log('sorting by');
