@@ -96,7 +96,6 @@ router.all('/list', function (req, res) {
                             }
                         });
                     }
-                    console.log(father_wise_listing);
                     res.json({
                         error: 0,
                         data: father_wise_listing
@@ -235,7 +234,8 @@ router.all('/products', function (req, res) {
                 } else {
                     raw_filters = data[0].get('filters').api_filters;
                     filters = raw_filters;
-                    finalData.filters = filters; // page filters are set here
+                    
+                    var colors_data = filters.color.data; // will be used when color filter is applied
 
                     var where = {};
                     var params = req.body;
@@ -319,6 +319,57 @@ router.all('/products', function (req, res) {
                                         where[fltr_key]['$in'].push(fltr_val);
                                         
                                         //Object.keys(where).
+                                    }else if( fltr_key == 'color'){
+                                        var query_colors = [];
+                                        query_colors.push( fltr_val );
+                                        
+                                        if( typeof fltr_str_arr[3] != 'undefined' && fltr_str_arr[4] == 'subcolor' && typeof fltr_str_arr[5] != 'undefined'){
+                                            var list_sub_colors = fltr_str_arr[5];
+                                            list_sub_colors = list_sub_colors.replace(/_/g, ' ');
+                                            var arr_sub_colors = stringToArray(list_sub_colors, ',');
+                                            for( var i=0;i<arr_sub_colors.length;i++){
+                                                var subclr = arr_sub_colors[i];
+                                                console.log('arun --- '+subclr);
+                                                query_colors.push(subclr);
+                                            }
+                                            
+                                            console.log(list_sub_colors);
+                                            console.log('arun kumar');
+                                            console.log(arr_sub_colors);
+                                        }else{
+                                        
+                                            //where[fltr_key] = new RegExp(fltr_val, "i");
+                                            Object.keys( colors_data ).forEach(function(sscc){
+                                                sscc_data = colors_data[sscc];
+                                                sscc_color = sscc_data.color;
+                                                sscc_data_secondary_colors = sscc_data.secondary_colors;
+                                                if(sscc_color == fltr_val){
+                                                    console.log('aa :: ' +fltr_key);
+                                                    console.log(fltr_val);
+                                                    filters.color.data = sscc_data_secondary_colors;
+                                                    for( var i=0;i<sscc_data_secondary_colors.length;i++){
+                                                        var row = sscc_data_secondary_colors[i];
+                                                        query_colors.push(row.color);
+                                                        if( typeof row.sub_colors != 'undefined' && row.sub_colors.length > 0 ) {
+                                                            for( var j=0;j<row.sub_colors.length;j++){
+                                                                var rowss = row.sub_colors[j];
+                                                                query_colors.push(rowss);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                            
+                                        }
+                                        
+                                        console.log('query_colors');
+                                        console.log(query_colors);
+                                        
+                                        
+                                        where[fltr_key] = {
+                                            '$in':query_colors
+                                        };
+                                        
                                     }else{
                                         where[fltr_key] = new RegExp(fltr_val, "i");
                                     }
@@ -345,6 +396,8 @@ router.all('/products', function (req, res) {
                             }
                         });
                     }
+                    
+                    finalData.filters = filters; // page filters are set here
                     
                     //-end----process set sorting
                     console.log('---START----where for products----------------');
