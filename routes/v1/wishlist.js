@@ -11,7 +11,7 @@ router.all('/list', function (req, res) {
     var User = req.User;
     var website_scrap_data = req.conn_website_scrap_data;
 
-    if (user_id && product_id) {
+    if (user_id) {
         User.findOne({
             _id: mongoose.Types.ObjectId(user_id)
         }, function (err, row) {
