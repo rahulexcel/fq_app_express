@@ -35,6 +35,7 @@ router.all('/list', function (req, res) {
                         single_cat_id = x.get('single_cat_id');
                         father_key = x.get('father_key');
                         father_text = x.get('father_text');
+                        father_order = x.get('father_order');
 
                         father_exists = false;
                         father_wise_listing.forEach(function (val, key) {
@@ -49,8 +50,8 @@ router.all('/list', function (req, res) {
                             generateFather['sub_cat_id'] = -1;
                             generateFather['father_key'] = father_key;
                             generateFather['father_text'] = father_text;
+                            generateFather['father_order'] = father_order;
                             generateFather['data'] = new Array();
-                            ;
                             father_wise_listing.push(generateFather);
                         } else {
                             father_wise_listing.forEach(function (val, key) {
@@ -86,6 +87,16 @@ router.all('/list', function (req, res) {
                             });
                         }
                     });
+                    if( father_wise_listing.length > 0 ){
+                        father_wise_listing.sort(function (a, b) {
+                            if( a.father_order > b.father_order){
+                                return 1;
+                            }else{
+                                return 0;
+                            }
+                        });
+                    }
+                    console.log(father_wise_listing);
                     res.json({
                         error: 0,
                         data: father_wise_listing
@@ -124,6 +135,7 @@ router.all('/products', function (req, res) {
         }
         //var products_per_page = 20;
         //var product_data_list = 'name website brand price img href offrate'; // add here to get fields in product info
+        var search_limit = 30; //products count to be shown while searching
         var products_per_page = req.config.products_per_page;
         var product_data_list = req.config.product_data_list;
         //var body = {
@@ -203,8 +215,9 @@ router.all('/products', function (req, res) {
             'cat_id': req.body.cat_id * 1,
             'sub_cat_id': req.body.sub_cat_id * 1,
         };
-        console.log('where filter');
+        console.log('----START-----where for filters------------');
         console.log(where_filter);
+        console.log('----END-----where for filters------------');
         var filters = {};
         filters_category_wise.where(where_filter).find(results);
         function results(err, data) {
@@ -242,8 +255,8 @@ router.all('/products', function (req, res) {
                     var skip_count = (page - 1) * products_per_page;
 
                     console.log('page : ' + page);
-                    console.log('per page : ' + products_per_page);
-                    console.log('skip :' + skip_count);
+                    //console.log('per page : ' + products_per_page);
+                    //console.log('skip :' + skip_count);
                     var website_scrap_data = req.conn_website_scrap_data;
                     var m_cat_id = cat_id;
                     var m_sub_cat_id = sub_cat_id;
@@ -278,9 +291,9 @@ router.all('/products', function (req, res) {
                     //-start-process set filters----------
                     var applied_filters = params.filters;
                     if (typeof applied_filters != 'undefined' && applied_filters.length > 0) {
-                        console.log('applied filters');
-                        console.log(applied_filters);
-                        console.log('--------');
+                        //console.log('----START --------applied filters--------------');
+                        //console.log(applied_filters);
+                        //console.log('----ENd-- --------applied filters--------------');
                         Object.keys(applied_filters).forEach(function (key) {
                             fltr = applied_filters[key].param;
                             fltr_str_arr = stringToArray(fltr, '__');
@@ -289,9 +302,27 @@ router.all('/products', function (req, res) {
                                 fltr_type = fltr_str_arr[1];
                                 fltr_key = fltr_str_arr[2];
                                 fltr_val = fltr_str_arr[3];
-                                if (fltr_type == 'text') {
+                                if (fltr_type == 'text' ) {
                                     fltr_val = fltr_val.replace(/_/g, ' ');
-                                    where[fltr_key] = new RegExp(fltr_val, "i");
+                                    if( fltr_key == 'brand' || fltr_key == 'website' ){
+                                        fltr_key_is_in_where = false;
+                                        Object.keys( where ).forEach(function(cc){
+                                            if( cc == fltr_key ){
+                                                fltr_key_is_in_where = true;
+                                            }
+                                        });
+                                        if( fltr_key_is_in_where == false ){
+                                            where[fltr_key] = {
+                                                    '$in':[],
+                                            };
+                                        }
+                                        where[fltr_key]['$in'].push(fltr_val);
+                                        
+                                        //Object.keys(where).
+                                    }else{
+                                        where[fltr_key] = new RegExp(fltr_val, "i");
+                                    }
+                                    
                                 } else if (fltr_type == 'range') {
                                     range_arr = stringToArray(fltr_val, '_');
                                     fltr_val_low = range_arr[0];
@@ -314,14 +345,33 @@ router.all('/products', function (req, res) {
                             }
                         });
                     }
+                    
                     //-end----process set sorting
-                    console.log('final where applied');
+                    console.log('---START----where for products----------------');
                     console.log(where);
-                    console.log('--------');
-                    console.log('sorting by');
+                    console.log('---END------where for products----------------');
+                    
+                    console.log('---START----sort applied----------------');
                     console.log(query_sort);
-                    console.log('---------')
-                    website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
+                    console.log('---END------sort applied----------------');
+                    
+                    var is_text_search = false;
+                    if( typeof req.body.search != 'undefined' && req.body.search != ''){
+                        is_text_search = true;
+                    }
+                    if( is_text_search == true ){
+                        console.log('text search ::: ' + req.body.search);
+                        finalData.current_page = -1; // coz only one page will be shown during search
+                        website_scrap_data.db.db.command({
+                            text: 'website_scrap_data', 
+                            search: req.body.search,
+                            filter:where,
+                            limit: search_limit
+                        },query_results);
+                    }else{
+                        website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
+                    }
+                    
                     function query_results(err, data) {
                         if (err) {
                             res.json({
@@ -329,15 +379,25 @@ router.all('/products', function (req, res) {
                                 message: err.err
                             });
                         } else {
+                            finalData.products = [];
                             if (data.length == 0) {
-                                finalData.products = [];
                                 res.json({
                                     error: 0,
                                     data: finalData
                                 });
                             } else {
                                 var modify_data = {};
-                                finalData.products = data;
+                                if( is_text_search == false ){
+                                    finalData.products = data;
+                                }else{
+                                    if( data.results ){
+                                        for(var i=0;i<data.results.length;i++){
+                                            var row = data.results[i];
+                                            var obj = row.obj
+                                            finalData.products.push(obj);
+                                        }
+                                    }
+                                }
                                 res.json({
                                     error: 0,
                                     data: finalData,
@@ -365,5 +425,56 @@ router.all('/products', function (req, res) {
      */
     //res.json(req.body);
     //res.json('is products page');
+});
+router.all('/search',function(req,res){
+    var mongoose = req.mongoose;
+    var body = req.body;
+    var search_text = body.text;
+    //search_text = 'adidas';
+    var product_data_list = req.config.product_data_list;
+    var final_data = new Array();
+    var website_scrap_data = req.conn_website_scrap_data;
+    if( typeof search_text === 'undefined' || search_text == ''){
+        res.json({
+            error:1,
+            message:'search text is empty'
+        });
+    }else{
+        var search_products = [];
+        final_data.text = search_text;
+        final_data.result = search_products;
+        website_scrap_data.db.db.command({
+            text: 'website_scrap_data', 
+            search: search_text,
+            limit: 20, 
+            select:product_data_list,
+            //filter : where_similar
+        },function(err,data){
+            if( err ){
+                res.json({
+                    error:2,
+                    message:err.err
+                });
+            }else{
+                if( data.results ){
+                    for(var i=0;i<data.results.length;i++){
+                        var row = data.results[i];
+                        var obj = row.obj
+                        search_products.push(obj);
+                    }
+                    final_data.result = search_products;
+                    res.json({
+                        error:0,
+                        data:search_products
+                    });
+                }else{
+                    res.json({
+                        error:1,
+                        data:'error in data.results'
+                    });
+                }
+            }        
+        });
+    }
 });
 module.exports = router;
