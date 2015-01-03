@@ -111,7 +111,9 @@ router.all('/products', function (req, res) {
     if (req.method === 'OPTIONS') {
         res.json('');
     } else {
-
+        
+        console.log(req.body);
+        
         if (!req.body.cat_id && !req.body_sub_cat_id) {
             res.json({
                 error: 1,
@@ -289,6 +291,7 @@ router.all('/products', function (req, res) {
                     //'sub_cat_id':m_sub_cat_id
                     //};
                     //-start-process set filters----------
+                    var set_empty_colors_filters = false;
                     var applied_filters = params.filters;
                     if (typeof applied_filters != 'undefined' && applied_filters.length > 0) {
                         //console.log('----START --------applied filters--------------');
@@ -320,22 +323,26 @@ router.all('/products', function (req, res) {
                                         
                                         //Object.keys(where).
                                     }else if( fltr_key == 'color'){
+                                        
                                         var query_colors = [];
                                         query_colors.push( fltr_val );
                                         
-                                        if( typeof fltr_str_arr[3] != 'undefined' && fltr_str_arr[4] == 'subcolor' && typeof fltr_str_arr[5] != 'undefined'){
-                                            var list_sub_colors = fltr_str_arr[5];
-                                            list_sub_colors = list_sub_colors.replace(/_/g, ' ');
-                                            var arr_sub_colors = stringToArray(list_sub_colors, ',');
-                                            for( var i=0;i<arr_sub_colors.length;i++){
-                                                var subclr = arr_sub_colors[i];
-                                                console.log('arun --- '+subclr);
-                                                query_colors.push(subclr);
+                                        if( typeof fltr_str_arr[3] != 'undefined' && fltr_str_arr[4] == 'subcolor' ){
+                                            set_empty_colors_filters = true; 
+                                            console.log(' arun kuma COLORS UNSET HERE');
+                                            if( typeof fltr_str_arr[5] != 'undefined' ){
+                                                
+                                                var list_sub_colors = fltr_str_arr[5];
+                                                list_sub_colors = list_sub_colors.replace(/_/g, ' ');
+                                                var arr_sub_colors = stringToArray(list_sub_colors, ',');
+                                                for( var i=0;i<arr_sub_colors.length;i++){
+                                                    var subclr = arr_sub_colors[i];
+                                                    query_colors.push(subclr);
+                                                }
+                                                //console.log(list_sub_colors);
+                                                //console.log('arun kumar');
+                                                //console.log(arr_sub_colors);
                                             }
-                                            
-                                            console.log(list_sub_colors);
-                                            console.log('arun kumar');
-                                            console.log(arr_sub_colors);
                                         }else{
                                         
                                             //where[fltr_key] = new RegExp(fltr_val, "i");
@@ -344,9 +351,10 @@ router.all('/products', function (req, res) {
                                                 sscc_color = sscc_data.color;
                                                 sscc_data_secondary_colors = sscc_data.secondary_colors;
                                                 if(sscc_color == fltr_val){
-                                                    console.log('aa :: ' +fltr_key);
-                                                    console.log(fltr_val);
+                                                    //console.log('aa :: ' +fltr_key);
+                                                    //console.log(fltr_val);
                                                     filters.color.data = sscc_data_secondary_colors;
+                                                    console.log(' arun kuma COLORS SET HERE');
                                                     for( var i=0;i<sscc_data_secondary_colors.length;i++){
                                                         var row = sscc_data_secondary_colors[i];
                                                         query_colors.push(row.color);
@@ -396,7 +404,9 @@ router.all('/products', function (req, res) {
                             }
                         });
                     }
-                    
+                    if( set_empty_colors_filters == true){ // coz if secondary color is selected then no need to further show colors filters
+                        filters.color.data = [];
+                    }
                     finalData.filters = filters; // page filters are set here
                     
                     //-end----process set sorting
