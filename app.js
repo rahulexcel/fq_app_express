@@ -11,12 +11,14 @@ var module_config = require('./modules/config');
 var module_conn_pricegenie = require('./modules/conn_pricegenie');
 var module_conn_db_scrap_db3 = require('./modules/conn_db_scrap_db3');
 var mail = require('./modules/mail');
+var module_recycle_data = require('./modules/recycle_data');
 
 var v1_routes_catalog = require('./routes/v1/catalog'); // arun :: 1st step
 var v1_routes_account = require('./routes/v1/account');
 var v1_routes_wishlist = require('./routes/v1/wishlist');
 var v1_routes_product = require('./routes/v1/product');
 var v1_routes_feedback = require('./routes/v1/feedback');
+
 
 var app = express();
 
@@ -46,6 +48,7 @@ app.use(module_config());
 app.use(module_conn_pricegenie(mongoose));
 app.use(module_conn_db_scrap_db3(mongoose));
 app.use(mail());
+app.use(module_recycle_data());
 // work accroding to version basis 
 app.use('/v1/catalog', v1_routes_catalog);
 app.use('/v1/account', v1_routes_account);

@@ -4,106 +4,31 @@ router.all('/list', function (req, res) {
     if (req.method === 'OPTIONS') {
         res.json('');
     } else {
-        var category = req.conn_category;
-        var website_scrap_data = req.conn_website_scrap_data;
-        category.find({
-            'is_fashion': 1
-        }, function (err, data) {
-            if (err) {
+        
+        if( typeof req.recycle_data.father_wise_listing_status != 'undefined'){
+            var father_wise_listing_status = req.recycle_data.father_wise_listing_status;
+            if( father_wise_listing_status == 2 ){
                 res.json({
-                    error: 2,
-                    message: err.err,
+                    error:2,
+                    message:req.recycle_data.father_wise_listing_msg
                 });
-            } else {
-                if (data.length == 0) {
-                    res.json({
-                        error: 1,
-                        message: 'empty raw category listing',
-                    });
-                } else {
-                    cat_list = data;
-                    var catalog = {};
-                    var father_wise_listing = new Array();
-                    var catalog_cats = new Array();
-                    Object.keys(cat_list).forEach(function (key) {
-                        var x = cat_list[key];
-                        cat_id = x.get('cat_id');
-                        sub_cat_id = x.get('sub_cat_id');
-                        cat_name = x.get('name');
-                        parent_cat_id = x.get('cat_id');
-                        parent_cat_name = x.get('parent_cat_name');
-                        single_cat_id = x.get('single_cat_id');
-                        father_key = x.get('father_key');
-                        father_text = x.get('father_text');
-                        father_order = x.get('father_order');
-
-                        father_exists = false;
-                        father_wise_listing.forEach(function (val, key) {
-                            if (val.father_key == father_key) {
-                                father_exists = true;
-                            }
-                        });
-                        if (father_exists == false) {
-                            generateFather = {};
-                            generateFather['name'] = father_text;
-                            generateFather['cat_id'] = -1;
-                            generateFather['sub_cat_id'] = -1;
-                            generateFather['father_key'] = father_key;
-                            generateFather['father_text'] = father_text;
-                            generateFather['father_order'] = father_order;
-                            generateFather['data'] = new Array();
-                            father_wise_listing.push(generateFather);
-                        } else {
-                            father_wise_listing.forEach(function (val, key) {
-                                if (val.father_key == father_key) {
-                                    parent_exists = false;
-                                    parent_wise = val.data;
-                                    parent_wise.forEach(function (val1, key1) {
-                                        if (val1.cat_id == cat_id) {
-                                            parent_exists = true;
-                                        }
-                                    });
-                                    if (parent_exists == false) {
-                                        generateParent = {};
-                                        generateParent['name'] = parent_cat_name;
-                                        generateParent['cat_id'] = cat_id;
-                                        generateParent['sub_cat_id'] = -1;
-                                        generateParent['data'] = new Array();
-                                        parent_wise.push(generateParent);
-                                    }
-                                    if (sub_cat_id != -1) {
-                                        parent_wise.forEach(function (val2, key2) {
-                                            if (val2.cat_id == cat_id) {
-                                                generateSubCat = {};
-                                                generateSubCat['name'] = cat_name;
-                                                generateSubCat['cat_id'] = cat_id;
-                                                generateSubCat['sub_cat_id'] = sub_cat_id;
-                                                parent_wise[key2]['sub_cat_id'] = 1;
-                                                parent_wise[key2]['data'].push(generateSubCat);
-                                            }
-                                        });
-                                    }
-                                }
-                            });
-                        }
-                    });
-                    if( father_wise_listing.length > 0 ){
-                        father_wise_listing.sort(function (a, b) {
-                            if( a.father_order > b.father_order){
-                                return 1;
-                            }else{
-                                return 0;
-                            }
-                        });
-                    }
-                    res.json({
-                        error: 0,
-                        data: father_wise_listing
-                    });
-                }
+            }else if( father_wise_listing_status == 1 ){
+                res.json({
+                    error:1,
+                    message:req.recycle_data.father_wise_listing_msg
+                });
+            }else if( father_wise_listing_status == 0 ){
+                res.json({
+                    error:0,
+                    data:req.recycle_data.father_wise_listing
+                });
             }
-
-        });
+        }else{
+            res.json({
+                error:1,
+                message:'check module-recylce_data.js'
+            });
+        }
     }
 });
 router.all('/products', function (req, res) {
@@ -111,16 +36,45 @@ router.all('/products', function (req, res) {
     if (req.method === 'OPTIONS') {
         res.json('');
     } else {
+        //req.body.father_key = 'men';
+        //req.body.search = 'adidas';
         
-        console.log(req.body);
+        var is_father_request = false;
+        var requested_father_key = '';
+        var requested_father_children = [];
+        var requested_father_cats = new Array();
+        if( typeof req.body.father_key != 'undefined' && req.body.father_key != '' ){
+            is_father_request = true;
+            requested_father_key = req.body.father_key;
+        }
         
-        if (!req.body.cat_id && !req.body_sub_cat_id) {
+        if (!req.body.cat_id && !req.body.sub_cat_id && is_father_request == false) {
             res.json({
                 error: 1,
                 message: 'Invalid Request'
             });
             return;
         }
+        
+        var request_filter_cat_id = req.body.cat_id;
+        var request_filter_sub_cat_id = req.body.sub_cat_id;
+        
+        if( is_father_request == true ){
+            request_filter_cat_id = 0;
+            request_filter_sub_cat_id = 0;
+            var father_wise_listing = req.recycle_data.father_wise_listing;
+            var category_listing = req.recycle_data.category_listing;
+            father_wise_listing.forEach(function(val,key){
+                var xx = father_wise_listing[key];
+                var xx_father_key = xx.father_key;
+                if( requested_father_key == xx_father_key ){
+                    requested_father_cats = xx.all_cat_id;
+                    requested_father_children = xx.data;
+                }
+            });
+        }
+        
+        
 
         function stringToArray(str, expby) {
             var ret = new Array();
@@ -213,8 +167,10 @@ router.all('/products', function (req, res) {
         var filters_category_wise = req.conn_filters_category_wise;
         console.log(req.body);
         var where_filter = {
-            'cat_id': req.body.cat_id * 1,
-            'sub_cat_id': req.body.sub_cat_id * 1,
+           // 'cat_id': req.body.cat_id * 1,
+            //'sub_cat_id': req.body.sub_cat_id * 1,
+            'cat_id' :request_filter_cat_id*1,
+            'sub_cat_id':request_filter_sub_cat_id*1
         };
         console.log('----START-----where for filters------------');
         console.log(where_filter);
@@ -260,36 +216,20 @@ router.all('/products', function (req, res) {
                     //console.log('per page : ' + products_per_page);
                     //console.log('skip :' + skip_count);
                     var website_scrap_data = req.conn_website_scrap_data;
-                    var m_cat_id = cat_id;
-                    var m_sub_cat_id = sub_cat_id;
-
-                    if (typeof cat_id != 'undefined') {
+                    
+                    if (typeof cat_id != 'undefined' && is_father_request == false) {
                         where['cat_id'] = cat_id * 1;
                     }
-                    if (typeof sub_cat_id != 'undefined') {
+                    if (typeof sub_cat_id != 'undefined' && is_father_request == false) {
                         where['sub_cat_id'] = sub_cat_id * 1;
                     }
+                    if( is_father_request == true && requested_father_cats.length > 0 ){
+                        where['cat_id'] = {
+                            '$in' : requested_father_cats,
+                        }
+                    }
+                    
 
-//                if (m_cat_id == '' || m_cat_id == false) {
-                    //m_cat_id = 0;
-                    //where['cat_id'] = m_cat_id;
-                    //}
-                    //if (m_sub_cat_id == '' || m_sub_cat_id == false) {
-                    //m_sub_cat_id=0;
-                    //where['sub_cat_id'] = m_sub_cat_id;
-                    //}
-                    //if( cat_id == false ){
-                    //cat_id = 0;
-                    // }
-
-                    //if( cat_id != false ){
-                    //where['cat_id'] = m_cat_id;
-                    //}
-
-                    //var where = {
-                    //'cat_id':m_cat_id,
-                    //'sub_cat_id':m_sub_cat_id
-                    //};
                     //-start-process set filters----------
                     var set_empty_colors_filters = false;
                     var applied_filters = params.filters;
@@ -407,7 +347,28 @@ router.all('/products', function (req, res) {
                     if( set_empty_colors_filters == true){ // coz if secondary color is selected then no need to further show colors filters
                         filters.color.data = [];
                     }
+                    if( is_father_request == true ){
+                        var father_children = {
+                            'text' : 'Category',
+                            'data' : []
+                        };
+                        requested_father_children.forEach(function(val,key){
+                            val_cats = val.data;
+                            val_cats.forEach(function(val1,key1){
+                                var row = {
+                                    'text': val1.name,
+                                    'cat_id':val1.cat_id,
+                                    'sub_cat_id':val1.sub_cat_id,
+                                };
+                                father_children.data.push(row);
+                            });
+                        });
+                        filters = {}; // filters are empty, coz if father key is set then only category has to be shown in filters
+                        filters.category = father_children;
+                    }
+                    
                     finalData.filters = filters; // page filters are set here
+                    
                     
                     //-end----process set sorting
                     console.log('---START----where for products----------------');

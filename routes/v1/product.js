@@ -37,7 +37,7 @@ router.all('/view', function(req,res){
                     message:err.err,
                 });
             }else{
-                if( data.length == 0 ){
+                if( data == null || data.length == 0  ){
                     res.json({
                         error:1,
                         message:'product not found for product_id '+product_id,
