@@ -19,17 +19,66 @@ module.exports = function (mongoose) {
     var filters_category_wise = conn.model('filters_category_wise', schema_filters_category_wise);
     var website_scrap_data = conn.model('website_scrap_data', schema_website_scrap_data);
 
-    var user_schema = mongoose.Schema({}, {
-        strict: false,
-        collection: 'user',
-    });
-    var User = conn.model('user', user_schema);
+    var genderTypes = ['M', 'F'];
+    var allowedConnectinoType = ['facebook', 'google', 'contacts'];
+    var wishlistTypes = ['private', 'public', 'friends'];
 
-    var wishlist_schema = mongoose.Schema({}, {
-        strict: false,
-        collection: 'wishlist',
+    var user_schema = mongoose.Schema({
+        name: {type: String, required: true},
+        email: {type: String, required: true, index: {unique: true}},
+        picture: {type: String, required: true},
+        password: {type: String, required: true},
+        gender: {type: String, enum: genderTypes},
+        created_at: {type: Date, default: Date.now},
+        type: {type: String, required: true, enum: allowedConnectinoType},
+        fb_id: {type: String, default: ''},
+        google_id: {type: String, default: ''},
+        meta: {
+            friends: {type: Number, default: 0},
+            followers: {type: Number, default: 0},
+            lists: {type: Number, default: 0},
+            products: {type: Number, default: 0}
+        }
+
+    });
+    user_schema.index({email: -1}); //schema level
+//    user_schema.set('autoIndex', false);
+
+    var connection_schema = mongoose.Schema({
+        type: {type: String, required: true, enum: allowedConnectinoType},
+        type_id: {type: String, required: true, index: {unique: true}},
+        name: {type: String, required: true},
+        picture: {type: String, required: true},
+        user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+        connected_ids: [{type: Schema.Types.ObjectId, ref: 'User'}],
+        created_at: {type: Date, default: Date.now}
+
+    });
+    connection_schema.index({type: -1, type_id: -1});
+    connection_schema.index({user_id: -1});
+    connection_schema.index({connected_ids: -1});
+//    connection_schema.set('autoIndex', false);
+
+
+    var wishlist_schema = mongoose.Schema({
+        name: {type: String, require: true},
+        user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+        type: {type: String, require: true, enum: wishlistTypes},
+        shared_ids: [{type: Schema.Types.ObjectId, ref: 'User'}],
+        meta: {
+            likes: {type: Number, default: 0},
+            products: {type: Number, default: 0}
+        }
+    });
+    var wishlist_item_schema = mongoose.Schema({
+        name : {type: String, require: true},
+        image : {type: String, require: true},
+        price : String,
+        website : String,
+        href : String
     });
 
+    var User = conn.model('User', user_schema);
     var Wishlist = conn.model('wishlist', wishlist_schema);
 
     var feedback_schema = mongoose.Schema({}, {
