@@ -28,45 +28,53 @@ router.all('/list', function (req, res) {
                         } else {
                             var ret = [];
                             var k = 0;
-                            for (var i = 0; i < data.length; i++) {
+                            if (!data) {
+                                res.json([]);
+                            } else {
+                                for (var i = 0; i < data.length; i++) {
+                                    (function (wishlist_row) {
+                                        var product_id = wishlist_row.get('product_id');
 
-                                var product_id = data[i].get('product_id');
+                                        var prod = {};
+                                        website_scrap_data.findOne({
+                                            _id: mongoose.Types.ObjectId(product_id)
+                                        }, function (err, row) {
+                                            if (row) {
+                                                var name = row.get('name');
+                                                var brand = row.get('brand');
+                                                var img = row.get('img');
+                                                var href = row.get('href');
+                                                var price = row.get('price');
+                                                var website = row.get('website');
+                                            } else {
+                                                var name = wishlist_row.get('name');
+                                                var brand = wishlist_row.get('brand');
+                                                var img = wishlist_row.get('img');
+                                                var href = wishlist_row.get('url');
+                                                var price = wishlist_row.get('price');
+                                                var website = wishlist_row.get('website');
+                                            }
+                                            var created_at = wishlist_row.get('created_at');
+                                            prod.name = name;
+                                            prod.brand = brand;
+                                            prod.img = img;
+                                            prod.href = href;
+                                            prod.price = price;
+                                            prod.website = website;
 
-                                var prod = {};
-                                website_scrap_data.findOne({
-                                    _id: mongoose.Types.ObjectId(product_id)
-                                }, function (err, row) {
-                                    if (row) {
-                                        var name = row.get('name');
-                                        var brand = row.get('brand');
-                                        var img = row.get('img');
-                                        var href = row.get('href');
-                                        var price = row.get('price');
-                                        var website = row.get('website');
-                                    } else {
-                                        var name = data[i].get('name');
-                                        var brand = data[i].get('brand');
-                                        var img = data[i].get('img');
-                                        var href = data[i].get('url');
-                                        var price = data[i].get('price');
-                                        var website = data[i].get('website');
-                                    }
-                                    var created_at = data[i].get('created_at');
-                                    prod.name = name;
-                                    prod.brand = brand;
-                                    prod.img = img;
-                                    prod.href = href;
-                                    prod.price = price;
-                                    prod.website = website;
+                                            prod.created_at = moment(created_at).tz('Asia/Calcutta').format('Do MMM h:mm a');
 
-                                    prod.created_at = moment(created_at).tz('Asia/Calcutta').format('Do MMM h:mm a');
-
-                                    ret.push(prod);
-                                    if (k == (data.length - 1)) {
-                                        res.json(ret);
-                                    }
-                                    k++;
-                                })
+                                            ret.push(prod);
+                                            if (k == (data.length - 1)) {
+                                                res.json({
+                                                    error: 0,
+                                                    data: ret
+                                                });
+                                            }
+                                            k++;
+                                        })
+                                    })(data[i]);
+                                }
                             }
                         }
                     })
