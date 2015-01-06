@@ -71,11 +71,21 @@ module.exports = function (mongoose) {
         }
     });
     var wishlist_item_schema = mongoose.Schema({
-        name : {type: String, require: true},
-        image : {type: String, require: true},
-        price : String,
-        website : String,
-        href : String
+        name: {type: String, require: true},
+        image: {type: String, require: true},
+        price: String,
+        website: String,
+        href: String,
+        unique: String,
+        meta: {
+            likes: {type: Number, default: 0}
+        },
+        comments: [{
+                user_id: String,
+                comment: String,
+                picture: String,
+                created_at: Date
+            }]
     });
 
     var User = conn.model('User', user_schema);
