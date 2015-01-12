@@ -33,9 +33,12 @@ module.exports = function (mongoose) {
         google_id: {type: String, default: '-1'},
         meta: {
             lists: {type: Number, default: 0},
-            products: {type: Number, default: 0}
+            products: {type: Number, default: 0},
+            followers: {type: Number, default: 0} //will addup followers from list alos
+
         },
-        friends: [{type: Schema.Types.ObjectId, ref: 'User'}]
+        friends: [{type: Schema.Types.ObjectId, ref: 'User'}],
+        followers: [{type: Schema.Types.ObjectId, ref: 'User'}]
 
     });
     user_schema.index({email: -1}); //schema level
@@ -57,7 +60,7 @@ module.exports = function (mongoose) {
     wishlist_schema.index({user_id: -1});
     var wishlist_item_schema = mongoose.Schema({
         name: {type: String},
-        list_id: {type: Schema.Types.ObjectId, ref: 'Wishlist'},
+//        list_id: {type: Schema.Types.ObjectId, ref: 'Wishlist'},
         user_id: {type: Schema.Types.ObjectId, ref: 'User'},
         image: {type: String, require: true},
         price: Number,
@@ -77,13 +80,35 @@ module.exports = function (mongoose) {
                 user_id: String,
                 comment: String,
                 picture: String,
-                created_at: Date
+                created_at: {type: Date, default: Date.now}
             }],
         created_at: {type: Date, default: Date.now}
     });
+    var wishlist_item_assoc_schema = mongoose.Schema({
+        list_id: {type: Schema.Types.ObjectId, ref: 'Wishlist'},
+        item_id: {type: Schema.Types.ObjectId, ref: 'wishlist_item'},
+    });
+    wishlist_item_assoc_schema.index({list_id: -1});
+    wishlist_item_assoc_schema.index({item_id: -1});
+    var wishlist_item_update_schema = mongoose.Schema({
+        user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+        item_id: {type: Schema.Types.ObjectId, ref: 'wishlist_item'},
+        created_at: {type: Date, default: Date.now}
+    });
+    var user_updates = mongoose.Schema({
+        user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+        type: {type: String, require: true},
+        data: {type: Schema.Types.Mixed},
+        gcm_status: {type: Schema.Types.Mixed},
+        created_at: {type: Date, default: Date.now}
+    })
+
     var User = conn.model('User', user_schema);
     var Wishlist = conn.model('Wishlist', wishlist_schema);
     var WishlistItem = conn.model('wishlist_item', wishlist_item_schema);
+    var WishlistItemAssoc = conn.model('wishlist_item_assoc', wishlist_item_assoc_schema);
+    var WishlistItemUpdate = conn.model('wishlist_item_update', wishlist_item_update_schema);
+    var Updates = conn.model('user_updates', user_updates);
     var feedback_schema = mongoose.Schema({}, {
         strict: false,
         collection: 'feedback',
@@ -101,6 +126,9 @@ module.exports = function (mongoose) {
         req.Wishlist = Wishlist;
         req.Feedback = Feedback;
         req.WishlistItem = WishlistItem;
+        req.WishlistItemAssoc = WishlistItemAssoc;
+        req.WishlistItemUpdate = WishlistItemUpdate;
+        req.Updates = Updates;
         req.gfs = gfs;
         next();
     }
