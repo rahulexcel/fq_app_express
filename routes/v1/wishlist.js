@@ -178,6 +178,8 @@ router.all('/item/list', function (req, res, next) {
     var WishlistItem = req.WishlistItem;
     var website_scrap_data = req.conn_website_scrap_data;
 
+    var WishlistItemAssoc = req.WishlistItemAssoc;
+
     if (user_id && list_id) {
         User.findOne({
             _id: mongoose.Types.ObjectId(user_id)
@@ -186,9 +188,14 @@ router.all('/item/list', function (req, res, next) {
                 next(err);
             } else {
                 if (row) {
-                    WishlistItem.find({
-                        user_id: user_id,
+
+                    WishlistItemAssoc.find({
                         list_id: list_id
+                    }).populate({
+                        path: 'item_id',
+                        match: {
+                            user_id: user_id
+                        }
                     }).sort({created_at: -1}).exec(function (err, data) {
                         if (err) {
                             next(err);
@@ -201,7 +208,8 @@ router.all('/item/list', function (req, res, next) {
                                     data: []
                                 });
                             } else {
-                                for (var i = 0; i < data.length; i++) {
+                                var items = data.get('item_id');
+                                for (var i = 0; i < items.length; i++) {
                                     (function (wishlist_row) {
 
                                         if (wishlist_row.get('type') == 'product') {
@@ -278,7 +286,7 @@ router.all('/item/list', function (req, res, next) {
                                             }
                                             k++;
                                         }
-                                    })(data[i]);
+                                    })(items[i]);
                                 }
                             }
                         }
@@ -298,44 +306,57 @@ router.all('/item/list', function (req, res, next) {
         });
     }
 })
+
+function populateWishlistItem(row, req, done) {
+    var type = row.type;
+    var website_scrap_data = req.website_scrap_data;
+    if (type == 'product') {
+        var website = row.website;
+        var unique = row.unique;
+
+        website_scrap_data.findOne({
+            website: website,
+            unique: unique
+        }, function (err, product_row) {
+            if (product_row) {
+                var new_price = product_row.get('price');
+                var image = product_row.get('img');
+                var price_history = product_row.get('price_history');
+                if (!price_history) {
+                    price_history = [];
+                }
+                row['price'] = new_price;
+                row['img'] = image;
+                row.price_history = price_history;
+                row.product_id = product_row.get('_id');
+                done(null, row);
+            } else {
+                done(err);
+            }
+
+        });
+    } else {
+        done(null, row);
+    }
+}
 router.all('/item/view/:item_id', function (req, res, next) {
     var item_id = req.params.item_id;
 
-    var website_scrap_data = req.conn_website_scrap_data;
-    var Wishlist = req.Wishlist;
-    var User = req.User;
     var WishlistItem = req.WishlistItem;
+    var WishlistItemAssoc = req.WishlistItemAssoc;
 
     if (item_id) {
-
         WishlistItem.findOne({
             _id: mongoose.Types.ObjectId(item_id)
-        }).populate('list_id user_id').lean().exec(function (err, row) {
+        }).populate('user_id').lean().exec(function (err, row) {
             if (err) {
                 next(err);
             } else {
                 if (row) {
-                    var type = row.type;
-                    if (type == 'product') {
-                        var website = row.website;
-                        var unique = row.unique;
-
-                        website_scrap_data.findOne({
-                            website: website,
-                            unique: unique
-                        }, function (err, product_row) {
-                            if (product_row) {
-                                var new_price = product_row.get('price');
-                                var image = product_row.get('img');
-                                var price_history = product_row.get('price_history');
-                                if (!price_history) {
-                                    price_history = [];
-                                }
-                                row['price'] = new_price;
-                                row['img'] = image;
-                                row.price_history = price_history;
-                                row.product_id = product_row.get('_id');
-                            }
+                    populateWishlistItem(row, req, function (err, row) {
+                        if (err) {
+                            next(err);
+                        } else {
                             var location = row.location;
                             var zoom = row.zoom;
                             if (location && location.length > 0) {
@@ -346,28 +367,22 @@ router.all('/item/view/:item_id', function (req, res, next) {
                                 };
                                 row.location = new_location;
                             }
-                            res.json({
-                                error: 0,
-                                data: row
-                            });
 
-                        });
-                    } else {
-                        var location = row.location;
-                        var zoom = row.zoom;
-                        if (location && location.length > 0) {
-                            var new_location = {
-                                lat: location[1],
-                                lng: location[0],
-                                zoom: zoom
-                            };
-                            row.location = new_location;
+                            WishlistItemAssoc.findOne({
+                                item_id: row._id
+                            }).populate('list_id').lean().exec(function (err, list_row) {
+                                if (err) {
+                                    next(err);
+                                } else {
+                                    row.list_id = list_row;
+                                    res.json({
+                                        error: 0,
+                                        data: row
+                                    });
+                                }
+                            });
                         }
-                        res.json({
-                            error: 0,
-                            data: row
-                        });
-                    }
+                    })
                 } else {
                     res.json({
                         error: 1,
@@ -396,6 +411,7 @@ router.all('/item/add', function (req, res, next) {
     var Wishlist = req.Wishlist;
     var User = req.User;
     var WishlistItem = req.WishlistItem;
+    var WishlistItemAssoc = req.WishlistItemAssoc;
 
     if (user_id) {
         User.findOne({
@@ -451,16 +467,19 @@ router.all('/item/add', function (req, res, next) {
                                                     var sub_cat_id = product_row.get('sub_cat_id');
                                                     var img = product_row.get('img');
 
-
-                                                    WishlistItem.findOne({
-                                                        list_id: list_id,
-                                                        unique: unique,
-                                                        website: website
-                                                    }, function (err, rr) {
+                                                    WishlistItemAssoc.find({
+                                                        list_id: list_id
+                                                    }).populate({
+                                                        path: 'item_id',
+                                                        match: {
+                                                            unique: unique,
+                                                            website: website
+                                                        }
+                                                    }).exec(function (err, rr) {
                                                         if (err) {
                                                             next(err);
                                                         } else {
-                                                            if (rr) {
+                                                            if (rr && rr.length > 0) {
                                                                 res.json({
                                                                     error: 1,
                                                                     message: 'Product Already In Your Wishlist'
@@ -470,53 +489,66 @@ router.all('/item/add', function (req, res, next) {
 
                                                                 var wish_model = new WishlistItem({
                                                                     user_id: user_id,
-                                                                    list_id: list_id,
-                                                                    name: name, href: href, img: img,
+                                                                    name: name, href: href,
+                                                                    img: img,
                                                                     website: website,
                                                                     brand: brand,
                                                                     price: price,
                                                                     cat_id: cat_id,
                                                                     sub_cat_id: sub_cat_id,
                                                                     expired: 0,
-                                                                    unique: unique
+                                                                    unique: unique,
+                                                                    type: 'product'
                                                                 });
                                                                 wish_model.save(function (err) {
                                                                     if (err) {
                                                                         next(err);
                                                                     } else {
 
-                                                                        Wishlist.update({
-                                                                            _id: mongoose.Types.ObjectId(list_id)
-                                                                        }, {
-                                                                            $inc: {
-                                                                                "meta.products": 1
-                                                                            }
-                                                                        }, function (err) {
-
+                                                                        var assoc_model = new WishlistItemAssoc({
+                                                                            list_id: list_id,
+                                                                            item_id: wish_model._id
+                                                                        });
+                                                                        assoc_model.save(function (err) {
                                                                             if (err) {
                                                                                 next(err);
                                                                             } else {
-                                                                                User.update({
-                                                                                    _id: mongoose.Types.ObjectId(user_id)
+                                                                                Wishlist.update({
+                                                                                    _id: mongoose.Types.ObjectId(list_id)
                                                                                 }, {
                                                                                     $inc: {
                                                                                         "meta.products": 1
                                                                                     }
                                                                                 }, function (err) {
+
                                                                                     if (err) {
                                                                                         next(err);
                                                                                     } else {
-                                                                                        res.json({
-                                                                                            error: 0,
-                                                                                            data: {
-                                                                                                id: wish_model._id
+                                                                                        User.update({
+                                                                                            _id: mongoose.Types.ObjectId(user_id)
+                                                                                        }, {
+                                                                                            $inc: {
+                                                                                                "meta.products": 1
+                                                                                            }
+                                                                                        }, function (err) {
+                                                                                            if (err) {
+                                                                                                next(err);
+                                                                                            } else {
+                                                                                                //var updater = require('./../../modules/v1/update');
+                                                                                                //updater.profileItemUpdate(wish_model, list, row, req);
+                                                                                                res.json({
+                                                                                                    error: 0,
+                                                                                                    data: {
+                                                                                                        id: wish_model._id
+                                                                                                    }
+                                                                                                });
                                                                                             }
                                                                                         });
                                                                                     }
-                                                                                });
-                                                                            }
 
-                                                                        })
+                                                                                })
+                                                                            }
+                                                                        });
 
                                                                     }
                                                                 });
@@ -547,24 +579,35 @@ router.all('/item/add', function (req, res, next) {
                                                 next(err);
                                             } else {
 
-                                                Wishlist.update({
-                                                    _id: mongoose.Types.ObjectId(list_id)
-                                                }, {
-                                                    $inc: {
-                                                        "meta.products": 1
-                                                    }
-                                                }, function (err) {
+
+                                                var assoc_model = new WishlistItemAssoc({
+                                                    list_id: list_id,
+                                                    item_id: wish_model._id
+                                                });
+                                                assoc_model.save(function (err) {
                                                     if (err) {
                                                         next(err);
                                                     } else {
-                                                        res.json({
-                                                            error: 0,
-                                                            data: {
-                                                                id: wish_model._id
+                                                        Wishlist.update({
+                                                            _id: mongoose.Types.ObjectId(list_id)
+                                                        }, {
+                                                            $inc: {
+                                                                "meta.products": 1
                                                             }
-                                                        });
+                                                        }, function (err) {
+                                                            if (err) {
+                                                                next(err);
+                                                            } else {
+                                                                res.json({
+                                                                    error: 0,
+                                                                    data: {
+                                                                        id: wish_model._id
+                                                                    }
+                                                                });
+                                                            }
+                                                        })
                                                     }
-                                                })
+                                                });
 
                                             }
                                         });

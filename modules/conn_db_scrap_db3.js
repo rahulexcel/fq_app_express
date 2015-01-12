@@ -61,7 +61,7 @@ module.exports = function (mongoose) {
     var wishlist_item_schema = mongoose.Schema({
         name: {type: String},
 //        list_id: {type: Schema.Types.ObjectId, ref: 'Wishlist'},
-        user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+//        user_id: {type: Schema.Types.ObjectId, ref: 'User'},
         image: {type: String, require: true},
         price: Number,
         href: String,
@@ -86,13 +86,19 @@ module.exports = function (mongoose) {
     });
     var wishlist_item_assoc_schema = mongoose.Schema({
         list_id: {type: Schema.Types.ObjectId, ref: 'Wishlist'},
-        item_id: {type: Schema.Types.ObjectId, ref: 'wishlist_item'},
+        item_id: {type: Schema.Types.ObjectId, ref: 'Wishlist_Item'},
     });
     wishlist_item_assoc_schema.index({list_id: -1});
     wishlist_item_assoc_schema.index({item_id: -1});
     var wishlist_item_update_schema = mongoose.Schema({
         user_id: {type: Schema.Types.ObjectId, ref: 'User'},
-        item_id: {type: Schema.Types.ObjectId, ref: 'wishlist_item'},
+        item_id: {type: Schema.Types.ObjectId, ref: 'Wishlist_Item'},
+        created_at: {type: Date, default: Date.now}
+    });
+
+    var user_item_updates = mongoose.Schema({
+        user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+        item_id: {type: Schema.Types.ObjectId, ref: 'Wishlist_Item'},
         created_at: {type: Date, default: Date.now}
     });
     var user_updates = mongoose.Schema({
@@ -105,10 +111,12 @@ module.exports = function (mongoose) {
 
     var User = conn.model('User', user_schema);
     var Wishlist = conn.model('Wishlist', wishlist_schema);
-    var WishlistItem = conn.model('wishlist_item', wishlist_item_schema);
-    var WishlistItemAssoc = conn.model('wishlist_item_assoc', wishlist_item_assoc_schema);
-    var WishlistItemUpdate = conn.model('wishlist_item_update', wishlist_item_update_schema);
-    var Updates = conn.model('user_updates', user_updates);
+    var WishlistItem = conn.model('Wishlist_Item', wishlist_item_schema);
+    var WishlistItemAssoc = conn.model('Wishlist_Item_Assoc', wishlist_item_assoc_schema);
+    var WishlistItemUpdate = conn.model('Wishlist_Item_Update', wishlist_item_update_schema);
+    var Updates = conn.model('User_Update', user_updates);
+    var UserItemUpdate = conn.model('User_Item_Update', user_item_updates);
+
     var feedback_schema = mongoose.Schema({}, {
         strict: false,
         collection: 'feedback',
@@ -129,6 +137,7 @@ module.exports = function (mongoose) {
         req.WishlistItemAssoc = WishlistItemAssoc;
         req.WishlistItemUpdate = WishlistItemUpdate;
         req.Updates = Updates;
+        req.UserItemUpdate = UserItemUpdate;
         req.gfs = gfs;
         next();
     }
