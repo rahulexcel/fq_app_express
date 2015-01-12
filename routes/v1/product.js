@@ -79,7 +79,7 @@ router.all('/view', function(req,res){
                         product_data.price_drop = product_price_diff;
                     }
                     product_price_history = data.get('price_history');
-                    if( typeof product_price_history != 'undefined' && product_price_history.length > 0 ){
+                    if( typeof product_price_history != 'undefined' && product_price_history != null && product_price_history.length > 0 ){
                         product_data.price_history = modifyPriceHistoryForJson(product_price_history);
                     }
                     
