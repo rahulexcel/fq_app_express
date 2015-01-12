@@ -4,7 +4,7 @@ var mongoose = require('mongoose');
 
 var moment = require('moment-timezone');
 
-router.all('/add', function (req, res) {
+router.all('/add', function (req, res, next) {
     var body = req.body;
 
     var Feedback = req.Feedback;

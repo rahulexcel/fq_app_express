@@ -21,7 +21,7 @@ var v1_routes_feedback = require('./routes/v1/feedback');
 
 
 var app = express();
-
+app.use(express.static(path.join(__dirname, 'public')));
 // view engine setup
 var exphbs = require('express-handlebars');
 app.engine('.hbs', exphbs({defaultLayout: 'single', extname: '.hbs'}));
@@ -34,7 +34,7 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'uploads')));
+
 
 app.use(function (req, res, next) {
     console.log(req.body);
@@ -55,6 +55,9 @@ app.use('/v1/account', v1_routes_account);
 app.use('/v1/wishlist', v1_routes_wishlist);
 app.use('/v1/product', v1_routes_product);
 app.use('/v1/feedback', v1_routes_feedback);
+app.use('/v1/friends', require('./routes/v1/invite'));
+app.use('/v1/social', require('./routes/v1/social'));
+app.use('/v1/picture', require('./routes/v1/picture'));
 //app.use('/products',routes_catalog); //arun :: 2nd step
 
 

@@ -3,7 +3,7 @@ var fs = require('fs');
 var router = express.Router();
 var mongoose = require('mongoose');
 
-router.all('/update', function (req, res) {
+router.all('/update', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
 
@@ -59,7 +59,7 @@ router.all('/update', function (req, res) {
     }
 
 })
-router.all('/remove_picture', function (req, res) {
+router.all('/remove_picture', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
     var UserModel = req.User;
@@ -86,7 +86,7 @@ router.all('/remove_picture', function (req, res) {
         });
     }
 });
-router.all('/picture/view/:filename', function (req, res) {
+router.all('/picture/view/:filename', function (req, res, next) {
     var filename = req.param('filename');
     console.log(filename + 'filename');
     if (filename) {
@@ -114,74 +114,37 @@ router.all('/picture/view/:filename', function (req, res) {
     }
 })
 
-router.all('/picture', function (req, res) {
-    var gfs = req.gfs;
+router.all('/update/picture', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
+    var picture = body.picture;
 
-    if (req.files && user_id) {
-        console.log(req.files);
-        var filename = req.files.file.name;
-
-        if (filename.indexOf('?') != -1) {
-            filename = filename.substring(0, filename.indexOf('?'));
-        }
-        console.log('new file name ' + filename);
-
-        var path = req.files.file.path;
-        var type = req.files.file.mimetype;
-        console.log('file upload for ' + user_id);
-        if (type.indexOf('image') != -1) {
-            var dirname = require('path').dirname(__dirname);
-
-            var mongo_filename = filename;
-            console.log(dirname + "/../" + path);
-            var read_stream = fs.createReadStream(dirname + "/../" + path);
-            var writestream = gfs.createWriteStream({
-                filename: mongo_filename
-            });
-            writestream.on('error', function (err) {
-                console.log(err);
-            })
-            read_stream.on('error', function (err) {
-                console.log(err);
-            })
-            read_stream.pipe(writestream);
-            writestream.on('close', function () {
-                var UserModel = req.User;
-                UserModel.update({
-                    _id: mongoose.Types.ObjectId(user_id)
-                }, {
-                    $set: {
-                        picture: filename
-                    }
-                }, function (err) {
-                    if (err) {
-                        next(err);
-                    } else {
-                        res.json({
-                            error: 0,
-                            data: mongo_filename
-                        });
-                    }
-                })
-            });
-        } else {
-            res.json({
-                error: 1,
-                message: 'Only JPG, PNG and GIF files accepted.'
-            });
-        }
+    if (picture && user_id) {
+        var UserModel = req.User;
+        UserModel.update({
+            _id: mongoose.Types.ObjectId(user_id)
+        }, {
+            $set: {
+                picture: picture
+            }
+        }, function (err) {
+            if (err) {
+                next(err);
+            } else {
+                res.json({
+                    error: 0
+                });
+            }
+        })
     } else {
         res.json({
             error: 1,
             message: 'Invalid Request. No File Uploaded'
         });
     }
-
 })
 
-router.all('/create', function (req, res) {
+router.all('/create/facebook', function (req, res, next) {
     var body = req.body;
     var user = body.user;
 
@@ -197,35 +160,17 @@ router.all('/create', function (req, res) {
 
     var email = user.email;
     var password = '';
-    var type = 'signup';
-    var is_auto_password = false;
-    if (user.fb_id) {
-        type = 'facebook';
-        password = generatePassword(6);
-        is_auto_password = true;
-    } else if (user.google_id) {
-        type = 'google';
-        password = generatePassword(6);
-        is_auto_password = true;
-    } else if (user.google_play) {
-        type = 'google_play';
-        password = generatePassword(6);
-        is_auto_password = true;
-    } else {
-        if (!user.name) {
-            user.name = 'XXX';
-            type = 'login';
-        }
-        password = user.password;
-    }
-    user.password = password;
-    user.type = type;
     var name = user.name;
-    var UserModel = req.User;
 
-    var userObj = user;
+    if (user.fb_id && name && name.length > 0 && email && email.length > 0) {
+        var type = 'facebook';
+        password = generatePassword(6);
+        user.password = password;
+        user.type = type;
+        var name = user.name;
+        var UserModel = req.User;
 
-    if (name && name.length > 0 && password && password.length > 0 && email && email.length > 0) {
+        var userObj = user;
 
         UserModel.findOne({
             email: email
@@ -241,72 +186,28 @@ router.all('/create', function (req, res) {
                         });
                         return;
                     }
-                    if (is_auto_password) {
-                        if (type == 'facebook') {
-                            if (user.get('fb_id') * 1 != -1) {
-                                if (userObj.fb_id == user.get('fb_id')) {
-
-                                } else {
-                                    res.json({
-                                        error: 1,
-                                        message: 'Access Denied'
-                                    });
-                                    return;
-                                }
-                            } else {
-
-                                UserModel.update({
-                                    _id: user.get('_id')
-                                }, {
-                                    $set: {
-                                        fb_id: userObj.fb_id
-                                    }
-                                }, function (err) {
-
-                                });
-
-                            }
-                        }
-                        if (type == 'google') {
-                            if (user.get('google_id') * 1 != -1) {
-                                if (userObj.google_id == user.get('google_id')) {
-
-                                } else {
-                                    res.json({
-                                        error: 1,
-                                        message: 'Access Denied'
-                                    });
-                                    return;
-                                }
-                            } else {
-                                UserModel.update({
-                                    _id: user.get('_id')
-                                }, {
-                                    $set: {
-                                        google_id: userObj.google_id
-                                    }
-                                }, function (err) {
-                                });
-                            }
-                        }
-                        if (type == 'google_play') {
-
-                        }
-                    } else {
-                        var crypto = require('crypto');
-                        var md5 = crypto.createHash('md5');
-                        md5.update(password);
-                        var pass_md5 = md5.digest('hex');
-                        console.log(pass_md5 + 'xxx' + userObj.password);
-                        if (pass_md5 == user.get('password')) {
+                    if (user.get('fb_id') * 1 != -1) {
+                        if (userObj.fb_id == user.get('fb_id')) {
 
                         } else {
                             res.json({
                                 error: 1,
-                                message: 'Access Denied. Invalid Password'
+                                message: 'Access Denied'
                             });
                             return;
                         }
+                    } else {
+
+                        UserModel.update({
+                            _id: user.get('_id')
+                        }, {
+                            $set: {
+                                fb_id: userObj.fb_id
+                            }
+                        }, function (err) {
+
+                        });
+
                     }
                     var user = {
                         id: user.get('_id'),
@@ -329,13 +230,7 @@ router.all('/create', function (req, res) {
                     md5.update(password);
                     var pass_md5 = md5.digest('hex');
                     userObj.password = pass_md5;
-
-                    if (!userObj.fb_id) {
-                        userObj.fb_id = -1;
-                    }
-                    if (!userObj.google_id) {
-                        userObj.google_id = -1;
-                    }
+                    userObj.google_id = -1;
 
                     //send new account email with email/pass
                     var model = new UserModel(userObj);
@@ -363,9 +258,247 @@ router.all('/create', function (req, res) {
             message: 'InComplete Details'
         });
     }
+})
 
 
+router.all('/create/google', function (req, res, next) {
+    var body = req.body;
+    var user = body.user;
 
+    if (!user) {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+        return;
+    }
+    var name = user.name;
+    var generatePassword = require('password-generator');
+
+    var email = user.email;
+    var password = '';
+    var UserModel = req.User;
+
+    var userObj = user;
+
+    if (user.google_id && name && name.length > 0 && email && email.length > 0) {
+        var name = user.name;
+        var type = 'google';
+        user.password = password;
+        user.type = type;
+        password = generatePassword(6);
+        UserModel.findOne({
+            email: email
+        }).exec(function (err, user) {
+            if (err) {
+                next(err);
+            } else {
+                if (user) {
+                    if (user.get('google_id') * 1 != -1) {
+                        if (userObj.google_id == user.get('google_id')) {
+
+                        } else {
+                            res.json({
+                                error: 1,
+                                message: 'Access Denied'});
+                            return;
+                        }
+                    } else {
+                        UserModel.update({
+                            _id: user.get('_id')
+                        }, {
+                            $set: {
+                                google_id: userObj.google_id
+                            }
+                        }, function (err) {
+                        });
+
+                    }
+                    var user = {
+                        id: user.get('_id'),
+                        email: user.get('email'),
+                        name: user.get('name'),
+                        picture: user.get('picture'),
+                        gender: user.get('gender')
+                    };
+                    res.json({
+                        error: 0,
+                        data: user
+                    });
+
+
+                } else {
+
+
+                    var crypto = require('crypto');
+                    var md5 = crypto.createHash('md5');
+                    md5.update(password);
+                    var pass_md5 = md5.digest('hex');
+                    userObj.password = pass_md5;
+                    userObj.fb_id = -1;
+
+                    //send new account email with email/pass
+                    var model = new UserModel(userObj);
+                    model.save(function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            var id = model._id;
+                            userObj.id = id;
+                            res.json({
+                                error: 0,
+                                data: userObj
+                            });
+                        }
+                    });
+
+                }
+
+            }
+        });
+
+    } else {
+        res.json({
+            error: 1,
+            message: 'InComplete Details'
+        });
+    }
 });
 
+router.all('/create', function (req, res, next) {
+    var body = req.body;
+    var user = body.user;
+
+    if (!user) {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+        return;
+    }
+
+    var email = user.email;
+    var password = '';
+    var type = 'signup';
+    password = user.password;
+    user.type = type;
+    var name = user.name;
+    var UserModel = req.User;
+
+    user.picture = 'http://' + req.get('host') + 'images/dummy.png';
+    var userObj = user;
+
+    if (name && name.length > 0 && password && password.length > 0 && email && email.length > 0) {
+        UserModel.findOne({
+            email: email
+        }).exec(function (err, user) {
+            if (err) {
+                next(err);
+            } else {
+                if (user) {
+                    res.json({
+                        error: 1,
+                        message: 'Account Already Exists!'
+                    });
+                } else {
+
+
+                    var crypto = require('crypto');
+                    var md5 = crypto.createHash('md5');
+                    md5.update(password);
+                    var pass_md5 = md5.digest('hex');
+                    userObj.password = pass_md5;
+                    userObj.fb_id = -1;
+                    userObj.google_id = -1;
+
+                    //send new account email with email/pass
+                    var model = new UserModel(userObj);
+                    model.save(function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            var id = model._id;
+                            userObj.id = id;
+                            res.json({
+                                error: 0,
+                                data: userObj
+                            });
+                        }
+                    });
+
+                }
+
+            }
+        });
+
+    } else {
+        res.json({
+            error: 1,
+            message: 'InComplete Details'
+        });
+    }
+});
+
+router.all('/login', function (req, res, next) {
+
+    var body = req.body;
+    var user = body.user;
+
+    if (!user) {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+        return;
+    }
+
+
+    var email = user.email;
+    var password = '';
+    password = user.password;
+    var UserModel = req.User;
+
+    var userObj = user;
+
+    if (password && password.length > 0 && email && email.length > 0) {
+        UserModel.findOne({
+            email: email
+        }).exec(function (err, user) {
+            if (err) {
+                next(err);
+            } else {
+                if (user) {
+                    var crypto = require('crypto');
+                    var md5 = crypto.createHash('md5');
+                    md5.update(password);
+                    var pass_md5 = md5.digest('hex');
+                    console.log(pass_md5 + 'xxx' + userObj.password);
+                    if (pass_md5 == user.get('password')) {
+                        res.json({
+                            error: 0
+                        });
+                    } else {
+                        res.json({
+                            error: 1,
+                            message: 'Access Denied. Invalid Password'
+                        });
+                    }
+                } else {
+                    res.json({
+                        error: 1,
+                        message: 'Email ID Doesn\'t Exist'
+                    });
+
+                }
+
+            }
+        });
+
+    } else {
+        res.json({
+            error: 1,
+            message: 'InComplete Details'
+        });
+    }
+})
 module.exports = router;
