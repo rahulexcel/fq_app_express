@@ -86,12 +86,25 @@ router.all('/add', function (req, res, next) {
                                                         if (err) {
                                                             next(err);
                                                         } else {
-                                                            res.json({
-                                                                error: 0,
-                                                                data: {
-                                                                    id: user_check.get('_id')
+
+                                                            User.update({
+                                                                _id: mongoose.Types.ObjectId(user_id)
+                                                            }, {
+                                                                $inc: {
+                                                                    "meta.lists": 1
                                                                 }
-                                                            })
+                                                            }, function (err) {
+                                                                if (err) {
+                                                                    next();
+                                                                } else {
+                                                                    res.json({
+                                                                        error: 0,
+                                                                        data: {
+                                                                            id: user_check.get('_id')
+                                                                        }
+                                                                    })
+                                                                }
+                                                            });
                                                         }
                                                     });
                                                 } else {
@@ -479,16 +492,30 @@ router.all('/item/add', function (req, res, next) {
                                                                                 "meta.products": 1
                                                                             }
                                                                         }, function (err) {
+
                                                                             if (err) {
                                                                                 next(err);
                                                                             } else {
-                                                                                res.json({
-                                                                                    error: 0,
-                                                                                    data: {
-                                                                                        id: wish_model._id
+                                                                                User.update({
+                                                                                    _id: mongoose.Types.ObjectId(user_id)
+                                                                                }, {
+                                                                                    $inc: {
+                                                                                        "meta.products": 1
+                                                                                    }
+                                                                                }, function (err) {
+                                                                                    if (err) {
+                                                                                        next(err);
+                                                                                    } else {
+                                                                                        res.json({
+                                                                                            error: 0,
+                                                                                            data: {
+                                                                                                id: wish_model._id
+                                                                                            }
+                                                                                        });
                                                                                     }
                                                                                 });
                                                                             }
+
                                                                         })
 
                                                                     }
