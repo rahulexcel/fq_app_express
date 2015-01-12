@@ -2,13 +2,37 @@ var express = require('express');
 var router = express.Router();
 
 router.all('/view', function(req,res){
+    
+    function timeConverter(UNIX_timestamp){
+      var a = new Date(UNIX_timestamp);
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var year = a.getFullYear();
+      var month = months[a.getMonth()];
+      var date = a.getDate();
+      var hour = a.getHours();
+      var min = a.getMinutes();
+      var sec = a.getSeconds();
+      var time = date + '-' + month ;
+      return time;
+    }
+    function modifyPriceHistoryForJson( data ){
+        var return_data = [];
+        for( var i = 0 ; i < data.length ;i++ ){
+            var rr = data[i];
+            var rr_time = rr['timestamp'];
+            rr['date'] = timeConverter(rr_time);
+            return_data.push(rr);
+        }
+        return return_data;
+    }
+    
     if( req.method === 'OPTIONS'){
         res.json('');
     }else{
     var mongoose = req.mongoose;
     var body = req.body;
     var product_id = body.product_id;
-    //var product_id = '5447e7dc6124ea8f0bff3cba';
+    //var product_id = '54aeaa0a0cc060726433aeae'; for testing
     var category = req.conn_category;
     var website_scrap_data = req.conn_website_scrap_data;
     if( typeof product_id === 'undefined'){
@@ -19,10 +43,13 @@ router.all('/view', function(req,res){
     }else{
         var similar_arr = [];
         var variant_arr = [];
+        var price_history_data = [];
         var product_data = {
             product:{},
             similar:similar_arr,
             variant:variant_arr,
+            price_history:price_history_data,
+            price_drop:0,
         };
         var where = {
             '_id' : mongoose.Types.ObjectId(product_id),
@@ -47,6 +74,14 @@ router.all('/view', function(req,res){
                     product_website = data.get('website');
                     product_cat_id = data.get('cat_id');
                     product_sub_cat_id = data.get('sub_cat_id');
+                    product_price_diff = data.get('price_diff');
+                    if( typeof product_price_diff != 'undefined'){
+                        product_data.price_drop = product_price_diff;
+                    }
+                    product_price_history = data.get('price_history');
+                    if( typeof product_price_history != 'undefined' && product_price_history.length > 0 ){
+                        product_data.price_history = modifyPriceHistoryForJson(product_price_history);
+                    }
                     
                     where_category ={
                         'cat_id':product_cat_id*1,
