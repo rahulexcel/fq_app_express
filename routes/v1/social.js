@@ -10,10 +10,18 @@ router.all('/user/follow', function (req, res, next) {
     var follow_user_id = body.follow_user_id;
     var type = body.type;
 
+
     var User = req.User;
     if (user_id && follow_user_id) {
+        if (user_id == follow_user_id) {
+            res.json({
+                error: 1,
+                message: 'You Cannot Follow Yourself'
+            });
+            return;
+        }
         User.findOne({
-            _id: Mongoose.Types.Object(user_id)
+            _id: mongoose.Types.ObjectId(user_id)
         }, function (err, me) {
             if (err) {
                 next(err);
@@ -21,7 +29,7 @@ router.all('/user/follow', function (req, res, next) {
                 if (me) {
 
                     User.findOne({
-                        _id: Mongoose.Types.Object(follow_user_id)
+                        _id: mongoose.Types.ObjectId(follow_user_id)
                     }, function (err, follow_user) {
                         if (err) {
                             next(err);
@@ -35,7 +43,7 @@ router.all('/user/follow', function (req, res, next) {
                                     if (followers.indexOf(user_id) == -1) {
                                         followers.push(user_id);
                                         User.update({
-                                            _id: Mongoose.Types.Object(follow_user_id)
+                                            _id: mongoose.Types.ObjectId(follow_user_id)
                                         }, {
                                             $set: {
                                                 followers: followers,
@@ -54,28 +62,28 @@ router.all('/user/follow', function (req, res, next) {
                                     } else {
                                         res.json({
                                             error: 1,
-                                            message: 'Your Have Already Followed '.follow_user.get('name')
+                                            message: 'Your Have Already Followed ' + follow_user.get('name')
                                         });
                                     }
                                 } else {
                                     if (followers.indexOf(user_id) == -1) {
                                         res.json({
                                             error: 1,
-                                            message: 'Your Are Not Following '.follow_user.get('name')
+                                            message: 'Your Are Not Following ' + follow_user.get('name')
                                         });
                                     } else {
                                         var new_followers = [];
-                                        for (var i = 0; i < new_followers.length; i++) {
-                                            if (new_followers[i] != user_id) {
-                                                followers.push(new_followers[i]);
+                                        for (var i = 0; i < followers.length; i++) {
+                                            if (followers[i] != user_id) {
+                                                new_followers.push(new_followers[i]);
                                             }
                                         }
 
                                         User.update({
-                                            _id: Mongoose.Types.Object(follow_user_id)
+                                            _id: mongoose.Types.ObjectId(follow_user_id)
                                         }, {
                                             $set: {
-                                                followers: followers,
+                                                followers: new_followers,
                                                 'meta.followers': ((follow_user.get('meta.followers') * 1) - 1)
                                             }
                                         }, function (err) {
@@ -126,7 +134,7 @@ router.all('/list/follow', function (req, res, next) {
     var Wishlist = req.Wishlist;
     if (user_id && list_id) {
         User.findOne({
-            _id: Mongoose.Types.Object(user_id)
+            _id: mongoose.Types.ObjectId(user_id)
         }, function (err, me) {
             if (err) {
                 next(err);
@@ -134,12 +142,22 @@ router.all('/list/follow', function (req, res, next) {
                 if (me) {
 
                     Wishlist.findOne({
-                        _id: Mongoose.Types.Object(list_id)
+                        _id: mongoose.Types.ObjectId(list_id)
                     }, function (err, follow_list) {
                         if (err) {
                             next(err);
                         } else {
                             if (follow_list) {
+
+                                var list_type = follow_list.get('type');
+                                if (list_type == 'private') {
+                                    res.json({
+                                        error: 1,
+                                        data: 'This is a private list. Cannot Follow This List'
+                                    })
+                                    return;
+                                }
+
                                 var followers = follow_list.get('followers');
                                 if (!followers) {
                                     followers = [];
@@ -148,7 +166,7 @@ router.all('/list/follow', function (req, res, next) {
                                     if (followers.indexOf(user_id) == -1) {
                                         followers.push(user_id);
                                         Wishlist.update({
-                                            _id: Mongoose.Types.Object(list_id)
+                                            _id: mongoose.Types.ObjectId(list_id)
                                         }, {
                                             $set: {
                                                 followers: followers
@@ -160,12 +178,10 @@ router.all('/list/follow', function (req, res, next) {
 
                                                 var follow_user_id = follow_list.get('user_id');
                                                 User.update({
-                                                    _id: Mongoose.Types.ObjectId(follow_user_id)
+                                                    _id: mongoose.Types.ObjectId(follow_user_id)
                                                 }, {
-                                                    $set: {
-                                                        '$inc': {
-                                                            'meta.followers': 1
-                                                        }
+                                                    '$inc': {
+                                                        'meta.followers': 1
                                                     }
                                                 }, function (err) {
                                                     if (err) {
@@ -182,28 +198,29 @@ router.all('/list/follow', function (req, res, next) {
                                     } else {
                                         res.json({
                                             error: 1,
-                                            message: 'Your Have Already Followed '.follow_list.get('name') + " List"
+                                            message: 'Your Have Already Followed ' + follow_list.get('name') + " List"
                                         });
                                     }
                                 } else {
                                     if (followers.indexOf(user_id) == -1) {
                                         res.json({
                                             error: 1,
-                                            message: 'Your Are Not Following '.follow_list.get('name')
+                                            message: 'Your Are Not Following ' + follow_list.get('name')
                                         });
                                     } else {
                                         var new_followers = [];
-                                        for (var i = 0; i < new_followers.length; i++) {
-                                            if (new_followers[i] != user_id) {
-                                                followers.push(new_followers[i]);
+                                        for (var i = 0; i < followers.length; i++) {
+                                            console.log(followers[i] + " == " + user_id);
+                                            if (followers[i] != user_id) {
+                                                new_followers.push(new_followers[i]);
                                             }
                                         }
 
                                         Wishlist.update({
-                                            _id: Mongoose.Types.Object(list_id)
+                                            _id: mongoose.Types.ObjectId(list_id)
                                         }, {
                                             $set: {
-                                                followers: followers
+                                                followers: new_followers
                                             }
                                         }, function (err) {
                                             if (err) {
@@ -211,12 +228,10 @@ router.all('/list/follow', function (req, res, next) {
                                             } else {
                                                 var follow_user_id = follow_list.get('user_id');
                                                 User.update({
-                                                    _id: Mongoose.Types.ObjectId(follow_user_id)
+                                                    _id: mongoose.Types.ObjectId(follow_user_id)
                                                 }, {
-                                                    $set: {
-                                                        '$inc': {
-                                                            'meta.followers': -1
-                                                        }
+                                                    '$inc': {
+                                                        'meta.followers': -1
                                                     }
                                                 }, function (err) {
                                                     if (err) {
@@ -248,6 +263,394 @@ router.all('/list/follow', function (req, res, next) {
                     });
                 }
 
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+})
+router.all('/item/view/comment/:list_id/:item_id', function (req, res, next) {
+    var item_id = req.params.item_id;
+    var list_id = req.params.list_id;
+
+    var WishlistItemAssoc = req.WishlistItemAssoc;
+    var User = req.User;
+
+    if (item_id && list_id) {
+        WishlistItemAssoc.findOne({
+            item_id: item_id,
+            list_id: list_id
+        }).populate({
+            path: 'comments',
+            options: {
+                sort: {
+                    created_at: -1
+                }
+            }
+        }).lean().exec(function (err, row) {
+            if (err) {
+                next(err);
+            } else {
+                if (row) {
+                    var k = 0;
+                    var ret = [];
+                    var comments = row.comments;
+                    if (comments.length == 0) {
+                        res.json({
+                            error: 0,
+                            data: ret
+                        });
+                    } else {
+                        for (var i = 0; i < comments.length; i++) {
+                            (function (comment) {
+                                var user_id = comment.user_id;
+                                User.findOne({
+                                    _id: mongoose.Types.ObjectId(user_id)
+                                }).lean().exec(function (err, user_row) {
+                                    comment.picture = user_row.picture;
+                                    comment.user_name = user_row.name;
+                                    ret.push(comment);
+                                    if (k == (comments.length - 1)) {
+                                        res.json({
+                                            error: 0,
+                                            data: ret
+                                        });
+                                    }
+                                    k++;
+                                });
+                            })(comments[i]);
+                        }
+                    }
+                } else {
+                    res.json({
+                        error: 1,
+                        message: 'Invalid Item ID'
+                    })
+                }
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+
+});
+router.all('/item/comment', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var item_id = body.item_id;
+    var list_id = body.list_id;
+    var comment = body.comment;
+    var picture = body.picture;
+    var type = body.type;
+
+    var WishlistItemAssoc = req.WishlistItemAssoc;
+    var Comment = req.Comment;
+    if (user_id && item_id && list_id) {
+        WishlistItemAssoc.findOne({
+            item_id: item_id,
+            list_id: list_id
+        }).populate('item_id list_id').lean().exec(function (err, row) {
+            if (err) {
+                next(err);
+            } else {
+                var comments = row.comments;
+                if (!comments) {
+                    comments = [];
+                }
+                if (type == 'add') {
+                    var comment_model = new Comment({
+                        user_id: user_id,
+                        comment: comment,
+                        picture: picture
+                    });
+                    comment_model.save(function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            comments.push(comment_model._id)
+                            console.log(comments);
+                            WishlistItemAssoc.update({
+                                _id: row._id
+                            }, {
+                                $set: {
+                                    comments: comments
+                                }
+                            }, function (err) {
+                                if (err) {
+                                    next(err);
+                                } else {
+                                    res.json({
+                                        error: 0
+                                    })
+                                }
+                            });
+                        }
+                    });
+                } else if (type == 'remove') {
+                    var comment_id = body.comment_id;
+                    Comment.remove({
+                        _id: mongoose.Types.ObjectId(comment_id)
+                    }, function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            var new_comment_ids = [];
+                            for (var i = 0; i < comments.length; i++) {
+                                if (comments[i] != comment_id) {
+                                    new_comment_ids.push(comments[i])
+                                }
+                            }
+                            WishlistItemAssoc.update({
+                                _id: row._id
+                            }, {
+                                $set: {
+                                    comments: comments
+                                }
+                            }, function (err) {
+                                if (err) {
+                                    next(err);
+                                } else {
+                                    res.json({
+                                        error: 0
+                                    })
+                                }
+                            });
+                        }
+                    })
+                } else {
+                    var comment_id = body.comment_id;
+                    Comment.update({
+                        _id: mongoose.Types.ObjectId(comment_id)
+                    }, {
+                        $set: {
+                            picture: picture,
+                            comment: comment
+                        }
+                    }, function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0
+                            })
+                        }
+                    })
+                }
+            }
+        })
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+})
+
+router.all('/item/pin', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var item_id = body.item_id;
+    var list_id = body.list_id;
+    var to_list_id = body.to_list_id;
+
+
+    var WishlistItem = req.WishlistItem;
+    var WishlistItemAssoc = req.WishlistItemAssoc;
+    if (user_id && item_id && list_id) {
+        WishlistItemAssoc.findOne({
+            item_id: item_id,
+            list_id: to_list_id
+        }).populate('item_id list_id').lean().exec(function (err, row) {
+            if (err) {
+                next(err);
+            } else {
+                if (row) {
+                    console.log(row);
+                    res.json({
+                        error: 0,
+                        message: 'You Already Have This Item In Your List'
+                    })
+                } else {
+
+                    WishlistItem.findOne({
+                        _id: mongoose.Types.ObjectId(item_id)
+                    }, function (err, item_row) {
+                        if (err) {
+                            next(err);
+                        } else if (item_row) {
+
+
+                            var pins = item_row.pins;
+                            if (!pins) {
+                                pins = [];
+                            }
+                            pins.push({
+                                user_id: user_id
+                            })
+                            WishlistItem.update({
+                                _id: mongoose.Types.ObjectId(item_id)
+                            }, {
+                                $set: {
+                                    pins: pins
+                                }
+                            }, function (err) {
+                                if (err) {
+                                    next(err);
+                                } else {
+                                    var model = new WishlistItemAssoc({
+                                        list_id: to_list_id,
+                                        item_id: item_id
+                                    });
+                                    model.save(function (err) {
+                                        if (err) {
+                                            next(err);
+                                        } else {
+                                            res.json({
+                                                error: 0
+                                            })
+                                        }
+                                    });
+                                }
+                            });
+
+                        } else {
+                            res.json({
+                                error: 1,
+                                message: 'Item Not Found'
+                            });
+                        }
+                    })
+
+                }
+            }
+        })
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+})
+router.all('/item/like', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var item_id = body.item_id;
+    var list_id = body.list_id;
+    var type = body.type;
+
+    var Wishlist = req.Wishlist;
+    var WishlistItemAssoc = req.WishlistItemAssoc;
+    if (user_id && item_id) {
+        WishlistItemAssoc.findOne({
+            item_id: item_id,
+            list_id: list_id
+        }).populate('item_id list_id').lean().exec(function (err, row) {
+            if (err) {
+                next(err);
+            } else {
+                if (row.list_id.user_id == user_id && false) {
+                    res.json({
+                        error: 1,
+                        message: "You Can't Like Your Own Item"
+                    });
+                } else {
+                    var likes = row.likes;
+                    if (!likes) {
+                        likes = [];
+                    }
+                    if (type == 'add') {
+                        var found = false;
+                        for (var i = 0; i < likes.length; i++) {
+                            var like = likes[i];
+                            if (like.user_id == user_id) {
+                                found = true;
+                            }
+                        }
+                        if (found) {
+                            res.json({
+                                error: 1,
+                                message: "You Already Like This Item"
+                            });
+                        } else {
+                            likes.push({
+                                user_id: user_id
+                            });
+                            WishlistItemAssoc.update({
+                                _id: row._id
+                            }, {
+                                $set: {
+                                    likes: likes
+                                }
+                            }, function (err) {
+                                if (err) {
+                                    next(err);
+                                } else {
+
+                                    Wishlist.update({
+                                        _id: mongoose.Types.Object(list_id)
+                                    }, {
+                                        $inc: {
+                                            'meta.likes': 1
+                                        }
+                                    }, function (err) {
+                                        if (err) {
+                                            next();
+                                        } else {
+                                            var updater = require('../../modules/v1/update');
+                                            updater.notification(row.list_id.user_id, 'like', row, req, function (err) {
+                                                if (err)
+                                                    next(err);
+                                                res.json({
+                                                    error: 0
+                                                })
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    } else {
+                        var found = false;
+                        var new_likes = [];
+                        for (var i = 0; i < likes.length; i++) {
+                            var like = likes[i];
+                            if (like.user_id == user_id) {
+                                found = true;
+                            } else {
+                                new_likes.push(like);
+                            }
+                        }
+                        if (!found) {
+                            res.json({
+                                error: 1,
+                                message: "You Already Don't Like This Item"
+                            });
+                        } else {
+                            WishlistItemAssoc.update({
+                                _id: row._id
+                            }, {
+                                $set: {
+                                    likes: new_likes
+                                }
+                            }, function (err) {
+                                if (err) {
+                                    next(err);
+                                } else {
+                                    res.json({
+                                        error: 0
+                                    })
+                                }
+                            });
+                        }
+                    }
+
+                }
             }
         });
     } else {

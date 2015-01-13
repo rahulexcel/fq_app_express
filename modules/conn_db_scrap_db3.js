@@ -75,21 +75,32 @@ module.exports = function (mongoose) {
         zoom: {type: Number},
         type: {type: String, required: true, enum: wishlistItemType},
         description: String,
-        likes: [{type: Schema.Types.ObjectId, ref: 'User'}],
-        comments: [{
-                user_id: String,
-                comment: String,
-                picture: String,
+        created_at: {type: Date, default: Date.now},
+        pins: [{
+                user_id: {type: Schema.Types.ObjectId, ref: 'User'},
                 created_at: {type: Date, default: Date.now}
-            }],
-        created_at: {type: Date, default: Date.now}
+            }]
     });
     var wishlist_item_assoc_schema = mongoose.Schema({
         list_id: {type: Schema.Types.ObjectId, ref: 'Wishlist'},
         item_id: {type: Schema.Types.ObjectId, ref: 'Wishlist_Item'},
+        likes: [{
+                user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+                created_at: {type: Date, default: Date.now}
+            }],
+        comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
     });
     wishlist_item_assoc_schema.index({list_id: -1});
     wishlist_item_assoc_schema.index({item_id: -1});
+
+    var item_comment_schema = mongoose.Schema({
+        user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+        comment: String,
+        picture: String,
+        created_at: {type: Date, default: Date.now}
+    })
+    item_comment_schema.index({user_id: -1});
+
     var wishlist_item_update_schema = mongoose.Schema({
         user_id: {type: Schema.Types.ObjectId, ref: 'User'},
         item_id: {type: Schema.Types.ObjectId, ref: 'Wishlist_Item'},
@@ -116,6 +127,7 @@ module.exports = function (mongoose) {
     var WishlistItemUpdate = conn.model('Wishlist_Item_Update', wishlist_item_update_schema);
     var Updates = conn.model('User_Update', user_updates);
     var UserItemUpdate = conn.model('User_Item_Update', user_item_updates);
+    var Comment = conn.model('Comment', item_comment_schema);
 
     var feedback_schema = mongoose.Schema({}, {
         strict: false,
@@ -138,6 +150,7 @@ module.exports = function (mongoose) {
         req.WishlistItemUpdate = WishlistItemUpdate;
         req.Updates = Updates;
         req.UserItemUpdate = UserItemUpdate;
+        req.Comment = Comment;
         req.gfs = gfs;
         next();
     }
