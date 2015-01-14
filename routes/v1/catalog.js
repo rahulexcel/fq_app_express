@@ -412,12 +412,27 @@ router.all('/products', function (req, res) {
                             } else {
                                 var modify_data = {};
                                 if( is_text_search == false ){
-                                    finalData.products = data;
+                                    for(var j=0;j<data.length;j++){
+                                            var row1 = data[j];
+                                            var product_price_diff = row1.get('price_diff');
+                                            if( typeof product_price_diff != 'undefined'){
+                                                row1.set('price_drop',product_price_diff);
+                                            }else{
+                                                row1.set('price_drop',0);
+                                            }
+                                            finalData.products.push(row1);
+                                        }
                                 }else{
                                     if( data.results ){
                                         for(var i=0;i<data.results.length;i++){
                                             var row = data.results[i];
                                             var obj = row.obj
+                                            var product_price_diff = obj['price_diff'];
+                                            if( typeof product_price_diff != 'undefined'){
+                                                obj['price_drop'] = product_price_diff;
+                                            }else{
+                                                obj['price_drop'] = 0;
+                                            }
                                             finalData.products.push(obj);
                                         }
                                     }
