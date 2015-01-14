@@ -2,7 +2,21 @@ var express = require('express');
 var router = express.Router();
 
 router.all('/view', function(req,res){
-    
+    function stringToArray(str, expby) {
+        var ret = new Array();
+        var split = str.split(expby);
+        for (i = 0; i < split.length; i++) {
+            ss = split[i];
+            ss = ss.trim();
+            if (ss.length > 0) {
+                ret.push(ss);
+            }
+        }
+        return ret;
+    }
+    function arrayToString(arr, impby) {
+        return arr.join(impby);
+    }
     function timeConverter(UNIX_timestamp){
       var a = new Date(UNIX_timestamp);
       var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -50,6 +64,7 @@ router.all('/view', function(req,res){
             variant:variant_arr,
             price_history:price_history_data,
             price_drop:0,
+            brand_filter_key:'',
         };
         var where = {
             '_id' : mongoose.Types.ObjectId(product_id),
@@ -74,6 +89,12 @@ router.all('/view', function(req,res){
                     product_website = data.get('website');
                     product_cat_id = data.get('cat_id');
                     product_sub_cat_id = data.get('sub_cat_id');
+                    product_brand = data.get('brand');
+                    if( typeof product_brand != 'undefined' && product_brand != ''){
+                        var brand1 = stringToArray( product_brand, ' ');
+                        var brand2 = arrayToString( brand1,'_' );
+                        product_data.brand_filter_key = 'filter__text__brand__'+brand2;
+                    }
                     product_price_diff = data.get('price_diff');
                     if( typeof product_price_diff != 'undefined'){
                         product_data.price_drop = product_price_diff;
