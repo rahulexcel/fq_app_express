@@ -475,7 +475,8 @@ router.all('/login', function (req, res, next) {
                     console.log(pass_md5 + 'xxx' + userObj.password);
                     if (pass_md5 == user.get('password')) {
                         res.json({
-                            error: 0
+                            error: 0,
+                            data: user
                         });
                     } else {
                         res.json({

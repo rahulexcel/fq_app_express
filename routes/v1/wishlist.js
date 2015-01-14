@@ -259,7 +259,7 @@ router.all('/item/list', function (req, res, next) {
                                                 prod.href = href;
                                                 prod.price = price;
                                                 prod.website = website;
-                                                prod.type = row.get('type');
+                                                prod.type = wishlist_row.get('type');
 
                                                 prod.created_at = moment(created_at).tz('Asia/Calcutta').format('Do MMM h:mm a');
 
@@ -350,7 +350,7 @@ function populateWishlistItem(row, req, done) {
                         row.product_id = product_row.get('_id');
                         done(null, row);
                     } else {
-                        done(err);
+                        done(null, row);
                     }
 
                 });
@@ -366,6 +366,7 @@ router.all('/item/view/:item_id/:list_id', function (req, res, next) {
     var list_id = req.params.list_id;
 
     var WishlistItemAssoc = req.WishlistItemAssoc;
+    var User = req.User;
 
     if (item_id && list_id) {
         WishlistItemAssoc.findOne({
@@ -388,20 +389,45 @@ router.all('/item/view/:item_id/:list_id', function (req, res, next) {
                         if (err) {
                             next(err);
                         } else {
-                            var location = row.location;
-                            var zoom = row.zoom;
-                            if (location && location.length > 0) {
-                                var new_location = {
-                                    lat: location[1],
-                                    lng: location[0],
-                                    zoom: zoom
-                                };
-                                row.location = new_location;
+                            if (row && row.location) {
+                                var location = row.location;
+                                var zoom = row.zoom;
+                                if (location && location.length > 0) {
+                                    var new_location = {
+                                        lat: location[1],
+                                        lng: location[0],
+                                        zoom: zoom
+                                    };
+                                    row.location = new_location;
+                                }
                             }
-                            res.json({
-                                error: 0,
-                                data: row
-                            });
+                            if (row.comments) {
+                                var comments = row.comments;
+                                var new_comments = [];
+                                var k = 0;
+                                for (var i = 0; i < comments.length; i++) {
+                                    (function (comment) {
+                                        var user_id = comment.user_id;
+                                        User.findOne({
+                                            _id: mongoose.Types.ObjectId(user_id)
+                                        }).lean().exec(function (err, user_row) {
+                                            if (user_row) {
+                                                comment.picture = user_row.picture;
+                                                comment.user_name = user_row.name;
+                                            }
+                                            new_comments.push(comment);
+                                            if (k == (comments.length - 1)) {
+                                                row.comments = new_comments;
+                                                res.json({
+                                                    error: 0,
+                                                    data: row
+                                                });
+                                            }
+                                            k++;
+                                        });
+                                    })(comments[i]);
+                                }
+                            }
                         }
                     })
                 } else {
