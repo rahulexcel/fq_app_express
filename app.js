@@ -6,6 +6,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var multer = require('multer')
+var useragent = require('express-useragent');
 
 var module_config = require('./modules/config');
 var module_conn_pricegenie = require('./modules/conn_pricegenie');
@@ -21,6 +22,7 @@ var v1_routes_feedback = require('./routes/v1/feedback');
 
 
 var app = express();
+app.use(useragent.express());
 app.use(express.static(path.join(__dirname, 'public')));
 // view engine setup
 var exphbs = require('express-handlebars');

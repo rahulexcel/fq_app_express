@@ -4,6 +4,24 @@ var mongoose = require('mongoose');
 
 var moment = require('moment-timezone');
 
+var akismet = require('akismet-api');
+var client = akismet.client({
+    key: 'd752512fcd78', // Required!
+    blog: 'http://pricegenie.co'        // Required!
+});
+
+var use_akismat = false;
+
+client.verifyKey(function (err, valid) {
+    if (valid) {
+        console.log('Valid key!');
+        use_akismat = true;
+    } else {
+        console.log('Key validation failed...');
+        console.log(err.message);
+    }
+});
+
 router.all('/user/follow', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
@@ -340,6 +358,152 @@ router.all('/item/view/comment/:list_id/:item_id', function (req, res, next) {
     }
 
 });
+router.all('/item/pins', function (req, res, next) {
+    var body = req.body;
+    var item_id = body.item_id;
+
+    var WishlistItem = req.WishlistItem;
+    var User = req.User;
+    WishlistItem.findOne({
+        _id: mongoose.Types.ObjectId(item_id)
+    }).exec(function (err, result) {
+        if (err) {
+            next(err);
+        } else {
+            if (result) {
+
+                var pins = result.get('pins');
+                var ret = [];
+                var k = 0;
+                for (var i = 0; i < pins.length; i++) {
+
+                    (function (pin) {
+                        console.log(pin);
+                        var user_id = pin.user_id;
+                        User.findOne({
+                            _id: mongoose.Types.ObjectId(user_id)
+                        }).lean().exec(function (err, user_row) {
+                            if (user_row)
+                                ret.push(user_row);
+                            if (k == (pins.length - 1)) {
+                                res.json({
+                                    error: 0,
+                                    data: ret
+                                });
+                            }
+                            k++;
+                        });
+                    })(pins[i]);
+                }
+            } else {
+                res.json({
+                    error: 1,
+                    message: 'Invalid Item ID'
+                });
+            }
+        }
+    })
+})
+router.all('/item/likes', function (req, res, next) {
+    var body = req.body;
+    var item_id = body.item_id;
+    var list_id = body.list_id;
+
+    var WishlistItemAssoc = req.WishlistItemAssoc;
+
+    var User = req.User;
+    WishlistItemAssoc.findOne({
+        item_id: item_id,
+        list_id: list_id
+    }).exec(function (err, result) {
+        if (err) {
+            next(err);
+        } else {
+            if (result) {
+                var likes = result.get('likes');
+
+                var ret = [];
+                for (var i = 0; i < likes.length; i++) {
+                    var k = 0;
+                    (function (like) {
+                        var user_id = like.user_id;
+                        User.findOne({
+                            _id: mongoose.Types.ObjectId(user_id)
+                        }).lean().exec(function (err, user_row) {
+                            if (user_row)
+                                ret.push(user_row);
+                            if (k == (likes.length - 1)) {
+                                res.json({
+                                    error: 0,
+                                    data: ret
+                                });
+                            }
+                            k++;
+                        });
+                    })(likes[i]);
+                }
+
+            } else {
+                res.json({
+                    error: 1,
+                    message: 'Invalid Item ID'
+                });
+            }
+        }
+    });
+})
+router.all('/user/followers', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+
+    var User = req.User;
+
+    User.findOne({
+        _id: mongoose.Types.ObjectId(user_id)
+    }).populate('followers').exec(function (err, result) {
+        if (err) {
+            next(err);
+        } else {
+            if (result) {
+                res.json({
+                    error: 0,
+                    data: result.get('followers')
+                });
+            } else {
+                res.json({
+                    error: 1,
+                    message: 'Invalid User ID'
+                });
+            }
+        }
+    });
+})
+router.all('/list/followers', function (req, res, next) {
+    var body = req.body;
+    var list_id = body.list_id;
+
+    var Wishlist = req.Wishlist;
+
+    Wishlist.findOne({
+        _id: mongoose.Types.ObjectId(list_id)
+    }).populate('followers').exec(function (err, result) {
+        if (err) {
+            next(err);
+        } else {
+            if (result) {
+                res.json({
+                    error: 0,
+                    data: result.get('followers')
+                });
+            } else {
+                res.json({
+                    error: 1,
+                    message: 'Invalid List ID'
+                });
+            }
+        }
+    });
+})
 router.all('/item/comment', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
@@ -352,6 +516,35 @@ router.all('/item/comment', function (req, res, next) {
     var WishlistItemAssoc = req.WishlistItemAssoc;
     var Comment = req.Comment;
     if (user_id && item_id && list_id) {
+
+        if (comment && comment.length > 0) {
+
+            if (use_akismat) {
+                client.checkSpam({
+                    user_ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress, // Required!
+                    user_agent: req.useragent, // Required!
+                    referrer: 'http://google.co.in', // Required!
+                    comment_content: comment
+                }, function (err, spam) {
+                    if (err) {
+                        console.log('Error!');
+                        console.log(err);
+                    } else {
+                        if (spam) {
+                            console.log('OMG Spam!');
+                            res.json({
+                                error: 0,
+                                message: 'Comment Marked As Spam'
+                            });
+                            return;
+                        } else {
+                            console.log('Totally not spam');
+                        }
+                    }
+                });
+            }
+        }
+
         WishlistItemAssoc.findOne({
             item_id: item_id,
             list_id: list_id
