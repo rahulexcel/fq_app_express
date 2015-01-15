@@ -62,9 +62,9 @@ router.all('/view', function(req,res){
             product:{},
             similar:similar_arr,
             variant:variant_arr,
-            price_history:price_history_data,
-            price_drop:0,
-            brand_filter_key:'',
+            //price_history:price_history_data,
+            //price_drop:0,
+            //brand_filter_key:'',
         };
         var where = {
             '_id' : mongoose.Types.ObjectId(product_id),
@@ -90,18 +90,27 @@ router.all('/view', function(req,res){
                     product_cat_id = data.get('cat_id');
                     product_sub_cat_id = data.get('sub_cat_id');
                     product_brand = data.get('brand');
+                    
+                    data.set('brand_filter_key','');
+                    data.set('price_drop',0);
+                    data.set('price_history_new',[]);
+                    
+                    
                     if( typeof product_brand != 'undefined' && product_brand != ''){
                         var brand1 = stringToArray( product_brand, ' ');
                         var brand2 = arrayToString( brand1,'_' );
-                        product_data.brand_filter_key = 'filter__text__brand__'+brand2;
+                        //product_data.brand_filter_key = 'filter__text__brand__'+brand2;
+                        data.set('brand_filter_key','filter__text__brand__'+brand2);
                     }
                     product_price_diff = data.get('price_diff');
                     if( typeof product_price_diff != 'undefined'){
-                        product_data.price_drop = product_price_diff;
+                        //product_data.price_drop = product_price_diff;
+                        data.set('price_drop',product_price_diff);
                     }
                     product_price_history = data.get('price_history');
                     if( typeof product_price_history != 'undefined' && product_price_history != null && product_price_history.length > 0 ){
-                        product_data.price_history = modifyPriceHistoryForJson(product_price_history);
+                        //product_data.price_history = modifyPriceHistoryForJson(product_price_history);
+                        data.set( 'price_history_new',modifyPriceHistoryForJson(product_price_history) );
                     }
                     
                     where_category ={
@@ -134,6 +143,12 @@ router.all('/view', function(req,res){
                                 'sub_cat_id':product_sub_cat_id*1,
                                 'website':{'$ne':product_website},
                             };
+                        
+                            if( typeof product_brand != 'undefined' && product_brand != ''){
+                                where_similar['brand'] = new RegExp(product_brand, "i");
+                                where_variant['brand'] = new RegExp(product_brand, "i");
+                            }
+                        
                             website_scrap_data.db.db.command({
                                 text: 'website_scrap_data', 
                                 search: product_name,
