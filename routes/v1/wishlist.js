@@ -368,6 +368,8 @@ router.all('/item/view/:item_id/:list_id', function (req, res, next) {
     var WishlistItemAssoc = req.WishlistItemAssoc;
     var User = req.User;
 
+    console.log(item_id + "XXX" + list_id);
+
     if (item_id && list_id) {
         WishlistItemAssoc.findOne({
             item_id: item_id,
@@ -405,27 +407,35 @@ router.all('/item/view/:item_id/:list_id', function (req, res, next) {
                                 var comments = row.comments;
                                 var new_comments = [];
                                 var k = 0;
-                                for (var i = 0; i < comments.length; i++) {
-                                    (function (comment) {
-                                        var user_id = comment.user_id;
-                                        User.findOne({
-                                            _id: mongoose.Types.ObjectId(user_id)
-                                        }).lean().exec(function (err, user_row) {
-                                            if (user_row) {
-                                                comment.picture = user_row.picture;
-                                                comment.user_name = user_row.name;
-                                            }
-                                            new_comments.push(comment);
-                                            if (k == (comments.length - 1)) {
-                                                row.comments = new_comments;
-                                                res.json({
-                                                    error: 0,
-                                                    data: row
-                                                });
-                                            }
-                                            k++;
-                                        });
-                                    })(comments[i]);
+                                if (row.comments.length > 0) {
+                                    for (var i = 0; i < comments.length; i++) {
+                                        (function (comment) {
+                                            var user_id = comment.user_id;
+                                            User.findOne({
+                                                _id: mongoose.Types.ObjectId(user_id)
+                                            }).lean().exec(function (err, user_row) {
+                                                if (user_row) {
+                                                    comment.picture = user_row.picture;
+                                                    comment.user_name = user_row.name;
+                                                }
+                                                new_comments.push(comment);
+                                                if (k == (comments.length - 1)) {
+                                                    row.comments = new_comments;
+                                                    res.json({
+                                                        error: 0,
+                                                        data: row
+                                                    });
+                                                }
+                                                k++;
+                                            });
+                                        })(comments[i]);
+                                    }
+                                } else {
+                                    row.comments = [];
+                                    res.json({
+                                        error: 0,
+                                        data: row
+                                    });
                                 }
                             }
                         }
@@ -533,7 +543,6 @@ router.all('/item/add', function (req, res, next) {
                                                                 });
                                                             } else {
 
-
                                                                 var wish_model = new WishlistItem({
                                                                     name: name, href: href,
                                                                     img: img,
@@ -580,8 +589,8 @@ router.all('/item/add', function (req, res, next) {
                                                                                             if (err) {
                                                                                                 next(err);
                                                                                             } else {
-                                                                                                //var updater = require('./../../modules/v1/update');
-                                                                                                //updater.profileItemUpdate(wish_model, list, row, req);
+                                                                                                var updater = require('./../../modules/v1/update');
+                                                                                                updater.profileItemUpdate(wish_model, list, row, req);
                                                                                                 res.json({
                                                                                                     error: 0,
                                                                                                     data: {
@@ -610,10 +619,11 @@ router.all('/item/add', function (req, res, next) {
                                             href: body.item.url,
                                             img: body.item.picture,
                                             description: body.item.description,
-                                            type: 'custom'
+                                            type: 'custom',
+                                            price: body.item.price
 
                                         };
-                                        if (body.item.location) {
+                                        if (body.item.location && body.item.location.lng) {
                                             item['location'] = [body.item.location.lng, body.item.location.lat];
                                             item['zoom'] = body.item.location.zoom;
                                         }
@@ -642,6 +652,8 @@ router.all('/item/add', function (req, res, next) {
                                                             if (err) {
                                                                 next(err);
                                                             } else {
+                                                                var updater = require('./../../modules/v1/update');
+                                                                updater.profileItemUpdate(wish_model, list, row, req);
                                                                 res.json({
                                                                     error: 0,
                                                                     data: {

@@ -120,7 +120,10 @@ router.get('/view/:filename', function (req, res, next) {
                 var mime = 'image/jpeg';
                 res.set('Content-Type', mime);
                 var read_stream = gfs.createReadStream({filename: filename});
-                if (req.query.width) {
+                if (req.query.width && req.query.height) {
+                    var transformer = sharp().resize(req.query.width * 1, req.query.height * 1);
+                    read_stream.pipe(transformer).pipe(res);
+                } else if (req.query.width) {
                     var transformer = sharp().resize(req.query.width * 1);
                     read_stream.pipe(transformer).pipe(res);
                 } else {

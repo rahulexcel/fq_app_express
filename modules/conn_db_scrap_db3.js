@@ -118,8 +118,28 @@ module.exports = function (mongoose) {
         data: {type: Schema.Types.Mixed},
         gcm_status: {type: Schema.Types.Mixed},
         created_at: {type: Date, default: Date.now}
-    })
+    });
+    var auth_schema = mongoose.Schema({
+        user_id: {type: String, required: true},
+        api_key: {type: String, required: true},
+        api_secret: {type: String, required: true},
+        created_at: {type: Date, default: Date.now},
+        device: {type: Schema.Types.Mixed}
+    });
+    auth_schema.index({'api_key': -1});
 
+    var gcm_schema = mongoose.Schema({
+        user_id: {type: String, required: true},
+        api_key: {type: String, required: true},
+        reg_id: {type: String, required: true},
+        created_at: {type: Date, default: Date.now},
+        device: {type: Schema.Types.Mixed}
+    });
+    gcm_schema.index({user_id: -1});
+    gcm_schema.index({user_id: -1, api_key: -1});
+
+    var GCM = conn.model('GCM', gcm_schema);
+    var Auth = conn.model('Auth', auth_schema);
     var User = conn.model('User', user_schema);
     var Wishlist = conn.model('Wishlist', wishlist_schema);
     var WishlistItem = conn.model('Wishlist_Item', wishlist_item_schema);
@@ -142,6 +162,7 @@ module.exports = function (mongoose) {
         req.conn_final_fashion_filters = final_fashion_filters;
         req.conn_filters_category_wise = filters_category_wise;
         req.conn_website_scrap_data = website_scrap_data;
+        req.Auth = Auth;
         req.User = User;
         req.Wishlist = Wishlist;
         req.Feedback = Feedback;
@@ -152,6 +173,7 @@ module.exports = function (mongoose) {
         req.UserItemUpdate = UserItemUpdate;
         req.Comment = Comment;
         req.gfs = gfs;
+        req.GCM = GCM;
         next();
     }
 }

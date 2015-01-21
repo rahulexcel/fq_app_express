@@ -143,7 +143,24 @@ router.all('/update/picture', function (req, res, next) {
         });
     }
 })
-
+function addAuth(user, device, req, res, next) {
+    var auth_strategy = req.auth_strategy;
+    auth_strategy.createAuth(user.id, device, req, function (err, data) {
+        if (err) {
+            next(err);
+        } else {
+            console.log('login auth data');
+            console.log(data);
+            user.api_key = data.api_key;
+            user.api_secret = data.api_secret;
+            console.log(user);
+            res.json({
+                error: 0,
+                data: user
+            });
+        }
+    });
+}
 router.all('/create/facebook', function (req, res, next) {
     var body = req.body;
     var user = body.user;
@@ -167,6 +184,7 @@ router.all('/create/facebook', function (req, res, next) {
         password = generatePassword(6);
         user.password = password;
         user.type = type;
+        var device = user.device;
         var name = user.name;
         var UserModel = req.User;
 
@@ -216,15 +234,8 @@ router.all('/create/facebook', function (req, res, next) {
                         picture: user.get('picture'),
                         gender: user.get('gender')
                     };
-                    res.json({
-                        error: 0,
-                        data: user
-                    });
-
-
+                    addAuth(user, device, req, res, next);
                 } else {
-
-
                     var crypto = require('crypto');
                     var md5 = crypto.createHash('md5');
                     md5.update(password);
@@ -240,10 +251,7 @@ router.all('/create/facebook', function (req, res, next) {
                         } else {
                             var id = model._id;
                             userObj.id = id;
-                            res.json({
-                                error: 0,
-                                data: userObj
-                            });
+                            addAuth(userObj, device, req, res, next);
                         }
                     });
 
@@ -286,6 +294,7 @@ router.all('/create/google', function (req, res, next) {
         var type = 'google';
         user.password = password;
         user.type = type;
+        var device = user.device;
         password = generatePassword(6);
         UserModel.findOne({
             email: email
@@ -321,15 +330,10 @@ router.all('/create/google', function (req, res, next) {
                         picture: user.get('picture'),
                         gender: user.get('gender')
                     };
-                    res.json({
-                        error: 0,
-                        data: user
-                    });
+                    addAuth(user, device, req, res, next);
 
 
                 } else {
-
-
                     var crypto = require('crypto');
                     var md5 = crypto.createHash('md5');
                     md5.update(password);
@@ -345,10 +349,7 @@ router.all('/create/google', function (req, res, next) {
                         } else {
                             var id = model._id;
                             userObj.id = id;
-                            res.json({
-                                error: 0,
-                                data: userObj
-                            });
+                            addAuth(userObj, device, req, res, next);
                         }
                     });
 
@@ -380,6 +381,7 @@ router.all('/create', function (req, res, next) {
     var email = user.email;
     var password = '';
     var type = 'signup';
+    var device = user.device;
     password = user.password;
     user.type = type;
     var name = user.name;
@@ -419,10 +421,7 @@ router.all('/create', function (req, res, next) {
                         } else {
                             var id = model._id;
                             userObj.id = id;
-                            res.json({
-                                error: 0,
-                                data: userObj
-                            });
+                            addAuth(userObj, device, req, res, next);
                         }
                     });
 
@@ -438,6 +437,21 @@ router.all('/create', function (req, res, next) {
         });
     }
 });
+
+router.all('/logout', function (req, res, next) {
+    var body = req.body;
+    var api_key = body.api_key;
+
+    if (api_key) {
+        var auth_strategy = req.auth_strategy;
+        auth_strategy.removeAuth(api_key, req, res, next);
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+})
 
 router.all('/login', function (req, res, next) {
 
@@ -456,6 +470,7 @@ router.all('/login', function (req, res, next) {
     var email = user.email;
     var password = '';
     password = user.password;
+    var device = user.device;
     var UserModel = req.User;
 
     var userObj = user;
@@ -463,7 +478,7 @@ router.all('/login', function (req, res, next) {
     if (password && password.length > 0 && email && email.length > 0) {
         UserModel.findOne({
             email: email
-        }).exec(function (err, user) {
+        }).lean().exec(function (err, user) {
             if (err) {
                 next(err);
             } else {
@@ -473,11 +488,9 @@ router.all('/login', function (req, res, next) {
                     md5.update(password);
                     var pass_md5 = md5.digest('hex');
                     console.log(pass_md5 + 'xxx' + userObj.password);
-                    if (pass_md5 == user.get('password')) {
-                        res.json({
-                            error: 0,
-                            data: user
-                        });
+                    if (pass_md5 == user.password) {
+                        user.id = user._id;
+                        addAuth(user, device, req, res, next);
                     } else {
                         res.json({
                             error: 1,
