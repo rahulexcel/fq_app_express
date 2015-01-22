@@ -477,6 +477,8 @@ router.all('/item/add', function (req, res, next) {
             if (err) {
                 next(err);
             } else {
+
+                var user_points = row.followers.length;
                 if (row) {
                     Wishlist.findOne({
                         _id: mongoose.Types.ObjectId(list_id)
@@ -484,7 +486,8 @@ router.all('/item/add', function (req, res, next) {
                         if (err) {
                             next(err);
                         } else {
-
+                            var list_points = list.followers.length + list.meta.likes;
+                            
                             if (!list) {
                                 res.json({
                                     error: 1,
@@ -553,7 +556,18 @@ router.all('/item/add', function (req, res, next) {
                                                                     sub_cat_id: sub_cat_id,
                                                                     expired: 0,
                                                                     unique: unique,
-                                                                    type: 'product'
+                                                                    type: 'product',
+                                                                    access_type: list.type,
+                                                                    original: {
+                                                                        user_id: user_id,
+                                                                        list_id: list_id
+                                                                    },
+                                                                    meta: {
+                                                                        likes: 0,
+                                                                        comments: 0,
+                                                                        user_points: user_points,
+                                                                        list_points: list_points
+                                                                    }
                                                                 });
                                                                 wish_model.save(function (err) {
                                                                     if (err) {
@@ -623,7 +637,18 @@ router.all('/item/add', function (req, res, next) {
                                             img: body.item.picture,
                                             description: body.item.description,
                                             type: 'custom',
-                                            price: body.item.price
+                                            price: body.item.price,
+                                            access_type: list.type,
+                                            original: {
+                                                user_id: user_id,
+                                                list_id: list_id
+                                            },
+                                            meta: {
+                                                likes: 0,
+                                                comments: 0,
+                                                user_points: user_points,
+                                                list_points: list_points
+                                            }
 
                                         };
                                         if (body.item.location && body.item.location.lng) {

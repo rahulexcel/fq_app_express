@@ -73,20 +73,74 @@ router.all('/gcm', function (req, res, next) {
             }
         });
     }
-})
+});
+
+
+var the_day_of_reckoning = '2015-01-22T12:14:23.790Z';
 //http://stackoverflow.com/questions/11653545/hot-content-algorithm-score-with-time-decay
+//https://coderwall.com/p/cacyhw/an-introduction-to-ranking-algorithms-seen-on-social-news-aggregators
 router.all('/home', function (req, res, next) {
 
     var WishlistItem = req.WishlistItem;
 
-    var body = req.body;
-
     var oper = {};
+
+    //set query and out as well
+    oper.verbose = true;
+    oper.scope = {
+        base_time: new Date(the_day_of_reckoning).getTime()
+    }
     oper.map = function () {
-        emit(this.region, 1);
+        var pins = this.pins.length || 0;
+        var likes = this.meta.likes || 0;
+        var user_points = this.meta.user_points || 0;
+        var list_points = this.list_points || 0;
+        var updated_at = this.updated_at;
+        var created_at = this.created_at;
+
+        emit(this._id, {
+            pins: pins,
+            likes: likes,
+            user_points: user_points,
+            list_points: list_points,
+            updated_at: updated_at.getTime(),
+            created_at: created_at.getTime()
+        });
     }
     oper.reduce = function (key, values) {
-        return Array.sum(values);
+
+        var final_values = {};
+        var latest = 0;
+        for (var i = 0; i < values.length; i++) {
+            if (values[i].updated_at > latest) {
+                final_values = values[i];
+            }
+        }
+        var pins = final_values.pins;
+        var likes = final_values.likes;
+        var user_points = final_values.user_points;
+        var list_points = final_values.list_points;
+
+        var s = 2 * pins + 8 * likes + user_points + list_points;
+        var baseScore = Math.log(Math.max(s, 1));
+
+        /*
+         
+         var timeDiff = (now - this.created_at) / (1000 * 60 * 60 * 24 * 7);
+         //time different in weeks
+         //if you have more and more posts we can reduce time difference to days, hours as well
+         
+         if (timeDiff > 1) {
+         //if more than 1week
+         var x = timeDiff - 1;
+         baseScore = baseScore * exp(-8 * x * x)
+         }
+         */
+
+        var seconds = final_values.created_at - this.base_time;
+        baseScore = round(baseScore + 1 * seconds / 45000, 7)
+
+        return baseScore;
     }
     WishlistItem.mapReduce(oper, function (err, result) {
         if (err) {
@@ -798,6 +852,7 @@ router.all('/item/comment', function (req, res, next) {
                                     next(err);
                                 } else {
 
+//increment comment stats below only for unique users
                                     WishlistItem.update({
                                         _id: mongoose.Types.Object(item_id)
                                     }, {
@@ -929,6 +984,13 @@ router.all('/item/pin', function (req, res, next) {
                             next(err);
                         } else if (item_row) {
 
+                            if (item_row.access_type == 'private') {
+                                res.json({
+                                    error: 1,
+                                    message: 'Private Item Cannot Added To Your List'
+                                });
+                                return;
+                            }
 
                             var pins = item_row.pins;
                             if (!pins) {
@@ -1050,7 +1112,8 @@ router.all('/item/like', function (req, res, next) {
                                             }, {
                                                 $inc: {
                                                     'meta.likes': 1
-                                                }
+                                                },
+                                                updated_at: new Date()
                                             }, function (err) {
                                                 if (err) {
                                                     next(err);
@@ -1115,7 +1178,8 @@ router.all('/item/like', function (req, res, next) {
                                             }, {
                                                 $inc: {
                                                     'meta.likes': -1
-                                                }
+                                                },
+                                                updated_at: new Date()
                                             }, function (err) {
                                                 if (err) {
                                                     next(err);

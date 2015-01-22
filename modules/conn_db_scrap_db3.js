@@ -34,7 +34,7 @@ module.exports = function (mongoose) {
         meta: {
             lists: {type: Number, default: 0},
             products: {type: Number, default: 0},
-            followers: {type: Number, default: 0} //will addup followers from list alos
+            followers: {type: Number, default: 0} //will addup followers from list also
 
         },
         friends: [{type: Schema.Types.ObjectId, ref: 'User'}],
@@ -76,13 +76,21 @@ module.exports = function (mongoose) {
         type: {type: String, required: true, enum: wishlistItemType},
         description: String,
         created_at: {type: Date, default: Date.now},
+        updated_at : {type: Date, default: Date.now},
+        access_type: {type: String, require: true, enum: wishlistTypes},
+        original: {
+            user_id : {type: Schema.Types.ObjectId, ref: 'User'}, //id of original user
+            list_id : {type: Schema.Types.ObjectId, ref: 'Wishlist'}, //id of original list
+        },
         pins: [{
                 user_id: {type: Schema.Types.ObjectId, ref: 'User'},
                 created_at: {type: Date, default: Date.now}
             }],
         meta: {
-            likes: {type: Number, default: 0},
-            comments: {type: Number, default: 0}
+            likes: {type: Number, default: 0}, //total number of likes
+            comments: {type: Number, default: 0}, //total number of comments unique user comments
+            user_points : {type: Number, default: 0}, //original user points
+            list_points : {type: Number, default: 0}  //original list points
         }
     });
     var wishlist_item_assoc_schema = mongoose.Schema({
