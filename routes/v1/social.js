@@ -74,6 +74,33 @@ router.all('/gcm', function (req, res, next) {
         });
     }
 })
+//http://stackoverflow.com/questions/11653545/hot-content-algorithm-score-with-time-decay
+router.all('/home', function (req, res, next) {
+
+    var WishlistItem = req.WishlistItem;
+
+    var body = req.body;
+
+    var oper = {};
+    oper.map = function () {
+        emit(this.region, 1);
+    }
+    oper.reduce = function (key, values) {
+        return Array.sum(values);
+    }
+    WishlistItem.mapReduce(oper, function (err, result) {
+        if (err) {
+            next(err);
+        } else {
+            res.json(result);
+        }
+    })
+
+
+})
+router.all('/home/user', function (req, res, next) {
+
+})
 
 router.all('/user/profile/pins', function (req, res, next) {
     var body = req.body;
@@ -704,6 +731,7 @@ router.all('/item/comment', function (req, res, next) {
     var comment = body.comment;
     var picture = body.picture;
     var type = body.type;
+    var WishlistItem = req.WishlistItem;
     var WishlistItemAssoc = req.WishlistItemAssoc;
     var Comment = req.Comment;
     if (user_id && item_id && list_id) {
@@ -769,16 +797,28 @@ router.all('/item/comment', function (req, res, next) {
                                 if (err) {
                                     next(err);
                                 } else {
-                                    res.json({
-                                        error: 0
-                                    })
 
-                                    var updater = require('../../modules/v1/update');
-                                    row.posted_by = user_id;
-                                    row.comment = comment;
-                                    updater.notification(row.list_id.user_id, 'comment', row, req, function (err) {
+                                    WishlistItem.update({
+                                        _id: mongoose.Types.Object(item_id)
+                                    }, {
+                                        $inc: {
+                                            'meta.comments': 1
+                                        }
+                                    }, function (err) {
                                         if (err) {
-                                            console.log(err);
+                                            next(err);
+                                        } else {
+                                            res.json({
+                                                error: 0
+                                            })
+                                            var updater = require('../../modules/v1/update');
+                                            row.posted_by = user_id;
+                                            row.comment = comment;
+                                            updater.notification(row.list_id.user_id, 'comment', row, req, function (err) {
+                                                if (err) {
+                                                    console.log(err);
+                                                }
+                                            });
                                         }
                                     });
                                 }
@@ -809,9 +849,22 @@ router.all('/item/comment', function (req, res, next) {
                                 if (err) {
                                     next(err);
                                 } else {
-                                    res.json({
-                                        error: 0
-                                    })
+
+                                    WishlistItem.update({
+                                        _id: mongoose.Types.Object(item_id)
+                                    }, {
+                                        $inc: {
+                                            'meta.comments': -1
+                                        }
+                                    }, function (err) {
+                                        if (err) {
+                                            next();
+                                        } else {
+                                            res.json({
+                                                error: 0
+                                            })
+                                        }
+                                    });
                                 }
                             });
                         }
@@ -934,6 +987,7 @@ router.all('/item/like', function (req, res, next) {
     var list_id = body.list_id;
     var type = body.type;
     var Wishlist = req.Wishlist;
+    var WishlistItem = req.WishlistItem;
     var WishlistItemAssoc = req.WishlistItemAssoc;
     if (user_id && item_id) {
         WishlistItemAssoc.findOne({
@@ -991,16 +1045,28 @@ router.all('/item/like', function (req, res, next) {
                                         if (err) {
                                             next();
                                         } else {
-                                            res.json({
-                                                error: 0
-                                            })
-                                            var updater = require('../../modules/v1/update');
-                                            row.posted_by = user_id;
-                                            updater.notification(row.list_id.user_id, 'like', row, req, function (err) {
-                                                if (err) {
-                                                    console.log(err);
+                                            WishlistItem.update({
+                                                _id: mongoose.Types.Object(item_id)
+                                            }, {
+                                                $inc: {
+                                                    'meta.likes': 1
                                                 }
+                                            }, function (err) {
+                                                if (err) {
+                                                    next(err);
+                                                } else {
+                                                    var updater = require('../../modules/v1/update');
+                                                    row.posted_by = user_id;
+                                                    updater.notification(row.list_id.user_id, 'like', row, req, function (err) {
+                                                        if (err) {
+                                                            console.log(err);
+                                                        }
 
+                                                    });
+                                                    res.json({
+                                                        error: 0
+                                                    });
+                                                }
                                             });
                                         }
                                     });
@@ -1034,9 +1100,33 @@ router.all('/item/like', function (req, res, next) {
                                 if (err) {
                                     next(err);
                                 } else {
-                                    res.json({
-                                        error: 0
-                                    })
+                                    Wishlist.update({
+                                        _id: mongoose.Types.Object(list_id)
+                                    }, {
+                                        $inc: {
+                                            'meta.likes': -1
+                                        }
+                                    }, function (err) {
+                                        if (err) {
+                                            next();
+                                        } else {
+                                            WishlistItem.update({
+                                                _id: mongoose.Types.Object(item_id)
+                                            }, {
+                                                $inc: {
+                                                    'meta.likes': -1
+                                                }
+                                            }, function (err) {
+                                                if (err) {
+                                                    next(err);
+                                                } else {
+                                                    res.json({
+                                                        error: 0
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
                                 }
                             });
                         }

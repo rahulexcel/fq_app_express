@@ -79,7 +79,11 @@ module.exports = function (mongoose) {
         pins: [{
                 user_id: {type: Schema.Types.ObjectId, ref: 'User'},
                 created_at: {type: Date, default: Date.now}
-            }]
+            }],
+        meta: {
+            likes: {type: Number, default: 0},
+            comments: {type: Number, default: 0}
+        }
     });
     var wishlist_item_assoc_schema = mongoose.Schema({
         list_id: {type: Schema.Types.ObjectId, ref: 'Wishlist'},

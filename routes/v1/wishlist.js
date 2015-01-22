@@ -590,7 +590,10 @@ router.all('/item/add', function (req, res, next) {
                                                                                                 next(err);
                                                                                             } else {
                                                                                                 var updater = require('./../../modules/v1/update');
-                                                                                                updater.profileItemUpdate(wish_model, list, row, req);
+                                                                                                updater.notification(user_id, 'item_add', {
+                                                                                                    wishlist_model: wish_model,
+                                                                                                    list: list
+                                                                                                }, req);
                                                                                                 res.json({
                                                                                                     error: 0,
                                                                                                     data: {
@@ -653,7 +656,10 @@ router.all('/item/add', function (req, res, next) {
                                                                 next(err);
                                                             } else {
                                                                 var updater = require('./../../modules/v1/update');
-                                                                updater.profileItemUpdate(wish_model, list, row, req);
+                                                                updater.notification(user_id, 'item_add', {
+                                                                    wishlist_model: wish_model,
+                                                                    list: list
+                                                                }, req);
                                                                 res.json({
                                                                     error: 0,
                                                                     data: {
