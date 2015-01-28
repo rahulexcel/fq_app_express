@@ -51,6 +51,40 @@ app.use(module_conn_pricegenie(mongoose));
 app.use(module_conn_db_scrap_db3(mongoose));
 app.use(mail());
 app.use(module_recycle_data());
+app.use(function (req, res, next) {
+    var path = req.path;
+
+    var auth_paths = [
+        'account/update',
+        'account/remove_picture',
+        'account/update/picture',
+        'invite/google/lookup',
+        'invite/facebook/lookup',
+        'social/user/follow',
+        'social/list/follow',
+        'social/list/comment',
+        'social/item/pin',
+        'social/item/like',
+        'wishlist/add',
+        'wishlist/item/add'
+    ];
+    req.auth = false;
+    for (var i = 0; i < auth_paths.length; i++) {
+        if (path.indexOf(auth_paths[i]) != -1) {
+            console.log('auth required');
+            req.auth = true;
+            break;
+        }
+    }
+    next();
+});
+var auth = require('./modules/v1/auth');
+app.use(auth());
+app.use(function (req, res, next) {
+    console.log('Body After Auth');
+    console.log(req.body);
+    next();
+});
 // work accroding to version basis 
 app.use('/v1/catalog', v1_routes_catalog);
 app.use('/v1/account', v1_routes_account);
