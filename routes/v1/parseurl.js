@@ -5,32 +5,12 @@ var request = require('request');
 var zlib = require('zlib');
 var jsdom = require('jsdom');
 var fs = require('fs');
-var util = require('util');
+var util = require('util'); 
 
 router.get('/', function(req, res) {
-    var url = "http://www.flipkart.com/seven-days-men-s-solid-formal-shirt/p/itmefgduyqt7bfuc?pid=SHTEFGDWHF6GAZQZ&srno=b_5&ref=50adc78b-ce39-4d6c-bdca-3fa26e4b6c5c";
-    var url="http://www.amazon.in/gp/product/B00ENUFOP4/ref=s9_al_bw_g309_i1?pf_rd_m=A1VBAL9TL5WCBF&pf_rd_s=merchandised-search-7&pf_rd_r=043SP7VVBKM89DC46FXP&pf_rd_t=101&pf_rd_p=523793327&pf_rd_i=1983572031";
-    var url ="http://www.basicslife.com/basics-casual-plain-black-100-cotton-slim-shirt-53276.html";
-    var url ="http://www.bewakoof.com/product/hot-pink-plain-round-neck-t-shirt-for-women-india";
-    var url = "http://www.fashionara.com/742405-lee-lets7231.html";
-    var url = "http://www.jabong.com/Locomotive-Solid-Black-Casual-Shirt-1058535.html";
-    var url = "http://www.koovs.com/men/jeans/slim-jeans/voi-jeans-classic-5-pocket";
-    var url = "http://www.moodsofcloe.com/product/set-of-bra-and-panty-cotton-with-contrast-lace-in-hot-pink/";
-    var url = "http://www.myntra.com/tshirts/etc/etc-men-pack-of-2-pique-polo-t-shirts/235854/buy?src=search&uq=&q=men-tees-polos&p=1";
-    var url = "http://prettysecrets.com/prettysecrets-snow-white-soft-nude-snug-sexy-wireless-bras-pack-of-2";
-    var url = "http://www.shopnineteen.com/apparel/tops/basic-yellow-cami-top.html";
-    var url = "http://www.snapdeal.com/product/MohManthan/101175";
-    var url = "http://www.yepme.com/Deals1.aspx?CampId=43002";
-    var url = "http://www.zivame.com/apparel/fast-fashion/fashion-tops/heart-2-heart-twist-casual-tee.html";
-    var url = "http://zovi.com/multicolored-checks-short-sleeves-top--11283806801";
-    var url = "http://www.trendin.com/cream-patterned-slim-fit-shirt-34945.html";
-    var url = "http://www.fabfurnish.com/Fab-Home-Eiba-Brown-Burnt-Sienna-Double-Futon-With-Mattress-65459.html";
-    var url= "http://www.zansaar.com/royal-oak-shoe-rack-with-6-shelves-and-dark-finish-p-ROYRYQM68?track=hero&track=hp-3-2-1";
-    var url = "http://www.shoppersstop.com/women/apparel/kurtas/haute-curry-ladies-embroidered-mix-and-match-kurta.html";
-    var url = "https://www.urbanladder.com/products/stewie-storage-seat?sku=FNCOMB11MX30043&src=subcat";
-    var url = "http://www.pepperfry.com/olympus-one-seater-sofa-in-red-color-finish-with-mudramark-1259410.html";
-	//-----------------------------------------------------------------------------------------------
-    var jquery = fs.readFileSync(__dirname + '/../../modules/jquery.min.js').toString();
+    var url = req.url;
+    //-----------------------------------------------------------------------------------------------
+    var jquery = fs.readFileSync(__dirname + '/../../../../../js/jquery-1.8.3.min.js').toString();
     var jQuery;
     var $;
     var window;
@@ -552,8 +532,6 @@ router.get('/', function(req, res) {
             if( $('div.price-box').find('span.special-price').length > 0 ){
                 price = $('div.price-box').find('span.special-price').text();
             }
-            console.log(price)
-            
             price = getPrice(price);
         }
         else if( website_detected == 'zansaar'){
@@ -1194,8 +1172,6 @@ router.get('/', function(req, res) {
                         chkImage = stringToArray(chkImage,',');
                         for( var i = 0; i<chkImage.length ; i++){
                             cii = stringToArray( chkImage[i] , ':');
-                            console.log(cii);
-                            console.log('-----------------');
                             if( cii[0] == 'largeimage'){
                                 moreImage = cii[2];
                                 moreImage = moreImage.replace('//', '');
@@ -1283,7 +1259,6 @@ router.get('/', function(req, res) {
                 main_image =  $('ul.slider').find('li:first').find('img').attr('src');
                 $('ul.slider').find('li').each(function(){
                     ii = $(this).find('img').attr('data-src');
-                    console.log(ii);
                     more_images.push(ii);
                 });
             } 
@@ -1408,8 +1383,9 @@ router.get('/', function(req, res) {
     }
 
     //--script starts from here------
-    
-    if (url.length > 0) {
+    console.log('url length ::');
+    console.log(url.length);
+    if (url.length > 1) {
         var iden_website = identifyWebsite(url);
         if (iden_website == false) {
             res.json({
@@ -1445,6 +1421,11 @@ router.get('/', function(req, res) {
                 });
             }
         }
+    }else{
+        res.json({
+                error:1,
+                msg:'url is empty'
+            });
     }
 
 
