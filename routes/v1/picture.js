@@ -117,14 +117,14 @@ router.get('/view/:filename', function (req, res, next) {
             }
             if (files.length > 0) {
                 console.log(files);
-                var mime = 'image/jpeg';
+                var mime = 'image/webp';
                 res.set('Content-Type', mime);
                 var read_stream = gfs.createReadStream({filename: filename});
                 if (req.query.width && req.query.height) {
-                    var transformer = sharp().resize(req.query.width * 1, req.query.height * 1);
+                    var transformer = sharp().resize(req.query.width * 1, req.query.height * 1).webp();
                     read_stream.pipe(transformer).pipe(res);
                 } else if (req.query.width) {
-                    var transformer = sharp().resize(req.query.width * 1);
+                    var transformer = sharp().resize(req.query.width * 1).webp();
                     read_stream.pipe(transformer).pipe(res);
                 } else {
                     read_stream.pipe(res);
