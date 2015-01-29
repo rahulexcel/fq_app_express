@@ -88,17 +88,26 @@ router.all('/home', function (req, res, next) {
     //set query and out as well
     oper.verbose = true;
     oper.scope = {
-        base_time: new Date(the_day_of_reckoning).getTime()
+        base_time: new Date(the_day_of_reckoning).getTime(),
+        the_day_of_reckoning : the_day_of_reckoning
     }
     oper.map = function () {
-        var pins = this.pins.length || 0;
-        var likes = this.meta.likes || 0;
-        var user_points = this.meta.user_points || 0;
+        var pins = this.pins ? this.pins.length : 0;
+        var likes = this.meta ? this.meta.likes : 0;
+        var user_points = this.meta ? this.meta.user_points ? this.meta.user_points : 0 : 0;
         var list_points = this.list_points || 0;
         var updated_at = this.updated_at;
         var created_at = this.created_at;
+        if(!updated_at){
+            updated_at = new Date(this.the_day_of_reckoning);
+        }
+        if(!created_at){
+            created_at = new Date(this.the_day_of_reckoning);
+        }
 
         emit(this._id, {
+            image: this.img,
+            original : this.original,
             pins: pins,
             likes: likes,
             user_points: user_points,
@@ -148,7 +157,7 @@ router.all('/home', function (req, res, next) {
         } else {
             res.json(result);
         }
-    })
+    });
 
 
 })
