@@ -46,6 +46,9 @@ router.all('/view', function(req,res){
     var mongoose = req.mongoose;
     var body = req.body;
     var product_id = body.product_id;
+    
+    var productObj = req.productObj;
+    
     //var product_id = '54aeaa0a0cc060726433aeae'; for testing
     var category = req.conn_category;
     var website_scrap_data = req.conn_website_scrap_data;
@@ -131,7 +134,7 @@ router.all('/view', function(req,res){
                                 data.set('cat_name',catData.get('name'));
                                 data.set('parent_cat_name',catData.get('parent_cat_name'));
                             }
-                            product_data.product = data;
+                            product_data.product =productObj.getProductPermit(req, data );
                             //--------------------------------------------------
                             where_similar = {
                                 'cat_id':product_cat_id*1,
@@ -165,7 +168,7 @@ router.all('/view', function(req,res){
                                         for(var i=0;i<data_sim.results.length;i++){
                                             var row = data_sim.results[i];
                                             var obj = row.obj
-                                            similar_arr.push(obj);
+                                            similar_arr.push( productObj.getProductPermit(req,obj));
                                         }
                                         product_data.similar = similar_arr;
                                     }
@@ -185,7 +188,7 @@ router.all('/view', function(req,res){
                                                 for(var i=0;i<data_var.results.length;i++){
                                                     var row = data_var.results[i];
                                                     var obj = row.obj
-                                                    variant_arr.push(obj);
+                                                    variant_arr.push(productObj.getProductPermit(req,obj));
                                                 }
                                                 product_data.variant = variant_arr;
                                             }

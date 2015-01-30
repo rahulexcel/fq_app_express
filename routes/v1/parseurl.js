@@ -8,7 +8,7 @@ var fs = require('fs');
 var util = require('util'); 
 
 router.get('/', function(req, res) {
-    var url = req.url;
+    var url = req.query.url;
     //-----------------------------------------------------------------------------------------------
     var jquery = fs.readFileSync(__dirname + '/../../../../../js/jquery-1.8.3.min.js').toString();
     var jQuery;
@@ -1383,8 +1383,10 @@ router.get('/', function(req, res) {
     }
 
     //--script starts from here------
-    console.log('url length ::');
-    console.log(url.length);
+    console.log('---------------------');
+    console.log("Parsing URL :: ");
+    console.log(url);
+    console.log('---------------------');
     if (url.length > 1) {
         var iden_website = identifyWebsite(url);
         if (iden_website == false) {

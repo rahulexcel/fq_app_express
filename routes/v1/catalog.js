@@ -74,8 +74,8 @@ router.all('/products', function (req, res) {
             });
         }
         
+        var productObj = req.productObj;
         
-
         function stringToArray(str, expby) {
             var ret = new Array();
             var split = str.split(expby);
@@ -420,7 +420,7 @@ router.all('/products', function (req, res) {
                                             }else{
                                                 row1.set('price_drop',0);
                                             }
-                                            finalData.products.push(row1);
+                                            finalData.products.push( productObj.getProductPermit(req,row1));
                                         }
                                 }else{
                                     if( data.results ){
@@ -433,7 +433,7 @@ router.all('/products', function (req, res) {
                                             }else{
                                                 obj['price_drop'] = 0;
                                             }
-                                            finalData.products.push(obj);
+                                            finalData.products.push( productObj.getProductPermitreq,(obj));
                                         }
                                     }
                                 }
@@ -499,7 +499,7 @@ router.all('/search',function(req,res){
                     for(var i=0;i<data.results.length;i++){
                         var row = data.results[i];
                         var obj = row.obj
-                        search_products.push(obj);
+                        search_products.push(productObj.getProductPermit(req,obj));
                     }
                     final_data.result = search_products;
                     res.json({

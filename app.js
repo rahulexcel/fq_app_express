@@ -13,6 +13,7 @@ var module_conn_pricegenie = require('./modules/conn_pricegenie');
 var module_conn_db_scrap_db3 = require('./modules/conn_db_scrap_db3');
 var mail = require('./modules/mail');
 var module_recycle_data = require('./modules/recycle_data');
+var module_product = require('./modules/product');
 
 var v1_routes_catalog = require('./routes/v1/catalog'); // arun :: 1st step
 var v1_routes_account = require('./routes/v1/account');
@@ -52,6 +53,7 @@ app.use(module_conn_pricegenie(mongoose));
 app.use(module_conn_db_scrap_db3(mongoose));
 app.use(mail());
 app.use(module_recycle_data());
+app.use(module_product());
 app.use(function (req, res, next) {
     var path = req.path;
 
