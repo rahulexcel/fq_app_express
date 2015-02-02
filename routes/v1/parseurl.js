@@ -1394,7 +1394,6 @@ router.get('/', function(req, res) {
                 error:1,
                 msg:'website not found in identifyWebsite'
             });
-            process.exit();
         } else {
             var is_product_page = isProductPage(url);
             if (is_product_page == false) {
@@ -1411,7 +1410,6 @@ router.get('/', function(req, res) {
                             error:2,
                             msg:err
                         });
-                        process.exit();
                     } else {
                         processUrl(data, false, false, false, function(ret) {
                             res.json({
