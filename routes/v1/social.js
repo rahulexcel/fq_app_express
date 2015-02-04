@@ -84,12 +84,12 @@ router.all('/home', function (req, res, next) {
     var WishlistItem = req.WishlistItem;
 
     var oper = {};
-
+    oper.limit = 30;
     //set query and out as well
     oper.verbose = true;
     oper.scope = {
         base_time: new Date(the_day_of_reckoning).getTime(),
-        the_day_of_reckoning : the_day_of_reckoning
+        the_day_of_reckoning: the_day_of_reckoning
     }
     oper.map = function () {
         var pins = this.pins ? this.pins.length : 0;
@@ -98,16 +98,18 @@ router.all('/home', function (req, res, next) {
         var list_points = this.list_points || 0;
         var updated_at = this.updated_at;
         var created_at = this.created_at;
-        if(!updated_at){
+        if (!updated_at) {
             updated_at = new Date(this.the_day_of_reckoning);
         }
-        if(!created_at){
+        if (!created_at) {
             created_at = new Date(this.the_day_of_reckoning);
         }
 
         emit(this._id, {
             image: this.img,
-            original : this.original,
+            original: this.original,
+            name: this.name,
+            website: this.website,
             pins: pins,
             likes: likes,
             user_points: user_points,
@@ -155,7 +157,50 @@ router.all('/home', function (req, res, next) {
         if (err) {
             next(err);
         } else {
-            res.json(result);
+            if (result.length !== 0) {
+                var new_result = [];
+                for (var i = 0; i < result.length; i++) {
+                    var row = result[i];
+                    if (row.value.original && row.value.original.user_id) {
+                        if (row.value.image.length > 0) {
+                            row.value._id = row._id;
+                            new_result.push(row.value);
+                        }
+                    }
+                }
+                if (new_result.length > 0) {
+                    var k = 0;
+                    for (var i = 0; i < new_result.length; i++) {
+                        (function (row, i) {
+                            var user_id = row.original.user_id;
+                            req.user_helper.getUserDetail(user_id, req, function (err, user_detail) {
+                                if (!err) {
+                                    row.user = user_detail;
+                                    new_result[i] = row;
+                                }
+                                if (k === (new_result.length - 1)) {
+                                    res.json({
+                                        error: 0,
+                                        data: new_result
+                                    });
+                                }
+                                k++;
+                            });
+                        })(new_result[i], i);
+                    }
+
+                } else {
+                    res.json({
+                        error: 0,
+                        data: []
+                    });
+                }
+            } else {
+                res.json({
+                    error: 0,
+                    data: result
+                });
+            }
         }
     });
 
@@ -293,9 +338,19 @@ router.all('/user/profile/full', function (req, res, next) {
                             if (!items)
                                 items = [];
                             row.pins = items;
-                            res.json({
-                                error: 0,
-                                data: row
+
+                            User.find({
+                                followers: user_id
+                            }).lean().exec(function (err, following) {
+                                if (err) {
+                                    console.log(err);
+                                } else {
+                                    row.following = following;
+                                }
+                                res.json({
+                                    error: 0,
+                                    data: row
+                                });
                             });
                         });
 

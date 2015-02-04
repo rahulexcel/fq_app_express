@@ -181,27 +181,169 @@ router.all('/add', function (req, res, next) {
         });
     }
 
-})
+});
+
+
+//remove item from list
+router.all('/item/remove', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var item_id = body.item_id;
+    var list_id = body.list_id;
+
+    var Wishlist = req.Wishlist;
+    var WishlistItem = req.WishlistItem;
+    var WishlistItemAssoc = req.WishlistItemAssoc;
+    var User = req.User;
+
+    if (list_id && user_id && item_id) {
+        Wishlist.findOne({
+            _id: mongoose.Types.ObjectId(list_id)
+        }, function (err, list) {
+            if (err) {
+                next(err);
+            } else {
+                if (list) {
+
+                    WishlistItem.findOne({
+                        _id: mongoose.Types.ObjectId(item_id)
+                    }).lean().exec(function (err, item) {
+                        if (item) {
+                            WishlistItemAssoc.findOne({
+                                item_id: item_id,
+                                list_id: list_id
+                            }).exec(function (err, item_assoc) {
+                                if (err) {
+                                    next(err);
+                                } else {
+                                    var likes_no = item_assoc.likes.length;
+
+                                    Wishlist.update({
+                                        _id: mongoose.Types.ObjectId(list_id)
+                                    }, {
+                                        $inc: {
+                                            'meta.products': -1,
+                                            'meta.likes': likes_no * -1
+                                        }
+                                    }, function (err) {
+                                        if (err) {
+                                            next(err);
+                                        } else {
+
+
+                                            User.update({
+                                                _id: mongoose.Types.ObjectId(user_id)
+                                            }, {
+                                                $inc: {
+                                                    'meta.products': -1
+                                                }
+                                            }, function (err) {
+                                                if (err) {
+                                                    next(err);
+                                                } else {
+
+                                                    WishlistItemAssoc.remove({
+                                                        item_id: item_id,
+                                                        list_id: list_id
+                                                    }, function (err) {
+                                                        if (err) {
+                                                            next(err);
+                                                        } else {
+                                                            WishlistItemAssoc.count({
+                                                                item_id: item_id
+                                                            }, function (err, c) {
+                                                                if (err) {
+                                                                    next(err);
+                                                                } else {
+                                                                    if (c > 0) {
+                                                                        if (item.original && item.original.user_id === user_id) {
+                                                                            WishlistItem.update({
+                                                                                _id: mongoose.Types.ObjectId(item_id)
+                                                                            }, {
+                                                                                $set: {
+                                                                                    original: {
+                                                                                    }
+                                                                                }
+                                                                            }, function (err) {
+                                                                                if (err) {
+                                                                                    next(err);
+                                                                                } else {
+                                                                                    res.json({error: 0});
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    } else {
+
+
+                                                                        WishlistItem.remove({
+                                                                            _id: mongoose.Types.ObjectId(item_id)
+                                                                        }, function (err) {
+                                                                            if (err) {
+                                                                                next(err);
+                                                                            } else {
+                                                                                res.json({error: 0});
+                                                                            }
+                                                                        });
+
+//                                                                        }
+                                                                    }
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+
+
+                                                }
+                                            });
+                                        }
+                                    });
+
+                                }
+                            });
+
+
+                        } else {
+                            res.json({
+                                error: 1,
+                                message: 'Item Does Not Exist'
+                            });
+                        }
+                    });
+
+                } else {
+                    res.json({
+                        error: 1,
+                        message: 'List Does Not Exist'
+                    });
+                }
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
 
 router.all('/item/list', function (req, res, next) {
     var body = req.body;
-    var user_id = body.user_id;
+    //var user_id = body.user_id;
     var list_id = body.list_id;
-    var User = req.User;
 
-    var WishlistItem = req.WishlistItem;
+    var Wishlist = req.Wishlist;
     var website_scrap_data = req.conn_website_scrap_data;
 
     var WishlistItemAssoc = req.WishlistItemAssoc;
 
-    if (user_id && list_id) {
-        User.findOne({
-            _id: mongoose.Types.ObjectId(user_id)
-        }, function (err, row) {
+    if (list_id) {
+        Wishlist.findOne({
+            _id: mongoose.Types.ObjectId(list_id)
+        }, function (err, list) {
             if (err) {
                 next(err);
             } else {
-                if (row) {
+                if (list) {
 
                     WishlistItemAssoc.find({
                         list_id: list_id
@@ -268,7 +410,10 @@ router.all('/item/list', function (req, res, next) {
                                                 if (k == (data.length - 1)) {
                                                     res.json({
                                                         error: 0,
-                                                        data: ret
+                                                        data: {
+                                                            list: list,
+                                                            items: ret
+                                                        }
                                                     });
                                                 }
                                                 k++;
@@ -291,7 +436,10 @@ router.all('/item/list', function (req, res, next) {
                                             if (k == (data.length - 1)) {
                                                 res.json({
                                                     error: 0,
-                                                    data: ret
+                                                    data: {
+                                                        list: list,
+                                                        items: ret
+                                                    }
                                                 });
                                             }
                                             k++;
@@ -304,7 +452,7 @@ router.all('/item/list', function (req, res, next) {
                 } else {
                     res.json({
                         error: 1,
-                        message: 'User Not Found'
+                        message: 'List Not Found'
                     });
                 }
             }
@@ -487,7 +635,7 @@ router.all('/item/add', function (req, res, next) {
                             next(err);
                         } else {
                             var list_points = list.followers.length + list.meta.likes;
-                            
+
                             if (!list) {
                                 res.json({
                                     error: 1,
@@ -535,11 +683,11 @@ router.all('/item/add', function (req, res, next) {
                                                             unique: unique,
                                                             website: website
                                                         }
-                                                    }).exec(function (err, rr) {
+                                                    }).lean().exec(function (err, rr) {
                                                         if (err) {
                                                             next(err);
                                                         } else {
-                                                            if (rr && rr.length > 0) {
+                                                            if (rr && rr[0] && rr[0].item_id && rr[0].item_id._id) {
                                                                 res.json({
                                                                     error: 1,
                                                                     message: 'Product Already In Your Wishlist'

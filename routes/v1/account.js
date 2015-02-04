@@ -387,7 +387,7 @@ router.all('/create', function (req, res, next) {
     var name = user.name;
     var UserModel = req.User;
 
-    user.picture = 'http://' + req.get('host') + 'images/dummy.png';
+    user.picture = 'http://' + req.get('host') + '/images/dummy.png';
     var userObj = user;
 
     if (name && name.length > 0 && password && password.length > 0 && email && email.length > 0) {

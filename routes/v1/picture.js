@@ -6,9 +6,18 @@ var sharp = require('sharp');
 var zlib = require('zlib');
 var request = require('request');
 var fs = require('fs');
+var urlMod = require('url');
+var cheerio = require('cheerio');
+var phantom = require('phantom');
 
 
 function getHTML2(url, callback) {
+
+    var parsed_url = urlMod.parse(url);
+    if (!parsed_url['hostname']) {
+        return callback('Invalid URL');
+    }
+
     var headers = {
         "accept-charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
         "accept-language": "en-US,en;q=0.8",
@@ -48,6 +57,67 @@ function getHTML2(url, callback) {
     });
 }
 
+/*
+ * Method to extract all images from a html page
+ */
+
+router.get('/extract', function (req, res, next) {
+    var url = req.query.url;
+    if (url) {
+        url = decodeURIComponent(url);
+        console.log(url);
+        var parsed_url = urlMod.parse(url);
+        if (!parsed_url['hostname']) {
+            res.json({
+                error: 1,
+                message: 'Invalid URL'
+            });
+        }
+        var images = [];
+        phantom.create(function (ph) {
+            ph.createPage(function (page) {
+                //page.set('javascriptEnabled', false);
+                page.set('userAgent', "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.13+ (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2");
+                page.open(url, function (status) {
+                    page.set('scrollPosition', {top: 1000, left: 0}, function (res1) {
+                        console.log(res1);
+                        res.json({
+                            error: 0,
+                            data: images
+                        });
+                        ph.exit();
+                    });
+                });
+                page.set('onResourceReceived', function (url_res) {
+                    var contentType = url_res.contentType;
+                    if (contentType && contentType.indexOf('image/') != -1) {
+                        var bodySize = url_res.bodySize;
+                        if (bodySize && bodySize > 1000) {
+                            var ignore = ['logo', 'loader', 'sprite', 'header', 'footer'];
+                            var found = false;
+                            for (var i = 0; i < ignore.length; i++) {
+                                if (url_res.url.toLowerCase().indexOf(ignore[i]) !== -1) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found)
+                                images.push(url_res.url);
+                        }
+                    }
+                });
+            });
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
+/** 
+ * Method To Make Product Image URL of website internal
+ */
 router.get('/images/:id', function (req, res, next) {
     var website_scrap_data = req.conn_website_scrap_data;
     var id = req.param('id');
@@ -92,6 +162,9 @@ router.get('/images/:id', function (req, res, next) {
 
 });
 
+/**
+ * View any single file uploaded
+ */
 router.get('/view/:filename/', function (req, res, next) {
     var filename = req.param('filename');
     console.log(filename + 'filename');
@@ -178,9 +251,13 @@ router.get('/view/:filename/', function (req, res, next) {
     }
 });
 
+/*
+ * Upload a picture
+ */
 router.all('/upload', function (req, res, next) {
     var gfs = req.gfs;
     var body = req.body;
+    var size = body.size;
     if (req.files) {
         console.log(req.files);
         var filename = req.files.file.name;
@@ -212,10 +289,16 @@ router.all('/upload', function (req, res, next) {
             read_stream.pipe(writestream);
             writestream.on('close', function () {
 
+                var dimensions = false;
+                if (size) {
+                    var sizeOf = require('image-size');
+                    dimensions = sizeOf(dirname + "/../" + path);
+                }
                 fs.unlink(dirname + "/../" + path);
                 res.json({
                     error: 0,
-                    data: mongo_filename
+                    data: mongo_filename,
+                    size: dimensions
                 });
             });
         } else {
