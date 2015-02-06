@@ -12,6 +12,7 @@ var module_config = require('./modules/config');
 var module_conn_pricegenie = require('./modules/conn_pricegenie');
 var module_conn_db_scrap_db3 = require('./modules/conn_db_scrap_db3');
 var user_helper = require('./modules/v1/user_helper');
+var html_helper = require('./modules/v1/html_helper');
 var mail = require('./modules/mail');
 var module_recycle_data = require('./modules/recycle_data');
 var module_product = require('./modules/product');
@@ -56,6 +57,7 @@ app.use(mail());
 app.use(module_recycle_data());
 app.use(module_product());
 app.use(user_helper());
+app.use(html_helper());
 
 app.use(function (req, res, next) {
     var path = req.path;

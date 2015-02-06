@@ -66,6 +66,8 @@ module.exports = function (mongoose) {
         price: Number,
         href: String,
         img: String,
+        org_img: String,
+        dimension: Schema.Types.Mixed,
         brand: String,
         cat_id: Number,
         sub_cat_id: Number,
@@ -76,11 +78,11 @@ module.exports = function (mongoose) {
         type: {type: String, required: true, enum: wishlistItemType},
         description: String,
         created_at: {type: Date, default: Date.now},
-        updated_at : {type: Date, default: Date.now},
+        updated_at: {type: Date, default: Date.now},
         access_type: {type: String, require: true, enum: wishlistTypes},
         original: {
-            user_id : {type: Schema.Types.ObjectId, ref: 'User'}, //id of original user
-            list_id : {type: Schema.Types.ObjectId, ref: 'Wishlist'}, //id of original list
+            user_id: {type: Schema.Types.ObjectId, ref: 'User'}, //id of original user
+            list_id: {type: Schema.Types.ObjectId, ref: 'Wishlist'}, //id of original list
         },
         pins: [{
                 user_id: {type: Schema.Types.ObjectId, ref: 'User'},
@@ -89,8 +91,8 @@ module.exports = function (mongoose) {
         meta: {
             likes: {type: Number, default: 0}, //total number of likes
             comments: {type: Number, default: 0}, //total number of comments unique user comments
-            user_points : {type: Number, default: 0}, //original user points
-            list_points : {type: Number, default: 0}  //original list points
+            user_points: {type: Number, default: 0}, //original user points
+            list_points: {type: Number, default: 0}  //original list points
         }
     });
     var wishlist_item_assoc_schema = mongoose.Schema({
@@ -104,7 +106,6 @@ module.exports = function (mongoose) {
     });
     wishlist_item_assoc_schema.index({list_id: -1});
     wishlist_item_assoc_schema.index({item_id: -1});
-
     var item_comment_schema = mongoose.Schema({
         user_id: {type: Schema.Types.ObjectId, ref: 'User'},
         comment: String,
@@ -112,13 +113,11 @@ module.exports = function (mongoose) {
         created_at: {type: Date, default: Date.now}
     })
     item_comment_schema.index({user_id: -1});
-
     var wishlist_item_update_schema = mongoose.Schema({
         user_id: {type: Schema.Types.ObjectId, ref: 'User'},
         item_id: {type: Schema.Types.ObjectId, ref: 'Wishlist_Item'},
         created_at: {type: Date, default: Date.now}
     });
-
     var user_item_updates = mongoose.Schema({
         user_id: {type: Schema.Types.ObjectId, ref: 'User'},
         item_id: {type: Schema.Types.ObjectId, ref: 'Wishlist_Item'},
@@ -139,7 +138,6 @@ module.exports = function (mongoose) {
         device: {type: Schema.Types.Mixed}
     });
     auth_schema.index({'api_key': -1});
-
     var gcm_schema = mongoose.Schema({
         user_id: {type: String, required: true},
         api_key: {type: String, required: true},
@@ -149,7 +147,24 @@ module.exports = function (mongoose) {
     });
     gcm_schema.index({user_id: -1});
     gcm_schema.index({user_id: -1, api_key: -1});
-
+    var feed_schema = mongoose.Schema({
+        image: String,
+        original: Schema.Types.Mixed,
+        name: String,
+        description: String,
+        website: String,
+        dimension: Schema.Types.Mixed,
+        pins: Number,
+        likes: Number,
+        user_points: Number,
+        list_points: Number,
+        updated_at: Number,
+        created_at: Number,
+        baseScore: Number,
+        user: Schema.Types.Mixed,
+        list: Schema.Types.Mixed
+    });
+    var feed = conn.model('feed', feed_schema);
     var GCM = conn.model('GCM', gcm_schema);
     var Auth = conn.model('Auth', auth_schema);
     var User = conn.model('User', user_schema);
@@ -160,7 +175,6 @@ module.exports = function (mongoose) {
     var Updates = conn.model('User_Update', user_updates);
     var UserItemUpdate = conn.model('User_Item_Update', user_item_updates);
     var Comment = conn.model('Comment', item_comment_schema);
-
     var feedback_schema = mongoose.Schema({}, {
         strict: false,
         collection: 'feedback',
@@ -170,6 +184,7 @@ module.exports = function (mongoose) {
     Grid.mongo = mongoose.mongo;
     var gfs = Grid(conn.db);
     return function (req, res, next) {
+        req.feed = feed;
         req.scrap_db3 = scrap_db3;
         req.conn_final_fashion_filters = final_fashion_filters;
         req.conn_filters_category_wise = filters_category_wise;
