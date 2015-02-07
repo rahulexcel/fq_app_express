@@ -331,6 +331,11 @@ router.all('/item/list', function (req, res, next) {
     //var user_id = body.user_id;
     var list_id = body.list_id;
 
+    var page = req.body.page;
+    if (!page) {
+        page = 0;
+    }
+
     var Wishlist = req.Wishlist;
     var website_scrap_data = req.conn_website_scrap_data;
 
@@ -339,17 +344,16 @@ router.all('/item/list', function (req, res, next) {
     if (list_id) {
         Wishlist.findOne({
             _id: mongoose.Types.ObjectId(list_id)
-        }, function (err, list) {
+        }).populate('user_id').exec(function (err, list) {
             if (err) {
                 next(err);
             } else {
                 if (list) {
-
                     WishlistItemAssoc.find({
                         list_id: list_id
                     }).populate({
                         path: 'item_id'
-                    }).sort({created_at: -1}).exec(function (err, data) {
+                    }).sort({created_at: -1}).skip(page * 10).limit(10).exec(function (err, data) {
                         if (err) {
                             next(err);
                         } else {
@@ -364,47 +368,101 @@ router.all('/item/list', function (req, res, next) {
                                 for (var i = 0; i < data.length; i++) {
                                     (function (ff) {
                                         var wishlist_row = ff.get('item_id');
-                                        if (wishlist_row.get('type') == 'product') {
+                                        if (!wishlist_row) {
+                                            if (k == (data.length - 1)) {
+                                                res.json({
+                                                    error: 0,
+                                                    data: {
+                                                        list: list,
+                                                        items: ret
+                                                    }
+                                                });
+                                            }
+                                            k++;
+                                        } else {
+                                            if (wishlist_row.get('type') == 'product') {
 
-                                            var unique = wishlist_row.get('unique');
-                                            var website = wishlist_row.get('website');
+                                                var unique = wishlist_row.get('unique');
+                                                var website = wishlist_row.get('website');
 
-                                            var prod = {};
-                                            website_scrap_data.findOne({
-                                                unique: unique,
-                                                website: website
-                                            }, function (err, row) {
-                                                if (err) {
-                                                    console.log(err);
-                                                }
+                                                var prod = {};
+                                                website_scrap_data.findOne({
+                                                    unique: unique,
+                                                    website: website
+                                                }, function (err, row) {
+                                                    if (err) {
+                                                        console.log(err);
+                                                    }
 
-                                                if (row) {
-                                                    var name = row.get('name');
-                                                    var brand = row.get('brand');
-                                                    var img = row.get('img');
-                                                    var href = row.get('href');
-                                                    var price = row.get('price');
-                                                    var website = row.get('website');
-                                                } else {
-                                                    var name = wishlist_row.get('name');
-                                                    var brand = wishlist_row.get('brand');
-                                                    var img = wishlist_row.get('img');
-                                                    var href = wishlist_row.get('url');
-                                                    var price = wishlist_row.get('price');
-                                                    var website = wishlist_row.get('website');
-                                                }
-                                                var created_at = wishlist_row.get('created_at');
+                                                    if (row) {
+                                                        var name = row.get('name');
+                                                        var brand = row.get('brand');
+                                                        var img = row.get('img');
+                                                        var href = row.get('href');
+                                                        var price = row.get('price');
+                                                        var website = row.get('website');
+                                                    } else {
+                                                        var name = wishlist_row.get('name');
+                                                        var brand = wishlist_row.get('brand');
+                                                        var img = wishlist_row.get('img');
+                                                        var href = wishlist_row.get('url');
+                                                        var price = wishlist_row.get('price');
+                                                        var website = wishlist_row.get('website');
+                                                    }
+                                                    var created_at = wishlist_row.get('created_at');
+                                                    prod._id = wishlist_row.get('_id');
+                                                    prod.dimension = wishlist_row.get('dimension');
+                                                    prod.name = name;
+                                                    prod.image = img;
+                                                    prod.website = website;
+                                                    prod.type = wishlist_row.get('type');
+                                                    prod.created_at = moment(created_at).tz('Asia/Calcutta').format('Do MMM h:mm a');
+                                                    prod.list = {
+                                                        name: list.get('name')
+                                                    };
+                                                    prod.user = {
+                                                        picture: list.get('user_id').get('picture'),
+                                                        name: list.get('user_id').get('name')
+                                                    };
+                                                    prod.original = {
+                                                        user_id: list.get('user_id').get('_id'),
+                                                        list_id: list.get('_id')
+                                                    };
+                                                    ret.push(prod);
+                                                    console.log(k + "==" + (data.length - 1));
+                                                    if (k == (data.length - 1)) {
+                                                        res.json({
+                                                            error: 0,
+                                                            data: {
+                                                                list: list,
+                                                                items: ret
+                                                            }
+                                                        });
+                                                    }
+                                                    k++;
+                                                })
+                                            } else {
+                                                var prod = {};
                                                 prod._id = wishlist_row.get('_id');
-                                                prod.name = name;
-                                                prod.brand = brand;
-                                                prod.img = img;
-                                                prod.href = href;
-                                                prod.price = price;
-                                                prod.website = website;
+                                                prod.dimension = wishlist_row.get('dimension');
+                                                prod.name = wishlist_row.get('name');
+                                                prod.image = wishlist_row.get('img');
+                                                prod.description = wishlist_row.get('description');
                                                 prod.type = wishlist_row.get('type');
+                                                var created_at = wishlist_row.get('created_at');
 
                                                 prod.created_at = moment(created_at).tz('Asia/Calcutta').format('Do MMM h:mm a');
-
+                                                prod.list = {
+                                                    name: list.get('name')
+                                                };
+                                                prod.user = {
+                                                    picture: list.get('user_id').get('picture'),
+                                                    name: list.get('user_id').get('name')
+                                                };
+                                                prod.original = {
+                                                    user_id: list.get('user_id').get('_id'),
+                                                    list_id: list.get('_id')
+                                                };
                                                 ret.push(prod);
                                                 console.log(k + "==" + (data.length - 1));
                                                 if (k == (data.length - 1)) {
@@ -417,32 +475,7 @@ router.all('/item/list', function (req, res, next) {
                                                     });
                                                 }
                                                 k++;
-                                            })
-                                        } else {
-                                            var prod = {};
-                                            prod._id = wishlist_row.get('_id');
-                                            prod.name = wishlist_row.get('name');
-                                            prod.img = wishlist_row.get('img');
-                                            prod.href = wishlist_row.get('href');
-                                            prod.description = wishlist_row.get('description');
-                                            prod.location = wishlist_row.get('location');
-                                            prod.type = wishlist_row.get('type');
-                                            var created_at = wishlist_row.get('created_at');
-
-                                            prod.created_at = moment(created_at).tz('Asia/Calcutta').format('Do MMM h:mm a');
-
-                                            ret.push(prod);
-                                            console.log(k + "==" + (data.length - 1));
-                                            if (k == (data.length - 1)) {
-                                                res.json({
-                                                    error: 0,
-                                                    data: {
-                                                        list: list,
-                                                        items: ret
-                                                    }
-                                                });
                                             }
-                                            k++;
                                         }
                                     })(data[i]);
                                 }
@@ -602,8 +635,64 @@ router.all('/item/view/:item_id/:list_id', function (req, res, next) {
             message: 'Invalid Request'
         });
     }
+})
+
+//add item to wishlist
+
+function getWishlistItemSize(img, req, done) {
+    req.html_helper.getImage(img, function (err, data) {
+        if (!err) {
+            var dirname = require('path').dirname(__dirname) + '/../uploads/picture/';
+            var crypto = require('crypto');
+            var md5 = crypto.createHash('md5');
+            md5.update(img);
+            var fs_filename = md5.digest('hex');
+
+            var gfs = req.gfs;
+            var fs = require('fs');
+
+            var sharp = require('sharp');
+            var transformer = sharp();
+            transformer.png();
+            var r = data.pipe(transformer).pipe(fs.createWriteStream(dirname + fs_filename));
+            r.on('close', function (err) {
+                if (err) {
+                    done(err);
+                } else {
+                    var read_stream = fs.createReadStream(dirname + fs_filename);
+                    var writestream = gfs.createWriteStream({
+                        filename: fs_filename
+                    });
+                    writestream.on('error', function (err) {
+                        done(err);
+                    })
+                    read_stream.on('error', function (err) {
+                        done(err);
+                    })
+                    read_stream.pipe(writestream);
+                    writestream.on('close', function () {
+                        console.log(dirname + fs_filename);
+                        var sizeOf = require('image-size');
+                        sizeOf(dirname + fs_filename, function (err, dimensions) {
+                            if (err) {
+                                done(err);
+                            } else {
+                                done(false, {
+                                    filename: fs_filename,
+                                    size: dimensions
+                                });
+                            }
+                        });
+                    });
+                }
+            });
+
+        } else {
+            done(err);
+        }
+    }, 5000);
 }
-)
+
 router.all('/item/add', function (req, res, next) {
     var body = req.body;
     var product_id = body.product_id;
@@ -675,6 +764,7 @@ router.all('/item/add', function (req, res, next) {
                                                     var sub_cat_id = product_row.get('sub_cat_id');
                                                     var img = product_row.get('img');
 
+
                                                     WishlistItemAssoc.find({
                                                         list_id: list_id
                                                     }).populate({
@@ -693,88 +783,103 @@ router.all('/item/add', function (req, res, next) {
                                                                     message: 'Product Already In Your Wishlist'
                                                                 });
                                                             } else {
-
-                                                                var wish_model = new WishlistItem({
-                                                                    name: name, href: href,
-                                                                    img: img,
-                                                                    website: website,
-                                                                    brand: brand,
-                                                                    price: price,
-                                                                    cat_id: cat_id,
-                                                                    sub_cat_id: sub_cat_id,
-                                                                    expired: 0,
-                                                                    unique: unique,
-                                                                    type: 'product',
-                                                                    access_type: list.type,
-                                                                    original: {
-                                                                        user_id: user_id,
-                                                                        list_id: list_id
-                                                                    },
-                                                                    meta: {
-                                                                        likes: 0,
-                                                                        comments: 0,
-                                                                        user_points: user_points,
-                                                                        list_points: list_points
-                                                                    }
-                                                                });
-                                                                wish_model.save(function (err) {
-                                                                    if (err) {
-                                                                        next(err);
+                                                                getWishlistItemSize(img, req, function (err, data) {
+                                                                    if (!err) {
+                                                                        var new_image = data.filename;
+                                                                        var dimension = data.size;
+                                                                        var old_image = img;
                                                                     } else {
-
-                                                                        var assoc_model = new WishlistItemAssoc({
-                                                                            list_id: list_id,
-                                                                            item_id: wish_model._id
-                                                                        });
-                                                                        assoc_model.save(function (err) {
-                                                                            if (err) {
-                                                                                next(err);
-                                                                            } else {
-                                                                                Wishlist.update({
-                                                                                    _id: mongoose.Types.ObjectId(list_id)
-                                                                                }, {
-                                                                                    $inc: {
-                                                                                        "meta.products": 1
-                                                                                    }
-                                                                                }, function (err) {
-
-                                                                                    if (err) {
-                                                                                        next(err);
-                                                                                    } else {
-                                                                                        User.update({
-                                                                                            _id: mongoose.Types.ObjectId(user_id)
-                                                                                        }, {
-                                                                                            $inc: {
-                                                                                                "meta.products": 1
-                                                                                            }
-                                                                                        }, function (err) {
-                                                                                            if (err) {
-                                                                                                next(err);
-                                                                                            } else {
-                                                                                                var updater = require('./../../modules/v1/update');
-                                                                                                updater.notification(user_id, 'item_add', {
-                                                                                                    wishlist_model: wish_model,
-                                                                                                    list: list
-                                                                                                }, req);
-                                                                                                res.json({
-                                                                                                    error: 0,
-                                                                                                    data: {
-                                                                                                        id: wish_model._id
-                                                                                                    }
-                                                                                                });
-                                                                                            }
-                                                                                        });
-                                                                                    }
-
-                                                                                })
-                                                                            }
-                                                                        });
-
+                                                                        var new_image = img;
+                                                                        var dimension = {};
+                                                                        var old_image = '';
                                                                     }
+                                                                    var wish_model = new WishlistItem({
+                                                                        name: name, href: href,
+                                                                        img: new_image,
+                                                                        org_img: old_image,
+                                                                        dimension: dimension,
+                                                                        website: website,
+                                                                        brand: brand,
+                                                                        price: price,
+                                                                        cat_id: cat_id,
+                                                                        sub_cat_id: sub_cat_id,
+                                                                        expired: 0,
+                                                                        unique: unique,
+                                                                        type: 'product',
+                                                                        access_type: list.type,
+                                                                        original: {
+                                                                            user_id: user_id,
+                                                                            list_id: list_id
+                                                                        },
+                                                                        meta: {
+                                                                            likes: 0,
+                                                                            comments: 0,
+                                                                            user_points: user_points,
+                                                                            list_points: list_points
+                                                                        }
+                                                                    });
+                                                                    wish_model.save(function (err) {
+                                                                        if (err) {
+                                                                            next(err);
+                                                                        } else {
+
+                                                                            var assoc_model = new WishlistItemAssoc({
+                                                                                list_id: list_id,
+                                                                                item_id: wish_model._id
+                                                                            });
+                                                                            assoc_model.save(function (err) {
+                                                                                if (err) {
+                                                                                    next(err);
+                                                                                } else {
+                                                                                    Wishlist.update({
+                                                                                        _id: mongoose.Types.ObjectId(list_id)
+                                                                                    }, {
+                                                                                        $inc: {
+                                                                                            "meta.products": 1
+                                                                                        }
+                                                                                    }, function (err) {
+
+                                                                                        if (err) {
+                                                                                            next(err);
+                                                                                        } else {
+                                                                                            User.update({
+                                                                                                _id: mongoose.Types.ObjectId(user_id)
+                                                                                            }, {
+                                                                                                $inc: {
+                                                                                                    "meta.products": 1
+                                                                                                }
+                                                                                            }, function (err) {
+                                                                                                if (err) {
+                                                                                                    next(err);
+                                                                                                } else {
+                                                                                                    var updater = require('./../../modules/v1/update');
+                                                                                                    updater.notification(user_id, 'item_add', {
+                                                                                                        wishlist_model: wish_model,
+                                                                                                        list: list
+                                                                                                    }, req);
+                                                                                                    res.json({
+                                                                                                        error: 0,
+                                                                                                        data: {
+                                                                                                            id: wish_model._id
+                                                                                                        }
+                                                                                                    });
+                                                                                                }
+                                                                                            });
+                                                                                        }
+
+                                                                                    })
+                                                                                }
+                                                                            });
+
+                                                                        }
+                                                                    });
                                                                 });
                                                             }
                                                         }
                                                     });
+
+
+
                                                 }
                                             }
                                         })
@@ -783,6 +888,7 @@ router.all('/item/add', function (req, res, next) {
                                             name: body.item.title,
                                             href: body.item.url,
                                             img: body.item.picture,
+                                            dimension: body.item.picture_size,
                                             description: body.item.description,
                                             type: 'custom',
                                             price: body.item.price,

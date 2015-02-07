@@ -11,52 +11,6 @@ var cheerio = require('cheerio');
 var phantom = require('phantom');
 
 
-function getHTML2(url, callback) {
-
-    var parsed_url = urlMod.parse(url);
-    if (!parsed_url['hostname']) {
-        return callback('Invalid URL');
-    }
-
-    var headers = {
-        "accept-charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
-        "accept-language": "en-US,en;q=0.8",
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.13+ (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2",
-        "accept-encoding": "gzip,deflate",
-    };
-
-    var options = {
-        url: url,
-        headers: headers
-    };
-    var req = request.get(options);
-    req.on('response', function (res) {
-        var chunks = [];
-        res.on('data', function (chunk) {
-            chunks.push(chunk);
-        });
-        res.on('end', function () {
-            var buffer = Buffer.concat(chunks);
-            var encoding = res.headers['content-encoding'];
-            if (encoding == 'gzip') {
-                zlib.gunzip(buffer, function (err, decoded) {
-                    callback(err, decoded && decoded.toString(), res.headers['content-type']);
-                });
-            } else if (encoding == 'deflate') {
-                zlib.inflate(buffer, function (err, decoded) {
-                    callback(err, decoded && decoded.toString(), res.headers['content-type']);
-                })
-            } else {
-                callback(null, buffer.toString(), res.headers['content-type']);
-            }
-        });
-    });
-    req.on('error', function (err) {
-        callback(err);
-    });
-}
-
 /*
  * Method to extract all images from a html page
  */
@@ -135,7 +89,7 @@ router.get('/images/:id', function (req, res, next) {
                 if (row) {
                     var url = row.get('img');
                     console.log(url);
-                    getHTML2(url, function (err, data, mime) {
+                    req.html_helper.getHTML(url, function (err, data, mime) {
                         if (!err) {
 
                             fs.writeFile(dirname, data, function (err) {
@@ -229,12 +183,20 @@ router.get('/view/:filename/', function (req, res, next) {
 
                     }
                 } else {
+                    var transformer = sharp();
+                    if (req.query.webp) {
+                        transformer.webp();
+                        fs_filename = fs_filename + "_webp";
+                    } else {
+                        transformer.png();
+                        fs_filename = fs_filename + "_png";
+                    }
                     if (fs.existsSync(fs_filename)) {
                         var read_stream = fs.createReadStream(fs_filename);
                         read_stream.pipe(res);
                     } else {
                         var read_stream = gfs.createReadStream({filename: filename});
-                        read_stream.pipe(res);
+                        read_stream.pipe(transformer).pipe(res);
                         read_stream.on('end', function () {
                             var writestream = fs.createWriteStream(fs_filename);
                             read_stream.pipe(transformer).pipe(writestream);
