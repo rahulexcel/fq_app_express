@@ -6,10 +6,10 @@ module.exports = function () {
             var all_category_list = req.recycle_data.category_listing;
             //------for---testing--remove it after testing
             //p_drop = p.get('price_drop');
-            random_price_ddrop = Math.floor((Math.random() * 1000) + 1); 
-            if( random_price_ddrop < 500 ){
-                random_price_ddrop = random_price_ddrop*-1;
-            }
+            //random_price_ddrop = Math.floor((Math.random() * 1000) + 1); 
+            //if( random_price_ddrop < 500 ){
+                //random_price_ddrop = random_price_ddrop*-1;
+            //}
             //-----------testing -- remove till here after testing
             
             var doByGetSet = false;
@@ -21,6 +21,8 @@ module.exports = function () {
             p_url_category_name = '';
             org_href = '';
             p_desktop_href = 'fashioniq.in/';
+            price_drop = '';
+            price_drop_final = 0;
             
             var p_website = p['website'];
             if( typeof p_website == 'undefined'){
@@ -31,14 +33,20 @@ module.exports = function () {
                 p_website = p.get('website');
                 p_url = p.get('href');
                 org_href = p_url;
+                price_drop = p.get('price_diff');
                 aff_url = productObj.getAffiliateUrl( p_website, p_url );
             }else{
                 p_mongo_id = p['_id'];
                 p_cat_id = p['cat_id'];
                 p_sub_cat_id = p['sub_cat_id'];
                 p_url = p['href'];
+                price_drop = p['price_diff'];
                 org_href = p_url;
                 aff_url = productObj.getAffiliateUrl( p_website, p_url );
+            }
+            
+            if( typeof price_drop != 'undefined'){
+                price_drop_final = price_drop;
             }
             
             for( var i= 0;i<all_category_list.length;i++){
@@ -56,12 +64,12 @@ module.exports = function () {
             if( doByGetSet == true ){
                 p.set('org_href',org_href);
                 p.set('href',aff_url);
-                p.set('price_drop',random_price_ddrop);
+                p.set('price_drop',price_drop_final);
                 p.set('desktop_href',p_desktop_href);
             }else{
                 p['org_href'] = org_href;
                 p['href'] = aff_url;
-                p['price_drop'] = random_price_ddrop;
+                p['price_drop'] = price_drop_final;
                 p['desktop_href'] = p_desktop_href;
             }
            // console.log(p_website);

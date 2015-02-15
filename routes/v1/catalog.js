@@ -113,6 +113,11 @@ router.all('/products', function (req, res) {
         //-start sorting---------------------------------------------------------------
         var sortBy_arr = new Array;
         sortBy_arr.push({
+            'text': 'Popular',
+            'param': 'popular',
+            'sort': {'sort_score': 1}
+        });
+        sortBy_arr.push({
             'text': 'New Arrivals',
             'param': 'new',
             'sort': {'is_new_insert': -1, 'time': -1}
@@ -337,13 +342,24 @@ router.all('/products', function (req, res) {
                     //-end---process set filters---------
                     //-start--process set sorting
                     var query_sort = {};
+                    var param_sort_by = 'popular';
                     if (typeof params.sortby != 'undefined') {
-                        sortBy_arr.forEach(function (val, key) {
-                            if (val.param == params.sortby) {
-                                query_sort = val.sort;
-                            }
-                        });
+                        param_sort_by = params.sortby; 
                     }
+                    sortBy_arr.forEach(function (val, key) {
+                        if (val.param == param_sort_by ) {
+                            query_sort = val.sort;
+                        }
+                    });
+                    
+                    if( param_sort_by == 'popular'){
+                        where['sort_score'] = {
+                            '$exists':true,
+                            '$gt':0*1,
+                        };
+                    }
+                    
+                    
                     if( set_empty_colors_filters == true){ // coz if secondary color is selected then no need to further show colors filters
                         filters.color.data = [];
                     }
