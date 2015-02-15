@@ -89,17 +89,21 @@ module.exports = {
                         item_name: data.wishlist_model.name
                     }
                 };
-                
-                if(followers.length > 0){
-                    
+
+                if (followers.length > 0) {
+                    for (var i = 0; i < followers.length; i++) {
+                        var model = new Updates({
+                            user_id: user_id,
+                            type: type,
+                            date: new_data,
+                            gcm_data: {}
+                        });
+                        model.save(function () {
+
+                        });
+                    }
                 }
-                
-                var model = new Updates({
-                    user_id: user_id,
-                    type: type,
-                    date: new_data,
-                    gcm_data: {}
-                });
+
                 var context = this;
                 model.save(function (err) {
                     var key = 'list_id' + data.list._id;

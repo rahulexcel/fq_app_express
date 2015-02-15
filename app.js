@@ -125,7 +125,7 @@ if (app.get('env') === 'development') {
         res.json({
             error: 2,
             err: err,
-            message: err.err
+            message: err
         });
     });
 }
@@ -139,7 +139,7 @@ app.use(function (err, req, res, next) {
     res.json({
         error: 2,
         err: err,
-        message: err.err
+        message: err
     });
 });
 

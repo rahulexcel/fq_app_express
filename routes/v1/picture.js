@@ -8,7 +8,7 @@ var request = require('request');
 var fs = require('fs');
 var urlMod = require('url');
 var cheerio = require('cheerio');
-var phantom = require('phantom');
+//var phantom = require('phantom');
 
 
 /*
@@ -16,6 +16,11 @@ var phantom = require('phantom');
  */
 
 router.get('/extract', function (req, res, next) {
+    res.json({
+        error: 0,
+        message: 'Method Disabled'
+    });
+    return;
     var url = req.query.url;
     if (url) {
         url = decodeURIComponent(url);

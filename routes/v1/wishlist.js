@@ -362,7 +362,10 @@ router.all('/item/list', function (req, res, next) {
                             if (!data || data.length == 0) {
                                 res.json({
                                     error: 0,
-                                    data: []
+                                    data: {
+                                        list: list,
+                                        items: []
+                                    }
                                 });
                             } else {
                                 for (var i = 0; i < data.length; i++) {
@@ -777,7 +780,15 @@ router.all('/item/add', function (req, res, next) {
                                                         if (err) {
                                                             next(err);
                                                         } else {
-                                                            if (rr && rr[0] && rr[0].item_id && rr[0].item_id._id) {
+
+                                                            var found = false;
+                                                            for (var x = 0; x < rr.length; x++) {
+                                                                if (rr[x].item_id && rr[x].item_id._id) {
+                                                                    found = true;
+                                                                }
+                                                            }
+
+                                                            if (found) {
                                                                 res.json({
                                                                     error: 1,
                                                                     message: 'Product Already In Your Wishlist'
@@ -852,15 +863,18 @@ router.all('/item/add', function (req, res, next) {
                                                                                                 if (err) {
                                                                                                     next(err);
                                                                                                 } else {
-                                                                                                    var updater = require('./../../modules/v1/update');
-                                                                                                    updater.notification(user_id, 'item_add', {
-                                                                                                        wishlist_model: wish_model,
-                                                                                                        list: list
-                                                                                                    }, req);
+//                                                                                                    var updater = require('./../../modules/v1/update');
+//                                                                                                    updater.notification(user_id, 'item_add', {
+//                                                                                                        wishlist_model: wish_model,
+//                                                                                                        list: list
+//                                                                                                    }, req);
                                                                                                     res.json({
                                                                                                         error: 0,
                                                                                                         data: {
-                                                                                                            id: wish_model._id
+                                                                                                            id: wish_model._id,
+                                                                                                            list: list,
+                                                                                                            wishlist_model: wish_model,
+                                                                                                            user: row
                                                                                                         }
                                                                                                     });
                                                                                                 }
@@ -942,7 +956,10 @@ router.all('/item/add', function (req, res, next) {
                                                                 res.json({
                                                                     error: 0,
                                                                     data: {
-                                                                        id: wish_model._id
+                                                                        id: wish_model._id,
+                                                                        list: list,
+                                                                        wishlist_model: wish_model,
+                                                                        user: row
                                                                     }
                                                                 });
                                                             }

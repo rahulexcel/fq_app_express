@@ -127,6 +127,7 @@ module.exports = function (mongoose) {
         user_id: {type: Schema.Types.ObjectId, ref: 'User'},
         type: {type: String, require: true},
         data: {type: Schema.Types.Mixed},
+        read: {type: Boolean, default: false},
         gcm_status: {type: Schema.Types.Mixed},
         created_at: {type: Date, default: Date.now}
     });
@@ -164,6 +165,14 @@ module.exports = function (mongoose) {
         user: Schema.Types.Mixed,
         list: Schema.Types.Mixed
     });
+    var friend_request_schema = mongoose.Schema({
+        from_user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+        to_user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+        created_at: {type: Date, default: Date.now},
+        updated_at: {type: Date},
+        status: String,
+    });
+    auth_schema.index({'from_user_id': -1, 'to_user_id': -1});
     var feed = conn.model('feed', feed_schema);
     var GCM = conn.model('GCM', gcm_schema);
     var Auth = conn.model('Auth', auth_schema);
@@ -179,6 +188,7 @@ module.exports = function (mongoose) {
         strict: false,
         collection: 'feedback',
     });
+    var FriendRequest = conn.model('friend_request', friend_request_schema);
     var Feedback = conn.model('feedback', feedback_schema);
     var Grid = require('gridfs-stream');
     Grid.mongo = mongoose.mongo;
@@ -201,6 +211,7 @@ module.exports = function (mongoose) {
         req.Comment = Comment;
         req.gfs = gfs;
         req.GCM = GCM;
+        req.FriendRequest = FriendRequest;
         next();
     }
 }
