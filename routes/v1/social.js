@@ -42,354 +42,89 @@ router.all('/updates', function (req, res, next) {
     }
 });
 
-router.all('/gcm', function (req, res, next) {
-    var body = req.body;
-    var user_id = body.user_id;
-    var reg_id = body.reg_id;
-    var api_key = body.api_key;
-    var device = body.device;
-
-    var GCM = req.GCM;
-
-    if (user_id && reg_id && api_key) {
-        GCM.findOne({
-            user_id: user_id,
-            api_key: api_key
-        }, function (err, row) {
-            if (err) {
-                next(err);
-            } else {
-                if (row) {
-                    GCM.update({
-                        _id: row.get('_id')
-                    }, {
-                        $set: {
-                            reg_id: reg_id,
-                            device: device
-                        }
-                    }, function (err) {
-                        if (err) {
-                            next(err);
-                        } else {
-                            res.json({
-                                error: 0
-                            });
-                        }
-                    });
-                } else {
-                    var model = new GCM({
-                        user_id: user_id,
-                        api_key: api_key,
-                        reg_id: reg_id,
-                        device: device
-                    });
-                    model.save(function (err) {
-                        if (err) {
-                            next(err);
-                        } else {
-                            res.json({
-                                error: 0
-                            });
-                        }
-                    });
-                }
-            }
-        });
-    }
-});
-
-
-//http://stackoverflow.com/questions/11653545/hot-content-algorithm-score-with-time-decay
-//https://coderwall.com/p/cacyhw/an-introduction-to-ranking-algorithms-seen-on-social-news-aggregators
-
-var last_check = false;
-function checkFeedData(req, done, next) {
-
-    if (last_check) {
-        var now = new Date().getTime();
-        //1minute
-        if ((now - last_check) > 1000 * 60 * 1) {
-            return done();
-        }
-    }
-    last_check = new Date().getTime();
-
-    var WishlistItem = req.WishlistItem;
-
-    var oper = {};
-//    oper.limit = 30;
-    //set query and out as well
-
-//    oper.out = {replace: 'feed'};
-    oper.verbose = true;
-    oper.map = function () {
-        var the_day_of_reckoning = '2015-01-22T12:14:23.790Z';
-        var pins = this.pins ? this.pins.length : 0;
-        var likes = this.meta ? this.meta.likes : 0;
-        var user_points = this.meta ? this.meta.user_points ? this.meta.user_points : 0 : 0;
-        var list_points = this.list_points || 0;
-        var updated_at = this.updated_at;
-        var created_at = this.created_at;
-        if (!updated_at) {
-            updated_at = new Date(this.the_day_of_reckoning);
-        }
-        if (!created_at) {
-            created_at = new Date(this.the_day_of_reckoning);
-        }
-        var dimension = {};
-        if (this.dimension) {
-            dimension = this.dimension;
-        }
-
-
-        var s = 2 * pins + 8 * likes + user_points + list_points;
-        var baseScore = Math.log(Math.max(s, 1));
-        var now = new Date().getTime();
-
-        var timeDiff = (now - created_at.getTime()) / (1000 * 60 * 60 * 24 * 7);
-        //time different in weeks
-        //if you have more and more posts we can reduce time difference to days, hours as well
-
-        if (timeDiff > 1) {
-            //if more than 1week
-            var x = timeDiff - 1;
-            baseScore = baseScore * Math.exp(-8 * x * x)
-        }
-
-        var base_time = new Date(the_day_of_reckoning).getTime();
-        var seconds = created_at.getTime() - base_time;
-        baseScore = Math.round(baseScore + 1 * seconds / 45000, 7);
-
-        emit(this._id, {
-            image: this.img,
-            original: this.original,
-            name: this.name,
-            description: this.description,
-            website: this.website,
-            dimension: dimension,
-            pins: pins,
-            likes: likes,
-            user_points: user_points,
-            list_points: list_points,
-            updated_at: updated_at.getTime(),
-            created_at: created_at.getTime(),
-            baseScore: baseScore * 1
-        });
-    }
-    oper.reduce = function (key, values) {
-
-//        var final_values = {};
-//        var latest = 0;
-//        for (var i = 0; i < values.length; i++) {
-//            if (values[i].updated_at > latest) {
-//                final_values = values[i];
-//            }
-//        }
-
-
-        return 1;
-    };
-    //update mapreduce using cron job rather on request
-    WishlistItem.mapReduce(oper, function (err, result) {
-        if (err) {
-            next(err);
-        } else {
-            var feed = req.feed;
-
-            feed.collection.drop(function (err, result1) {
-                console.log(err);
-
-
-                //mostly transfer this part to redis
-                //right now doing on mongo itself
-
-                for (var i = 0; i < result.length; i++) {
-
-                    if (result.length !== 0) {
-                        var new_result = [];
-                        for (var i = 0; i < result.length; i++) {
-                            var row = result[i];
-                            if (row.value.original && row.value.original.user_id) {
-                                if (row.value.image.length > 0) {
-                                    row.value._id = row._id;
-                                    new_result.push(row.value);
-                                    console.log(row.value.baseScore);
-                                }
-                            }
-                        }
-                    }
-                    if (new_result.length > 0) {
-                        var k = 0;
-                        for (var i = 0; i < new_result.length; i++) {
-                            (function (row, i) {
-                                var user_id = row.original.user_id;
-                                req.user_helper.getUserDetail(user_id, req, function (err, user_detail) {
-                                    if (!err) {
-                                        row.user = {
-                                            name: user_detail.name,
-                                            picture: user_detail.picture
-                                        };
-                                        new_result[i] = row;
-                                    }
-
-                                    var Wishlist = req.Wishlist;
-                                    Wishlist.findOne({
-                                        _id: mongoose.Types.ObjectId(row.original.list_id)
-                                    }).lean().exec(function (err, list_row) {
-                                        if (!err) {
-                                            row.list = {
-                                                name: list_row.name
-                                            };
-                                            new_result[i] = row;
-                                        }
-
-
-                                        feed.findOne({
-                                            map_id: row._id
-                                        }, function (err, feed_row) {
-                                            if (!err) {
-                                                if (feed_row && feed_row.get('_id')) {
-                                                    feed.update({
-                                                        _id: feed_row.get('_id')
-                                                    }, {
-                                                        $set: row
-                                                    }, function (err) {
-                                                        if (k === (new_result.length - 1)) {
-                                                            done();
-                                                        }
-                                                        k++;
-                                                    });
-                                                } else {
-                                                    var feed_model = new feed(row);
-                                                    feed_model.save(function (err) {
-                                                        if (k === (new_result.length - 1)) {
-                                                            done();
-                                                        }
-                                                        k++;
-                                                    });
-                                                }
-                                            }
-                                        });
-
-                                    });
-
-                                });
-                            })(new_result[i], i);
-                        }
-
-                    }
-
-                }
-            });
-
-        }
-    });
-}
-
-router.all('/home', function (req, res, next) {
-
-    checkFeedData(req, function () {
-        var feed = req.feed;
-        var page = req.body.page;
-        if (!page) {
-            page = 0;
-        }
-        console.log(page);
-        feed.find().sort({baseScore: -1}).skip(page * 5).limit(5).lean().exec(function (err, result) {
-            if (err) {
-                next(err);
-            } else {
-                res.json({
-                    error: 0,
-                    data: result
-                });
-            }
-        });
-    }, next);
-
-});
-
+////remove user as friend
 router.all('/user/unfriend', function (req, res, next) {
     var body = req.body;
-    var me_id = body.from_user_id;
+    var me_id = body.me_id;
     var friend_id = body.friend_id;
+    var User = req.User;
 
     var User = req.User;
     if (me_id && friend_id) {
 
-        User.find({
+        User.findOne({
             _id: mongoose.Types.ObjectId(me_id)
-        }, function (err, user_row) {
+        }).lean().exec(function (err, user_row) {
             if (err) {
                 next(err);
             } else {
-                var friends = user_row.get('friends');
-                if (!friends) {
-                    friends = [];
-                }
-                var new_friends = [];
-                for (var i = 0; i < friends.length; i++) {
-                    if (friends[i] !== friend_id) {
-                        new_friends.push(friends[i]);
+                if (user_row) {
+                    var friends = user_row.friends;
+                    if (!friends) {
+                        friends = [];
                     }
-                }
-
-
-                User.update({
-                    _id: mongoose.Types.ObjectId(me_id)
-                }, {
-                    $set: {
-                        friends: new_friends
+                    var new_friends = [];
+                    for (var i = 0; i < friends.length; i++) {
+                        if (friends[i] !== friend_id) {
+                            new_friends.push(friends[i]);
+                        }
                     }
-                }, function (err) {
-                    if (err) {
-                        next();
-                    } else {
+                    User.update({
+                        _id: mongoose.Types.ObjectId(me_id)
+                    }, {
+                        $set: {
+                            friends: new_friends
+                        }
+                    }, function (err) {
+                        if (err) {
+                            next();
+                        } else {
 
-                        //second user
-                        User.find({
-                            _id: mongoose.Types.ObjectId(friend_id)
-                        }, function (err, user_row) {
-                            if (err) {
-                                next(err);
-                            } else {
-                                var friends = user_row.get('friends');
-                                if (!friends) {
-                                    friends = [];
+                            //second user
+                            User.find({
+                                _id: mongoose.Types.ObjectId(friend_id)
+                            }).lean().exec(function (err, user_row) {
+                                if (err) {
+                                    next(err);
+                                } else {
+                                    var friends = user_row.friends;
+                                    if (!friends) {
+                                        friends = [];
+                                    }
+
+                                    var new_friends = [];
+                                    for (var i = 0; i < friends.length; i++) {
+                                        if (friends[i] !== friend_id) {
+                                            new_friends.push(friends[i]);
+                                        }
+                                    }
+
+                                    User.update({
+                                        _id: mongoose.Types.ObjectId(friend_id)
+                                    }, {
+                                        $set: {
+                                            friends: new_friends
+                                        }
+                                    }, function (err) {
+                                        if (err) {
+                                            next();
+                                        } else {
+
+                                            res.json({
+                                                error: 0
+                                            });
+                                        }
+                                    });
                                 }
-
-                                var new_friends = [];
-                                for (var i = 0; i < friends.length; i++) {
-                                    if (friends[i] !== friend_id) {
-                                        new_friends.push(friends[i]);
-                                    }
-                                }
-
-                                User.update({
-                                    _id: mongoose.Types.ObjectId(friend_id)
-                                }, {
-                                    $set: {
-                                        friends: new_friends
-                                    }
-                                }, function (err) {
-                                    if (err) {
-                                        next();
-                                    } else {
-
-                                        res.json({
-                                            error: 0
-                                        });
-                                    }
-                                });
-                            }
-                        });
-
-
-
-
-
-                    }
-                });
+                            });
+                        }
+                    });
+                } else {
+                    res.json({
+                        error: 1,
+                        message: 'User Not Found'
+                    });
+                }
             }
         });
 
@@ -401,21 +136,23 @@ router.all('/user/unfriend', function (req, res, next) {
     }
 
 });
-router.all('/user/acceptfriend', function (req, res, next) {
+//accept friend request
+router.all('/user/acceptfriendrequest', function (req, res, next) {
     var body = req.body;
-    var me_id = body.from_user_id;
-    var req_id = body.to_user_id;
+    var from_user_id = body.from_user_id;
+    var to_user_id = body.to_user_id;
     var FriendRequest = req.FriendRequest;
     var User = req.User;
 
-    if (me_id && req_id) {
+    if (from_user_id && to_user_id) {
         FriendRequest.findOne({
-            _id: mongoose.Types.ObjectId(req_id)
+            from_user_id: from_user_id,
+            to_user_id: to_user_id
         }, function (err, friend_row) {
             if (err) {
                 next(err);
             } else {
-                if (friend_row.get('to_user_id') === me_id) {
+                if (friend_row) {
                     var from_user_id = friend_row.get('from_user_id');
                     var to_user_id = friend_row.get('to_user_id');
 
@@ -444,7 +181,7 @@ router.all('/user/acceptfriend', function (req, res, next) {
 
                                     //second user
                                     FriendRequest.remove({
-                                        _id: mongoose.Types.ObjectId(req_id)
+                                        _id: friend_row.get('_id')
                                     }, function (err) {
                                         if (err) {
                                             next(err);
@@ -478,22 +215,24 @@ router.all('/user/acceptfriend', function (req, res, next) {
         });
     }
 });
-router.all('/user/declinefriend', function (req, res, next) {
+//decline friend request
+router.all('/user/declinefriendrequest', function (req, res, next) {
     var body = req.body;
-    var me_id = body.from_user_id;
-    var req_id = body.to_user_id;
+    var to_user_id = body.to_user_id;
+    var from_user_id = body.from_user_id;
     var FriendRequest = req.FriendRequest;
 
-    if (me_id && req_id) {
+    if (from_user_id && to_user_id) {
         FriendRequest.findOne({
-            _id: mongoose.Types.ObjectId(me_id)
+            from_user_id: from_user_id,
+            to_user_id: to_user_id
         }, function (err, friend_row) {
             if (err) {
                 next(err);
             } else {
-                if (friend_row.get('to_user_id') === me_id) {
+                if (friend_row) {
                     FriendRequest.update({
-                        _id: mongoose.Types.ObjectId(me_id)
+                        _id: friend_row.get('_id')
                     }, {
                         $set: {
                             status: 'declined',
@@ -524,6 +263,7 @@ router.all('/user/declinefriend', function (req, res, next) {
     }
 
 });
+//send friend request
 router.all('/user/addfriend', function (req, res, next) {
     var body = req.body;
     var from_user_id = body.from_user_id;
@@ -571,11 +311,12 @@ router.all('/user/addfriend', function (req, res, next) {
                                             date: row.get('created_at')
                                         }
                                     });
-                                } else if (row.get('status') === 'decline') {
+                                } else if (row.get('status') === 'declined') {
                                     res.json({
                                         error: 0,
                                         data: {
-                                            status: 'declined'
+                                            status: 'declined',
+                                            date: row.get('created_at')
                                         }
                                     });
                                 }
@@ -669,7 +410,7 @@ router.all('/user/profile/pins', function (req, res, next) {
 
                                         var list_name = '';
                                         for (var j = 0; j < rows.length; j++) {
-                                            if (rows[j]._id == list_id) {
+                                            if (rows[j]._id + "" === list_id + "") {
                                                 list_name = rows[j].name;
                                                 break;
                                             }
@@ -734,7 +475,7 @@ router.all('/user/friends', function (req, res, next) {
         }).populate({
             path: 'friends',
             options: {limit: 10, skip: skip * 10}
-        }, function (err, result) {
+        }).exec(function (err, result) {
             if (err) {
                 next(err);
             } else {
@@ -770,7 +511,7 @@ router.all('/user/followers', function (req, res, next) {
         }).populate({
             path: 'followers',
             options: {sort: {created_at: -1}, limit: 10, skip: skip * 10}
-        }, function (err, result) {
+        }).exec(function (err, result) {
             if (err) {
                 next(err);
             } else {
@@ -826,9 +567,11 @@ router.all('/user/following', function (req, res, next) {
 router.all('/user/profile/full', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
+    var my_id = body.my_id;
     var me = body.me;
     var User = req.User;
     var Wishlist = req.Wishlist;
+    var FriendRequest = req.FriendRequest;
     if (user_id) {
         User.findOne({
             _id: mongoose.Types.ObjectId(user_id)
@@ -871,21 +614,6 @@ router.all('/user/profile/full', function (req, res, next) {
                             list_ids.push(row.lists_mine[i]._id);
                         }
 
-//                        WishlistItemAssoc.find({
-//                            list_id: {
-//                                $in: list_ids
-//                            }
-//                        }).populate({
-//                            path: 'item_id',
-//                            options: {sort: {created_at: -1}}
-//                        }).limit(pin_limit).lean().exec(function (err, items) {
-//                            if (err) {
-//                                console.log(err);
-//                            }
-//                            if (!items)
-//                                items = [];
-//                            row.pins = items;
-
                         User.find({
                             followers: user_id
                         }).limit(10).lean().exec(function (err, following) {
@@ -894,12 +622,56 @@ router.all('/user/profile/full', function (req, res, next) {
                             } else {
                                 row.following = following;
                             }
-                            res.json({
-                                error: 0,
-                                data: row
+
+                            FriendRequest.find({
+                                to_user_id: user_id,
+                                status: {$ne: 'declined'}
+                            }).populate('from_user_id').lean().exec(function (err, friend_requests) {
+                                row.friend_requests = friend_requests;
+
+                                //check if current user is following or is a friend
+                                // cannot check from above, because only loading 10 followers and friends
+
+                                if (me) {
+                                    row.is_friend = false;
+                                    row.is_following = false;
+                                    res.json({
+                                        error: 0,
+                                        data: row
+                                    });
+                                } else {
+
+                                    User.findOne({
+                                        _id: mongoose.Types.ObjectId(user_id)
+                                    }, function (err, user_row) {
+                                        row.is_friend = false;
+                                        row.is_following = false;
+                                        var friends = user_row.get('friends');
+                                        var followers = user_row.get('followers');
+
+                                        row.is_friend = false;
+                                        row.is_following = false;
+                                        for (var j = 0; j < friends.length; j++) {
+                                            if (friends[j] + "" === my_id + "") {
+                                                row.is_friend = true;
+                                                break;
+                                            }
+                                        }
+                                        for (var j = 0; j < followers.length; j++) {
+                                            if (followers[j] + "" === my_id + "") {
+                                                row.is_following = true;
+                                                break;
+                                            }
+                                        }
+
+                                        res.json({
+                                            error: 0,
+                                            data: row
+                                        });
+                                    });
+                                }
                             });
                         });
-//                        });
 
                     });
                 });

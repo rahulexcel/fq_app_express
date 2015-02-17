@@ -104,6 +104,7 @@ app.use('/v1/social', require('./routes/v1/social'));
 app.use('/v1/picture', require('./routes/v1/picture'));
 //app.use('/products',routes_catalog); //arun :: 2nd step
 app.use('/v1/parseurl', v1_routes_parseurl);
+app.use('/v1/feeds', require('./routes/v1/feeds'));
 
 
 // catch 404 and forward to error handler

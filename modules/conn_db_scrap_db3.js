@@ -1,4 +1,12 @@
+var mongoose = require('mongoose');
+var redis = require('redis');
 module.exports = function (mongoose) {
+
+    var client = redis.createClient();
+    client.on("error", function (err) {
+        console.log("Error Redis Connection" + err);
+        process.exit(0);
+    });
     var conn = mongoose.createConnection('mongodb://127.0.0.1/scrap_db3');
     var scrap_db3 = mongoose.connection;
     var schema_final_fashion_filters = mongoose.Schema({}, {
@@ -34,8 +42,9 @@ module.exports = function (mongoose) {
         meta: {
             lists: {type: Number, default: 0},
             products: {type: Number, default: 0},
-            followers: {type: Number, default: 0} //will addup followers from list also
-
+            followers: {type: Number, default: 0}, //will addup followers from list also
+            score: {type: Number, default: 0}, //user score based on items which is updated daily
+            score_updated: {type: String}
         },
         friends: [{type: Schema.Types.ObjectId, ref: 'User'}],
         followers: [{type: Schema.Types.ObjectId, ref: 'User'}]
@@ -52,7 +61,9 @@ module.exports = function (mongoose) {
         shared_ids: [{type: Schema.Types.ObjectId, ref: 'User'}],
         meta: {
             products: {type: Number, default: 0},
-            likes: {type: Number, default: 0} //there won't be direct likes on this list, so total likes from all products
+            likes: {type: Number, default: 0}, //there won't be direct likes on this list, so total likes from all products
+            score: {type: Number, default: 0},
+            score_updated: {type: String}
         },
         created_at: {type: Date, default: Date.now},
         followers: [{type: Schema.Types.ObjectId, ref: 'User'}]
@@ -190,6 +201,11 @@ module.exports = function (mongoose) {
     });
     var FriendRequest = conn.model('friend_request', friend_request_schema);
     var Feedback = conn.model('feedback', feedback_schema);
+    var schema_calc_stats = mongoose.Schema({}, {
+        strict: false,
+        collection: 'calcuation_stats',
+    });
+    var Calculation = conn.model('calcuation_stats', schema_calc_stats);
     var Grid = require('gridfs-stream');
     Grid.mongo = mongoose.mongo;
     var gfs = Grid(conn.db);
@@ -212,6 +228,8 @@ module.exports = function (mongoose) {
         req.gfs = gfs;
         req.GCM = GCM;
         req.FriendRequest = FriendRequest;
+        req.Calculation = Calculation;
+        req.redis = client;
         next();
     }
 }

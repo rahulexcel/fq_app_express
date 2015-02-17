@@ -868,6 +868,8 @@ router.all('/item/add', function (req, res, next) {
 //                                                                                                        wishlist_model: wish_model,
 //                                                                                                        list: list
 //                                                                                                    }, req);
+
+                                                                                                    pushItemToUserFeed(list, wish_model, row, req);
                                                                                                     res.json({
                                                                                                         error: 0,
                                                                                                         data: {
@@ -948,11 +950,7 @@ router.all('/item/add', function (req, res, next) {
                                                             if (err) {
                                                                 next(err);
                                                             } else {
-                                                                var updater = require('./../../modules/v1/update');
-                                                                updater.notification(user_id, 'item_add', {
-                                                                    wishlist_model: wish_model,
-                                                                    list: list
-                                                                }, req);
+                                                                pushItemToUserFeed(list, wish_model, row, req);
                                                                 res.json({
                                                                     error: 0,
                                                                     data: {
@@ -992,4 +990,113 @@ router.all('/item/add', function (req, res, next) {
     }
 });
 
+function pushItemToUserFeed(list, wish_model, user, req) {
+    var redis = req.redis;
+
+    wish_model.list = {
+        name: list.name
+    };
+    wish_model.user = {
+        name: user.name,
+        picture: user.picture
+    };
+    wish_model.pins = wish_model.pins.length;
+    wish_model.likes = wish_model.meta.likes;
+    wish_model.user_points = wish_model.meta.user_points;
+    wish_model.list_points = wish_model.meta.list_points;
+
+
+    wish_model.original = JSON.stringify(wish_model.original);
+    wish_model.dimension = JSON.stringify(wish_model.dimension);
+    wish_model.user = JSON.stringify(wish_model.user);
+    wish_model.list = JSON.stringify(wish_model.list);
+
+    var shared_ids = list.shared_ids;
+    var followers = list.followers;
+    var user_followers = user.followers;
+    if (shared_ids.length > 0) {
+        for (var i = 0; i < shared_ids.length; i++) {
+            //ltrim
+            redis.lpush('user_feed_' + shared_ids[i], wish_model._id, function (err) {
+                redis.ltrim(['user_feed_' + shared_ids[i], 0, 100], function (err, res) {
+                });
+                if (err) {
+                    console.log('1014');
+                    console.log(err);
+                } else {
+                    redis.hmset('item_' + wish_model._id, wish_model, function (err) {
+                        if (err) {
+                            console.log('1019');
+                            console.log(err);
+                        }
+                        redis.expire('item_' + wish_model._id, 60 * 24 * 7, function (err) {
+                            if (err) {
+                                console.log('1024');
+                                console.log(err);
+                            }
+                        });
+                    });
+                }
+
+            });
+        }
+    } else {
+        if (list.type == 'public') {
+            if (followers.length > 0) {
+                for (var i = 0; i < followers.length; i++) {
+                    redis.lpush('user_feed_' + followers[i], wish_model._id, function (err) {
+                        redis.ltrim(['user_feed_' + shared_ids[i], 0, 100], function (err, res) {
+                        });
+                        if (err) {
+                            console.log('1039');
+                            console.log(err);
+                        } else {
+                            redis.hmset('item_' + wish_model._id, wish_model, function (err) {
+                                if (err) {
+                                    console.log('1045');
+                                    console.log(err);
+                                }
+                                redis.expire('item_' + wish_model._id, 60 * 24 * 7, function (err) {
+                                    if (err) {
+                                        console.log('1050');
+                                        console.log(err);
+                                    }
+                                });
+                            });
+                        }
+
+                    });
+                }
+            }
+            if (user_followers.length > 0) {
+                for (var i = 0; i < user_followers.length; i++) {
+                    if (followers.indexOf(user_followers[i]) !== -1) {
+                        redis.lpush('user_feed_' + user_followers[i], wish_model._id, function (err) {
+                            redis.ltrim(['user_feed_' + shared_ids[i], 0, 100], function (err, res) {
+                            });
+                            if (err) {
+                                console.log('1063');
+                                console.log(err);
+                            } else {
+                                redis.hmset('item_' + wish_model._id, wish_model, function (err) {
+                                    if (err) {
+                                        console.log('1069');
+                                        console.log(err);
+                                    }
+                                    redis.expire('item_' + wish_model._id, 60 * 24 * 7, function (err) {
+                                        if (err) {
+                                            console.log('1073');
+                                            console.log(err);
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+}
 module.exports = router;
