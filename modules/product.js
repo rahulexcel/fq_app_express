@@ -20,7 +20,7 @@ module.exports = function () {
             p_cat_name = '';
             p_url_category_name = '';
             org_href = '';
-            p_desktop_href = 'fashioniq.in/';
+            p_desktop_href = 'http://fashioniq.in/';
             price_drop = '';
             price_drop_final = 0;
             

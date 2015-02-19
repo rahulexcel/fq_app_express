@@ -53,40 +53,40 @@ module.exports = function(){
                             generateFather['all_cat_id'] = new Array();
                             generateFather['data'] = new Array();
                             father_wise_listing.push(generateFather);
-                        } else {
-                            father_wise_listing.forEach(function (val, key) {
-                                if (val.father_key == father_key) {
-                                    parent_exists = false;
-                                    parent_wise = val.data;
-                                    parent_wise.forEach(function (val1, key1) {
-                                        if (val1.cat_id == cat_id) {
-                                            parent_exists = true;
+                        } 
+                        father_wise_listing.forEach(function (val, key) {
+                            if (val.father_key == father_key) {
+                                parent_exists = false;
+                                parent_wise = val.data;
+                                parent_wise.forEach(function (val1, key1) {
+                                    if (val1.cat_id == cat_id) {
+                                        parent_exists = true;
+                                    }
+                                });
+                                if (parent_exists == false) {
+                                    generateParent = {};
+                                    generateParent['name'] = parent_cat_name;
+                                    generateParent['cat_id'] = cat_id;
+                                    generateParent['sub_cat_id'] = -1;
+                                    father_wise_listing[key]['all_cat_id'].push(cat_id);
+                                    generateParent['data'] = new Array();
+                                    parent_wise.push(generateParent);
+                                }
+                                if (sub_cat_id != -1) {
+                                    parent_wise.forEach(function (val2, key2) {
+                                        if (val2.cat_id == cat_id) {
+                                            generateSubCat = {};
+                                            generateSubCat['name'] = cat_name;
+                                            generateSubCat['cat_id'] = cat_id;
+                                            generateSubCat['sub_cat_id'] = sub_cat_id;
+                                            parent_wise[key2]['sub_cat_id'] = 1;
+                                            parent_wise[key2]['data'].push(generateSubCat);
                                         }
                                     });
-                                    if (parent_exists == false) {
-                                        generateParent = {};
-                                        generateParent['name'] = parent_cat_name;
-                                        generateParent['cat_id'] = cat_id;
-                                        generateParent['sub_cat_id'] = -1;
-                                        father_wise_listing[key]['all_cat_id'].push(cat_id);
-                                        generateParent['data'] = new Array();
-                                        parent_wise.push(generateParent);
-                                    }
-                                    if (sub_cat_id != -1) {
-                                        parent_wise.forEach(function (val2, key2) {
-                                            if (val2.cat_id == cat_id) {
-                                                generateSubCat = {};
-                                                generateSubCat['name'] = cat_name;
-                                                generateSubCat['cat_id'] = cat_id;
-                                                generateSubCat['sub_cat_id'] = sub_cat_id;
-                                                parent_wise[key2]['sub_cat_id'] = 1;
-                                                parent_wise[key2]['data'].push(generateSubCat);
-                                            }
-                                        });
-                                    }
                                 }
-                            });
-                        }
+                            }
+                        });
+                        
                     });
                     if( father_wise_listing.length > 0 ){
                         father_wise_listing.sort(function (a, b) {
