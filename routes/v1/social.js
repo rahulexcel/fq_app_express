@@ -741,9 +741,9 @@ router.all('/user/follow', function (req, res, next) {
                                                 res.json({
                                                     error: 0,
                                                     data: follow_user
-                                                })
+                                                });
                                             }
-                                        })
+                                        });
                                     } else {
                                         res.json({
                                             error: 1,
@@ -1448,7 +1448,7 @@ router.all('/item/like', function (req, res, next) {
     var Wishlist = req.Wishlist;
     var WishlistItem = req.WishlistItem;
     var WishlistItemAssoc = req.WishlistItemAssoc;
-    if (user_id && item_id) {
+    if (user_id && item_id && list_id) {
         console.log('item like request');
         WishlistItemAssoc.findOne({
             item_id: item_id,
