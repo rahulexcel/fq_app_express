@@ -132,16 +132,16 @@ router.all('/products', function (req, res) {
             'param': 'pricehtl',
             'sort': {'price': -1}
         });
-        sortBy_arr.push({
-            'text': 'Off % -- Low to High',
-            'param': 'offlth',
-            'sort': {'offrate': 1}
-        });
-        sortBy_arr.push({
-            'text': 'Off % -- High to Low',
-            'param': 'offhtl',
-            'sort': {'offrate': -1}
-        });
+        //sortBy_arr.push({
+            //'text': 'Off % -- Low to High',
+            //'param': 'offlth',
+            //'sort': {'offrate': 1}
+        //});
+        //sortBy_arr.push({
+            //'text': 'Off % -- High to Low',
+            //'param': 'offhtl',
+            //'sort': {'offrate': -1}
+        //});
         sortBy_arr.push({
             'text': 'Price Change',
             'param': 'pricechange',
@@ -199,6 +199,7 @@ router.all('/products', function (req, res) {
                     filters = raw_filters;
                     
                     var colors_data = filters.color.data; // will be used when color filter is applied
+                    var sizes_data = filters.sizes.data; // will be used when color filter is applied
 
                     var where = {};
                     var params = req.body;
@@ -252,7 +253,7 @@ router.all('/products', function (req, res) {
                                 fltr_val = fltr_str_arr[3];
                                 if (fltr_type == 'text' ) {
                                     fltr_val = fltr_val.replace(/_/g, ' ');
-                                    if( fltr_key == 'brand' || fltr_key == 'website' ){
+                                    if( fltr_key == 'brand' || fltr_key == 'website' || fltr_key == 'sizes' ){
                                         fltr_key_is_in_where = false;
                                         Object.keys( where ).forEach(function(cc){
                                             if( cc == fltr_key ){
@@ -264,9 +265,28 @@ router.all('/products', function (req, res) {
                                                     '$in':[],
                                             };
                                         }
-                                        where[fltr_key]['$in'].push(fltr_val);
-                                        
-                                        //Object.keys(where).
+                                        if( fltr_key == 'sizes'){
+                                            if( typeof sizes_data != 'undefined' && sizes_data.length > 0 ){
+                                                Object.keys( sizes_data ).forEach(function(ss_size){
+                                                    size_detail = sizes_data[ss_size];
+                                                    size_detail_text = size_detail.text;
+                                                    if( fltr_val == size_detail_text ){
+                                                        var size_query_params = size_detail.query_params;
+                                                        if( typeof size_query_params != 'undefined' && size_query_params.length > 0 ) {
+                                                            for( var jj=0;jj<size_query_params.length;jj++){
+                                                                var s_size = size_query_params[jj];
+                                                                s_size = new RegExp(s_size,'i');
+                                                                where[fltr_key]['$in'].push(s_size);
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        }else{
+                                            fltr_val = new RegExp(fltr_val,'i');
+                                            console.log(fltr_val);
+                                            where[fltr_key]['$in'].push(fltr_val);
+                                        }
                                     }else if( fltr_key == 'color'){
                                         
                                         var query_colors = [];
@@ -323,7 +343,8 @@ router.all('/products', function (req, res) {
                                             '$in':query_colors
                                         };
                                         
-                                    }else{
+                                    }
+                                    else{
                                         where[fltr_key] = new RegExp(fltr_val, "i");
                                     }
                                     
@@ -357,6 +378,13 @@ router.all('/products', function (req, res) {
                             '$exists':true,
                             '$gt':0*1,
                         };
+                    }
+                    
+                    if( typeof where['price'] == 'undefined' ){
+                       where['price'] = {
+                           '$exists':true,
+                            '$gt':0*1,
+                       };
                     }
                     
                     
