@@ -837,8 +837,16 @@ router.all('/list/follow', function (req, res, next) {
                                 if (list_type == 'private') {
                                     res.json({
                                         error: 1,
-                                        data: 'This is a private list. Cannot Follow This List'
-                                    })
+                                        message: 'This is a private list. Cannot Follow This List'
+                                    });
+                                    return;
+                                }
+                                console.log(follow_list.get('user_id') + "XXX" + user_id);
+                                if (follow_list.get('user_id') == user_id) {
+                                    res.json({
+                                        error: 1,
+                                        message: 'You Cannot Follow Your Own List'
+                                    });
                                     return;
                                 }
 
