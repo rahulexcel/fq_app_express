@@ -76,6 +76,9 @@ function checkTrendingFeedData(req, done, next) {
         if (err) {
             next(err);
         } else {
+
+            console.log('trending data length ' + result.length);
+
             for (var i = 0; i < result.length; i++) {
 
                 if (result.length !== 0) {
@@ -193,8 +196,14 @@ function getTrendingData(page, req, next, done, recursion) {
                                 });
                             } else {
                                 //wait for data
-                                redis.blpop(['home_trending_block', 10], function () {
+                                redis.blpop(['home_trending_block', 10], function (err) {
                                     getTrendingData(page, req, next, function (data1) {
+                                        if (data1.length === 0) {
+                                            //safe mesaure incase trending feed gets stuck
+                                            checkTrendingFeedData(req, function () {
+                                            });
+                                        }
+
                                         done(data1);
                                     }, false);
                                 });

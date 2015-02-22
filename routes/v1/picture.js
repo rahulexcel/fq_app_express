@@ -78,47 +78,89 @@ router.get('/extract', function (req, res, next) {
  * Method To Make Product Image URL of website internal
  */
 router.get('/images/:id', function (req, res, next) {
+
+
+//    console.log(req.webp);
+//    console.log(req.headers);
+
+    var fs = require('fs');
     var website_scrap_data = req.conn_website_scrap_data;
     var id = req.param('id');
+    var sharp = require('sharp');
     if (id) {
         var dirname = require('path').dirname(__dirname) + '/../uploads/images/' + id;
-        var fs = require('fs');
-        if (fs.existsSync(dirname) && false) {
-            var steam = fs.createReadStream(dirname);
-            res.set('Content-Type', 'image/jpeg');
-            steam.pipe(res);
+        if (fs.existsSync(dirname)) {
+            console.log('file exists');
+
+            if (req.webp) {
+                var dirname1 = require('path').dirname(__dirname) + '/../uploads/images/' + id + "_webp";
+
+                if (!fs.existsSync(dirname1)) {
+                    var steam = fs.createReadStream(dirname);
+                    var transformer = sharp();
+                    transformer.webp();
+                    var r = steam.pipe(transformer).pipe(fs.createWriteStream(dirname1));
+                    r.on('close', function (err) {
+                        if (!err) {
+                            res.set('Content-Type', 'image/webp');
+                            var steam = fs.createReadStream(dirname1);
+                            steam.pipe(res);
+                        } else {
+                            res.set('Content-Type', 'image/png');
+                            var steam = fs.createReadStream(dirname);
+                            steam.pipe(res);
+                        }
+                    });
+                } else {
+                    res.set('Content-Type', 'image/webp');
+                    var steam = fs.createReadStream(dirname1);
+                    steam.pipe(res);
+                }
+            } else {
+                res.set('Content-Type', 'image/png');
+                var steam = fs.createReadStream(dirname);
+                steam.pipe(res);
+            }
         } else {
+            res.set('Content-Type', 'image/png');
             website_scrap_data.findOne({
                 _id: mongoose.Types.ObjectId(id)
             }, function (err, row) {
                 if (row) {
                     var url = row.get('img');
-                    console.log(url);
-                    req.html_helper.getHTML(url, function (err, data, mime) {
+                    console.log('here');
+                    req.html_helper.getImage(url, function (err, data) {
                         if (!err) {
-
-                            fs.writeFile(dirname, data, function (err) {
+                            var transformer = sharp();
+                            transformer.png();
+                            var r = data.pipe(transformer).pipe(fs.createWriteStream(dirname));
+                            r.on('close', function (err) {
                                 if (!err) {
+                                    var dirname = require('path').dirname(__dirname) + '/../uploads/images/' + id;
+                                    console.log('dirname ' + dirname);
                                     var steam = fs.createReadStream(dirname);
-                                    res.set('Content-Type', 'image/jpeg');
                                     steam.pipe(res);
                                 } else {
-                                    next(err);
+                                    var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                                    var steam = fs.createReadStream(dirname);
+                                    steam.pipe(res);
                                 }
                             });
 
-//                        res.send(data);
-//                        return;
+                        } else {
+//                            var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                            var steam = fs.createReadStream(dirname);
+                            steam.pipe(res);
                         }
                     });
+                } else {
+//                   var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                    var steam = fs.createReadStream(dirname);
+                    steam.pipe(res);
                 }
             });
         }
     }
-//    res.set('Content-Type', 'image/gif');
-//    var text = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-//    res.send(text);
-
 });
 
 /**
@@ -136,7 +178,7 @@ router.get('/view/:filename/', function (req, res, next) {
             }
             if (files.length > 0) {
                 console.log(files);
-                if (req.query.webp) {
+                if (req.webp) {
                     var mime = 'image/webp';
                 } else {
                     var mime = 'image/png';
@@ -147,7 +189,7 @@ router.get('/view/:filename/', function (req, res, next) {
                 if (req.query.width && req.query.height) {
                     var transformer = sharp().resize(req.query.width * 1, req.query.height * 1);
                     fs_filename = fs_filename + "_width_" + req.query.width + "_height_" + req.query.height;
-                    if (req.query.webp) {
+                    if (req.webp) {
                         transformer.webp();
                         fs_filename = fs_filename + "_webp";
                     } else {
@@ -168,7 +210,7 @@ router.get('/view/:filename/', function (req, res, next) {
                 } else if (req.query.width) {
                     var transformer = sharp().resize(req.query.width * 1);
                     fs_filename = fs_filename + "_width_" + req.query.width;
-                    if (req.query.webp) {
+                    if (req.webp) {
                         transformer.webp();
                         fs_filename = fs_filename + "_webp";
                     } else {
@@ -189,7 +231,7 @@ router.get('/view/:filename/', function (req, res, next) {
                     }
                 } else {
                     var transformer = sharp();
-                    if (req.query.webp) {
+                    if (req.webp) {
                         transformer.webp();
                         fs_filename = fs_filename + "_webp";
                     } else {
@@ -209,12 +251,15 @@ router.get('/view/:filename/', function (req, res, next) {
                     }
                 }
             } else {
-                res.status(500);
-                res.json('File Not Found');
+                var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                var steam = fs.createReadStream(dirname);
+                steam.pipe(res);
             }
         });
     } else {
-        res.sendStatus(500);
+        var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+        var steam = fs.createReadStream(dirname);
+        steam.pipe(res);
     }
 });
 

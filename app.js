@@ -16,6 +16,8 @@ var html_helper = require('./modules/v1/html_helper');
 var mail = require('./modules/mail');
 var module_recycle_data = require('./modules/recycle_data');
 var module_product = require('./modules/product');
+var module_webp = require('./modules/webp');
+var cache = require('/modules/cache');
 
 var v1_routes_catalog = require('./routes/v1/catalog'); // arun :: 1st step
 var v1_routes_account = require('./routes/v1/account');
@@ -58,6 +60,7 @@ app.use(module_recycle_data());
 app.use(module_product());
 app.use(user_helper());
 app.use(html_helper());
+app.use(module_webp());
 
 app.use(function (req, res, next) {
     var path = req.path;
@@ -84,10 +87,24 @@ app.use(function (req, res, next) {
             break;
         }
     }
+
+    var cache_paths = [
+        'catalog/products',
+        'product/view'
+    ];
+    req.cache = false;
+    for (var i = 0; i < cache_paths.length; i++) {
+        if (path.indexOf(cache_paths[i]) != -1) {
+            console.log('cache required');
+            req.cache = true;
+            break;
+        }
+    }
     next();
 });
 var auth = require('./modules/v1/auth');
 app.use(auth());
+app.use(cache());
 app.use(function (req, res, next) {
     console.log('Body After Auth');
     console.log(req.body);
@@ -106,9 +123,9 @@ app.use('/v1/picture', require('./routes/v1/picture'));
 app.use('/v1/parseurl', v1_routes_parseurl);
 app.use('/v1/feeds', require('./routes/v1/feeds'));
 
-
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
+    console.log('404 URL ' + req.originalUrl);
     var err = new Error('Not Found');
     err.status = 404;
     next(err);

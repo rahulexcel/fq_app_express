@@ -3,6 +3,44 @@ var fs = require('fs');
 var router = express.Router();
 var mongoose = require('mongoose');
 
+
+router.all('/update/status', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var status = body.status;
+
+    var UserModel = req.User;
+    if (user_id) {
+        if (status) {
+            UserModel.update({
+                _id: mongoose.Types.ObjectId(user_id)
+            }, {
+                $set: {
+                    status: status
+                }
+            }, function (err) {
+                if (err) {
+                    next(err);
+                } else {
+                    res.json({
+                        error: 0
+                    });
+                }
+            });
+        } else {
+            res.send({
+                error: 1,
+                message: 'Invalid Request'
+            });
+        }
+    } else {
+        res.send({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+
+});
 router.all('/update', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
@@ -58,7 +96,7 @@ router.all('/update', function (req, res, next) {
         });
     }
 
-})
+});
 router.all('/remove_picture', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
