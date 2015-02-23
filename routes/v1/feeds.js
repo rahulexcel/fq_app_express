@@ -301,30 +301,39 @@ function updateLatestFeedData(req, done, next) {
         'sort_score': 1
     };
     console.log(latest_where);
-    website_scrap_data.where(latest_where).sort(latest_sort).limit(300).select(product_data_list).lean().find(lastet_results);
-    function lastet_results(err, latest_products) {
+    website_scrap_data.where(latest_where).sort(latest_sort).limit(500).select(product_data_list).lean().find(latest_results);
+    function latest_results(err, latest_products) {
         if (err) {
         } else {
-            redis.del('home_latest', function(err) {
-                if (err) {
-                    console.log('line 301')
-                }
-                if (latest_products.length > 0) {
-                    for (var i = 0; i < latest_products.length; i++) {
-                        var row = latest_products[i];
-                        (function(i, row) {
-                            var row_mongo_id = row._id;
-                            redis.hmset('item_' + row_mongo_id, row, function(err) {
-                                console.log(" - "+i+ ' update hua...');
+            if (latest_products.length > 0) {
+                for (var i = 0; i < latest_products.length; i++) {
+                    var row = latest_products[i];
+                    (function(i, row) {
+                        var row_mongo_id = row._id;
+                        redis.hmset('item_' + row_mongo_id, row, function(err) {
+                            console.log(" - "+i+ ' update hua...');
+                            if (err) {
+                                console.log('305');
+                                console.log(err);
+                            }
+                            redis.expire('item_' + row_mongo_id, 60 * 24 * 7, function() {
                                 if (err) {
-                                    console.log('305');
+                                    console.log('310');
                                     console.log(err);
                                 }
-                                redis.expire('item_' + row_mongo_id, 60 * 24 * 7, function() {
-                                    if (err) {
-                                        console.log('310');
-                                        console.log(err);
-                                    }
+                                if( i == 0 ){
+                                    redis.del('home_latest', function(err) {
+                                        if (err) {
+                                            console.log('line 314');
+                                        }
+                                        redis.zadd('home_latest', i, row_mongo_id, function(err) {
+                                            if (err) {
+                                                console.log('318');
+                                                console.log(err);
+                                            }
+                                        });
+                                    });
+                                }else{
                                     redis.zadd('home_latest', i, row_mongo_id, function(err) {
                                         if (err) {
                                             console.log('315');
@@ -335,12 +344,13 @@ function updateLatestFeedData(req, done, next) {
                                             done();
                                         }
                                     });
-                                });
+                                }
                             });
-                        })(i, row);
-                    }
+                        });
+                    })(i, row);
                 }
-            });
+            }
+          
         }
     }
 }
