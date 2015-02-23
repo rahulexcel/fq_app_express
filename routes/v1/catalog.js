@@ -505,11 +505,12 @@ router.all('/products', function (req, res,next) {
 router.all('/search', function (req, res) {
     var mongoose = req.mongoose;
     var body = req.body;
-    var search_text = body.text;
+    var search_text = body.search;
     //search_text = 'adidas';
     var product_data_list = req.config.product_data_list;
     var final_data = new Array();
     var website_scrap_data = req.conn_website_scrap_data;
+    var productObj = req.productObj;
     if (typeof search_text === 'undefined' || search_text == '') {
         res.json({
             error: 1,
