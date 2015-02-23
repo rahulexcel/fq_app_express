@@ -83,6 +83,8 @@ router.get('/images/:id', function (req, res, next) {
 //    console.log(req.webp);
 //    console.log(req.headers);
 
+    console.log('request images');
+
     var fs = require('fs');
     var website_scrap_data = req.conn_website_scrap_data;
     var id = req.param('id');

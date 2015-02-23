@@ -31,7 +31,7 @@ router.all('/list', function (req, res) {
         }
     }
 });
-router.all('/products', function (req, res) {
+router.all('/products', function (req, res,next) {
 
     if (req.method === 'OPTIONS') {
         res.json('');
@@ -475,10 +475,9 @@ router.all('/products', function (req, res) {
                                         }
                                     }
                                 }
-                                res.json({
-                                    error: 0,
-                                    data: finalData,
-                                });
+                                req.toCache = true;
+                                req.cache_data = finalData;
+                                next();
                             }
                         }
                     }
