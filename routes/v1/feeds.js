@@ -276,6 +276,143 @@ router.all('/trending', function (req, res, next) {
         });
     }, true);
 });
+
+
+
+//--start----latest feed-------------------
+function updateLatestFeedData(req, done, next) {
+    console.log("!! start :: updateLatestFeedData !!! ");
+    var redis = req.redis;
+    var website_scrap_data = req.conn_website_scrap_data;
+    var product_data_list = req.config.product_data_list;
+    product_data_list = product_data_list.replace('price_history', '')
+
+    var latest_where = {
+        'sort_score': {
+            '$exists': true,
+            '$gt': 0 * 1,
+        },
+        'price': {
+            '$exists': true,
+            '$gt': 0 * 1,
+        },
+    };
+    var latest_sort = {
+        'sort_score': 1
+    };
+    console.log(latest_where);
+    website_scrap_data.where(latest_where).sort(latest_sort).limit(300).select(product_data_list).lean().find(lastet_results);
+    function lastet_results(err, latest_products) {
+        if (err) {
+        } else {
+            redis.del('home_latest', function(err) {
+                if (err) {
+                    console.log('line 301')
+                }
+                if (latest_products.length > 0) {
+                    for (var i = 0; i < latest_products.length; i++) {
+                        var row = latest_products[i];
+                        (function(i, row) {
+                            var row_mongo_id = row._id;
+                            redis.hmset('item_' + row_mongo_id, row, function(err) {
+                                console.log(" - "+i+ ' update hua...');
+                                if (err) {
+                                    console.log('305');
+                                    console.log(err);
+                                }
+                                redis.expire('item_' + row_mongo_id, 60 * 24 * 7, function() {
+                                    if (err) {
+                                        console.log('310');
+                                        console.log(err);
+                                    }
+                                    redis.zadd('home_latest', i, row_mongo_id, function(err) {
+                                        if (err) {
+                                            console.log('315');
+                                            console.log(err);
+                                        }
+                                        if (i == (latest_products.length - 1)) {
+                                            console.log('!!! final update ho gya hai !!!');
+                                            done();
+                                            redis.expire('home_latest', 60*30);
+                                        }
+                                    });
+                                });
+                            });
+                        })(i, row);
+                    }
+                }
+            });
+        }
+    }
+}
+function getLatestData(page, req, next, done) {
+    var redis = req.redis;
+    var productObj = req.productObj;
+    //redis.flushall();
+    //console.log('flush hua hau');
+    //process.exit(0);
+    var latest_data = [];
+    redis.zrevrangebyscore(['home_latest', '+inf', '-inf', 'WITHSCORES', 'LIMIT', page * 20, 20], function(err, response) {
+        if (err) {
+            console.log('307');
+            console.log(err);
+            next(err);
+        } else {
+            if (response.length == 0) {
+                console.log('-----update hua hai');
+                updateLatestFeedData(req, function() {
+                }, next);
+                done([]);//returs empty data not found;
+            } else {
+                console.log('call hua hai');
+                var new_array = [];
+                var total = 0;
+                for (var i = 0; i < response.length; i++) {
+                    if (i % 2 === 0) {
+                        new_array.push( response[i] );
+                        total++;
+                    }
+                }
+                
+                for (k = 0; k < total; k++) {
+                    var row_key = new_array[k];
+                    (function(kk,row_key,total){
+                        redis.hgetall('item_' + row_key, function(err, obj) {
+                            if (err) {
+                                console.log('line 355');
+                                console.log(err);
+                            }else{
+                                var original = obj;
+                                latest_data.push( productObj.getProductPermit(req,original));
+                            }
+                            if( kk == total - 1){
+                                done(latest_data);
+                            }
+                        });
+                    })(k,row_key,total);
+                    
+                }
+            }
+        }
+    });
+}
+router.all('/latest', function(req, res, next) {
+    var page = req.body.page;
+    if (!page) {
+        page = 0;
+    }
+    console.log('page' + page);
+    getLatestData(page, req, next, function(data) {
+        res.json({
+            error: 0,
+            data: data
+        });
+    });
+});
+//--end------latest feed-------------------
+
+
+
 router.all('/my', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
