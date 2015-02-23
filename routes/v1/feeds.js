@@ -333,7 +333,6 @@ function updateLatestFeedData(req, done, next) {
                                         if (i == (latest_products.length - 1)) {
                                             console.log('!!! final update ho gya hai !!!');
                                             done();
-                                            redis.expire('home_latest', 60*30);
                                         }
                                     });
                                 });
@@ -663,7 +662,10 @@ router.all('/stats', function (req, res, next) {
     var moment = require('moment-timezone');
     var current_date = moment().tz("Asia/Kolkata").format('DD-MM-YYYY');
     var current_hour = moment().tz("Asia/Kolkata").format('HH');
-
+    
+    updateLatestFeedData(req, function() {
+         console.log('!!! CRON :: updateLatestFeedData !!!');
+     }, next);
 
     if (current_hour > 1) {
         //night 1am
