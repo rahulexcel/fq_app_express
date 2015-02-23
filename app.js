@@ -17,7 +17,7 @@ var mail = require('./modules/mail');
 var module_recycle_data = require('./modules/recycle_data');
 var module_product = require('./modules/product');
 var module_webp = require('./modules/webp');
-var cache = require('/modules/cache');
+var cache = require('./modules/cache');
 
 var v1_routes_catalog = require('./routes/v1/catalog'); // arun :: 1st step
 var v1_routes_account = require('./routes/v1/account');
@@ -104,6 +104,7 @@ app.use(function (req, res, next) {
 });
 var auth = require('./modules/v1/auth');
 app.use(auth());
+//checking for data in cache
 app.use(cache());
 app.use(function (req, res, next) {
     console.log('Body After Auth');
@@ -122,6 +123,9 @@ app.use('/v1/picture', require('./routes/v1/picture'));
 //app.use('/products',routes_catalog); //arun :: 2nd step
 app.use('/v1/parseurl', v1_routes_parseurl);
 app.use('/v1/feeds', require('./routes/v1/feeds'));
+
+//setting data into cache
+app.use(cache());
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
