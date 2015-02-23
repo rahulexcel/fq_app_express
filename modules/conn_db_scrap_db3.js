@@ -34,6 +34,7 @@ module.exports = function (mongoose) {
         email: {type: String, required: true, index: {unique: true}},
         picture: {type: String, required: true},
         password: {type: String, required: true},
+        status: {type: String, default: ''},
         gender: {type: String, enum: genderTypes},
         created_at: {type: Date, default: Date.now},
         type: {type: String, required: true, enum: allowedConnectinoType},
