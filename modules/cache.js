@@ -64,7 +64,8 @@ module.exports = function (mongoose) {
                                     console.log('getting data via redis cache');
                                     res.json({
                                         error: 0,
-                                        data: json
+                                        data: json,
+                                        is_cache: true
                                     });
                                 } catch (e) {
                                     next();
