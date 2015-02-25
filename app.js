@@ -89,7 +89,7 @@ app.use(function (req, res, next) {
     }
 
     var cache_paths = [
-        'catalog/products',
+        //'catalog/products',
         'product/view'
     ];
     req.cache = false;

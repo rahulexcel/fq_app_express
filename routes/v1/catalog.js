@@ -31,8 +31,59 @@ router.all('/list', function (req, res) {
         }
     }
 });
+router.all('/filters', function (req, res,next) {
+    if (req.method === 'OPTIONS') {
+        res.json('');
+    } else {
+        //req.body.father_key = 'men';
+        //req.body.search = 'adidas';
+        //req.body.cat_id = 30;
+        //req.body.sub_cat_id = 3003;
+        
+        if (!req.body.cat_id && !req.body.sub_cat_id && is_father_request == false) {
+            res.json({
+                error: 1,
+                message: 'Invalid Request'
+            });
+            return;
+        }else{
+            var request_filter_cat_id = req.body.cat_id;
+            var request_filter_sub_cat_id = req.body.sub_cat_id;
+            var filters_category_wise = req.conn_filters_category_wise;
+            var where_filter = {
+                'cat_id': request_filter_cat_id * 1,
+                'sub_cat_id': request_filter_sub_cat_id * 1
+            };
+            console.log('----START-----where for filters------------');
+            console.log(where_filter);
+            console.log('----END-----where for filters------------');
+            var filters = {};
+            filters_category_wise.where(where_filter).find(results);
+            function results(err, data) {
+                if (err) {
+                    next(err);
+                } else {
+                    if (data.length == 0) {
+                        res.json({
+                            error: 1,
+                            message: 'filters not found !!',
+                        });
+                        return;
+                    } else {
+                        raw_filters = data[0].get('filters').api_filters;
+                        filters = raw_filters;
+                        res.json({
+                            error: 0,
+                            data: filters,
+                        });
+                    }
+                }
+            }
+        }
+    }
+});
 router.all('/products', function (req, res,next) {
-
+    var redis = req.redis;
     if (req.method === 'OPTIONS') {
         res.json('');
     } else {
@@ -180,10 +231,19 @@ router.all('/products', function (req, res,next) {
         console.log('----START-----where for filters------------');
         console.log(where_filter);
         console.log('----END-----where for filters------------');
+        
+        function getRegexString( string ){
+            string = fltr_val.replace(/\[/g, '');
+            string = fltr_val.replace(/\]/g, '');
+            string =  new RegExp(string, "i");
+           return string;
+        }
+        
         var filters = {};
         filters_category_wise.where(where_filter).find(results);
         function results(err, data) {
             if (err) {
+                console.log('sdfsdfsdf');
                 next(err);
             } else {
                 if (data.length == 0) {
@@ -191,6 +251,7 @@ router.all('/products', function (req, res,next) {
                         error: 1,
                         message: 'filters not found !!',
                     });
+                    return;
                 } else {
                     raw_filters = data[0].get('filters').api_filters;
                     filters = raw_filters;
@@ -232,7 +293,8 @@ router.all('/products', function (req, res,next) {
                         }
                     }
 
-
+                    
+                    var color_filter_is_set = false;
                     //-start-process set filters----------
                     var set_empty_colors_filters = false;
                     var applied_filters = params.filters;
@@ -285,7 +347,7 @@ router.all('/products', function (req, res,next) {
                                             where[fltr_key]['$in'].push(fltr_val);
                                         }
                                     } else if (fltr_key == 'color') {
-
+                                        color_filter_is_set = true;
                                         var query_colors = [];
                                         query_colors.push(fltr_val);
 
@@ -323,7 +385,7 @@ router.all('/products', function (req, res,next) {
                                                         if (typeof row.sub_colors != 'undefined' && row.sub_colors.length > 0) {
                                                             for (var j = 0; j < row.sub_colors.length; j++) {
                                                                 var rowss = row.sub_colors[j];
-                                                                query_colors.push(rowss);
+                                                                query_colors.push(getRegexString(rowss));
                                                             }
                                                         }
                                                     }
@@ -369,22 +431,21 @@ router.all('/products', function (req, res,next) {
                             query_sort = val.sort;
                         }
                     });
-
+                    
+                    /*
                     if (param_sort_by == 'popular') {
                         where['sort_score'] = {
                             '$exists': true,
                             '$gt': 0 * 1,
                         };
                     }
-
                     if (typeof where['price'] == 'undefined') {
                         where['price'] = {
                             '$exists': true,
                             '$gt': 0 * 1,
                         };
                     }
-
-
+                */
                     if (set_empty_colors_filters == true) { // coz if secondary color is selected then no need to further show colors filters
                         filters.color.data = [];
                     }
@@ -407,8 +468,19 @@ router.all('/products', function (req, res,next) {
                         filters = {}; // filters are empty, coz if father key is set then only category has to be shown in filters
                         filters.category = father_children;
                     }
-
+                    
+                    
+                    
                     finalData.filters = filters; // page filters are set here
+                    //finalData.filters = filters.color.data
+                    if( color_filter_is_set == true ){
+                        finalData.filters = {};
+                        finalData.filters.color = filters.color;
+                    }else{
+                        finalData.filters = {};
+                    }
+                    
+                    
 
 
                     //-end----process set sorting
@@ -434,7 +506,90 @@ router.all('/products', function (req, res,next) {
                             limit: search_limit
                         }, query_results);
                     } else {
-                        website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
+                        //redis.flushall();
+                        //console.log('flush hua hau');
+                        //process.exit(0);
+                        //------check for redis data------
+                        var start = new Date().getTime();
+                        console.log("START TIME :: "+start);
+                        console.log('!!! START :: redis check !!!');
+                        var where_size = Object.keys(where).length;
+                        if( where_size == 2 && typeof where.cat_id != 'undefined' && where.cat_id != ''  && where.sub_cat_id != 'undefined' && where.sub_cat_id != '' ){
+                            var catlog_redis_key = 'catalog_'+where.cat_id+'_'+where.sub_cat_id;
+                            console.log('redis key :: '+catlog_redis_key);
+                            
+                            redis.zrevrangebyscore([catlog_redis_key, '+inf', '-inf', 'WITHSCORES', 'LIMIT', skip_count, products_per_page], function (err, response) {
+                                if(err){
+                                    console.log('444');
+                                }else{
+                                    if( response.length == 0 ){
+                                       console.log(" -- no data found in redis");
+                                       console.log(" -- normal query will run");
+                                        website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
+                                       var end = new Date().getTime() - start;
+                                       console.log('time taken ' + end);
+                                                                                               
+                                    }else{
+                                        var new_array = [];
+                                        var total = 0;
+                                        for (var i = 0; i < response.length; i++) {
+                                            if (i % 2 === 0) {
+                                                new_array.push(response[i]);
+                                                total++;
+                                            }
+                                        }
+                                        var end = new Date().getTime() - start;
+                                        finalData.products = [];
+                                        for (var k = 0; k < total; k++) {
+                                            var row_key = new_array[k];
+                                            (function (kk, row_key, total) {
+                                                row_key = JSON.parse(row_key);
+                                                finalData.products.push(productObj.getProductPermit(req, row_key));
+                                                    if (kk === total - 1) {
+                                                        var end = new Date().getTime() - start;
+                                                        console.log('time taken ' + end);
+                                                        req.toCache = true;
+                                                        req.cache_data = finalData;
+                                                        next();
+                                                    }
+                                            })(k, row_key, total);
+                                        }
+                                        
+                                        /*
+                                        for (var k = 0; k < total; k++) {
+                                            var row_key = new_array[k];
+                                            (function (kk, row_key, total) {
+                                                redis.hgetall('item_' + row_key, function (err, obj) {
+                                                    if (err) {
+                                                        console.log('line 463');
+                                                        console.log(err);
+                                                    } else {
+                                                        if (obj) {
+                                                            var original = obj;
+                                                            finalData.products.push(productObj.getProductPermit(req, original));
+                                                        }
+                                                    }
+                                                    if (kk === total - 1) {
+                                                        var end = new Date().getTime() - start;
+                                                        console.log('time taken ' + end);
+                                                        req.toCache = true;
+                                                        req.cache_data = finalData;
+                                                        next();
+                                                    }
+                                                });
+                                            })(k, row_key, total);
+                                        }
+                                        */
+                                    }
+                                }
+                            });
+                            console.log('!!! STOP :: redis check !!!');
+                            //------check for redis data------
+                        }else{
+                            website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
+                             var end = new Date().getTime() - start;
+                                console.log('time taken ' + end);
+                        }
                     }
 
                     function query_results(err, data) {
@@ -475,6 +630,8 @@ router.all('/products', function (req, res,next) {
                                         }
                                     }
                                 }
+                                var end = new Date().getTime() - start;
+                                console.log('time taken ' + end);
                                 req.toCache = true;
                                 req.cache_data = finalData;
                                 next();

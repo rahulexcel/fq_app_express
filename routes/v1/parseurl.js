@@ -1281,11 +1281,11 @@ router.get('/', function(req, res) {
     
     function getHTML(url, actMobile, callback) {
         var headers = {
-            "accept-charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
-            "accept-language": "en-US,en;q=0.8",
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            //"accept-charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
+            //"accept-language": "en-US,en;q=0.8",
+            //"accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.13+ (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2",
-            "accept-encoding": "gzip,deflate",
+            //"accept-encoding": "gzip,deflate",
         };
         if (actMobile) {
             headers['user-agent'] = 'Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_0 like Mac OS X; en-us) AppleWebKit/532.9 (KHTML, like Gecko) Version/4.0.5 Mobile/8A293 Safari/6531.22.7';
