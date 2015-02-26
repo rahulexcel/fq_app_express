@@ -57,7 +57,46 @@ router.all('/filters', function (req, res,next) {
             console.log('----START-----where for filters------------');
             console.log(where_filter);
             console.log('----END-----where for filters------------');
-            var filters = {};
+            var sortBy_arr = new Array;
+            sortBy_arr.push({
+                'text': 'Popular',
+                'param': 'popular',
+                'sort': {'sort_score': 1}
+            });
+            sortBy_arr.push({
+                'text': 'New Arrivals',
+                'param': 'new',
+                'sort': {'is_new_insert': -1, 'time': -1}
+            });
+            sortBy_arr.push({
+                'text': 'Price -- Low to High',
+                'param': 'pricelth',
+                'sort': {'price': 1}
+            });
+            sortBy_arr.push({
+                'text': 'Price -- High to Low',
+                'param': 'pricehtl',
+                'sort': {'price': -1}
+            });
+            //sortBy_arr.push({
+            //'text': 'Off % -- Low to High',
+            //'param': 'offlth',
+            //'sort': {'offrate': 1}
+            //});
+            //sortBy_arr.push({
+            //'text': 'Off % -- High to Low',
+            //'param': 'offhtl',
+            //'sort': {'offrate': -1}
+            //});
+            sortBy_arr.push({
+                'text': 'Price Change',
+                'param': 'pricechange',
+                'sort': {'price_diff': -1}
+            });
+            var finalData = {};
+            finalData.sort = sortBy_arr;
+            finalData.filters = {};
+            //var filters = {};
             filters_category_wise.where(where_filter).find(results);
             function results(err, data) {
                 if (err) {
@@ -71,10 +110,10 @@ router.all('/filters', function (req, res,next) {
                         return;
                     } else {
                         raw_filters = data[0].get('filters').api_filters;
-                        filters = raw_filters;
+                        finalData.filters = raw_filters;
                         res.json({
                             error: 0,
-                            data: filters,
+                            data: finalData,
                         });
                     }
                 }
@@ -218,7 +257,8 @@ router.all('/products', function (req, res,next) {
          */
         //-end sorting---------------------------------------------------------------
         var finalData = {};
-        finalData.sort = sortBy_arr;
+        //finalData.sort = sortBy_arr;
+        finalData.sort = {};
         //-------------------------------------------------------------------
         var filters_category_wise = req.conn_filters_category_wise;
         console.log(req.body);

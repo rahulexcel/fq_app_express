@@ -300,74 +300,98 @@ function updateLatestFeedData(req, done, next) {
     var redis = req.redis;
     var website_scrap_data = req.conn_website_scrap_data;
     var product_data_list = req.config.product_data_list;
-    product_data_list = product_data_list.replace('price_history', '')
-
-//    var latest_where = {
-//        'sort_score': {
-//            '$exists': true,
-//            '$gt': 0 * 1,
-//        },
-//        'price': {
-//            '$exists': true,
-//            '$gt': 0 * 1,
-//        },
-//    };
-
+    product_data_list = product_data_list.replace('price_history', '');
+    //-------------------------------------------------
+    var latest_types = new Array;
+    latest_types.push({
+        'type':'men',
+        'where':{
+            '$or':[
+                {'cat_id': { '$in':[30,40,42,44,61]}},
+                {'sub_cat_id':{ '$in':[6201,6301]}}
+            ]
+        },
+        'redis_key':'home_latest_men',
+    });
+    latest_types.push({
+        'type':'women',
+        'where':{
+            '$or':[
+                {'cat_id': { '$in':[50,51,52,54]}},
+                {'sub_cat_id':{ '$in':[6202,6302]}}
+            ]
+        },
+        'redis_key':'home_latest_women',
+    });
+    
     var latest_where = {};
     var latest_sort = {
         'sort_score': 1
     };
-    console.log(latest_where);
+    var total_process = 0;
     var start = new Date().getTime();
-    website_scrap_data.where(latest_where).sort(latest_sort).limit(300).select(product_data_list).lean().find(lastet_results);
-    function lastet_results(err, latest_products) {
-        if (err) {
-        } else {
-            redis.del('home_latest', function (err) {
+    latest_types.forEach(function (val, key) {
+        (function(kk,val){
+            var lt_type = val.type;
+            var lt_where = val.where;
+            var lt_redis_key = val.redis_key;
+            console.log(lt_where);
+            website_scrap_data.where(lt_where).sort(latest_sort).limit(300).select(product_data_list).lean().find(latest_results);
+            function latest_results(err, latest_products) {
                 if (err) {
-                    console.log('line 301')
-                }
-                if (latest_products.length > 0) {
-                    for (var i = 0; i < latest_products.length; i++) {
-                        var row = latest_products[i];
-                        (function (i, row) {
-                            var row_mongo_id = row._id;
-                            redis.hmset('item_' + row_mongo_id, row, function (err) {
-//                                console.log(" - " + i + ' update hua...');
-                                if (err) {
-                                    console.log('305');
-                                    console.log(err);
-                                }
-                                redis.expire('item_' + row_mongo_id, 60 * 60 * 24 * 7, function () {
-                                    if (err) {
-                                        console.log('310');
-                                        console.log(err);
-                                    }
-                                    redis.zadd('home_latest', i, row_mongo_id, function (err) {
+                    console.log(err);
+                    console.log('line 342');
+                } else {
+                    redis.del(lt_redis_key, function (err) {
+                        if (err) {
+                            console.log('line 301')
+                        }
+                        if ( latest_products.length > 0) {
+                            for (var i = 0; i < latest_products.length; i++) {
+                                var row = latest_products[i];
+                                (function (kk,i, row) {
+                                    var row_mongo_id = row._id;
+                                    redis.hmset('item_' + row_mongo_id, row, function (err) {
                                         if (err) {
-                                            console.log('315');
+                                            console.log('305');
                                             console.log(err);
                                         }
-                                        if (i == (latest_products.length - 1)) {
-                                            console.log('!!! final update ho gya hai !!!');
-                                            var end = new Date().getTime() - start;
-                                            console.log('time taken ' + end);
-                                            done();
-//                                            redis.expire('home_latest', 60 * 60 * 30);
-                                            redis.set('home_latest_generate', new Date() + "");
-                                            redis.expire('home_latest_generate', 60 * 60 * 1);
-                                        }
+                                        redis.expire('item_' + row_mongo_id, 60 * 60 * 24 * 7, function () {
+                                            if (err) {
+                                                console.log('310');
+                                                console.log(err);
+                                            }
+                                            redis.zadd(lt_redis_key, i, row_mongo_id, function (err) {
+                                                if (err) {
+                                                    console.log('315');
+                                                    console.log(err);
+                                                }
+                                                if (i == (latest_products.length - 1)) {
+                                                    console.log( lt_redis_key+' :: update ho gya hai !!!');
+                                                    total_process++;
+                                                }
+                                                
+                                                if( total_process == latest_types.length ){
+                                                    console.log(" !!! final update ho gya hai!!!");
+                                                    var end = new Date().getTime() - start;
+                                                    console.log('time taken ' + end);
+                                                    done();
+                                                    redis.set('home_latest_generate', new Date() + "");
+                                                    redis.expire('home_latest_generate', 60 * 60 * 1);
+                                                }
+                                            });
+                                        });
                                     });
-                                });
-                            });
-                        })(i, row);
-                    }
+                                })(kk,i, row);
+                            }
+                        }
+                    });
                 }
-            });
-        }
-    }
+            }
+        })(key,val);
+    });
 }
-function getLatestData(page, req, next, done, recursion) {
+function getLatestData(latest_type,page, req, next, done, recursion) {
     var redis = req.redis;
     var productObj = req.productObj;
     //redis.flushall();
@@ -397,7 +421,7 @@ function getLatestData(page, req, next, done, recursion) {
 //            }
 //        }
 //        else {
-    redis.zrevrangebyscore(['home_latest', '+inf', '-inf', 'WITHSCORES', 'LIMIT', page * 20, 20], function (err, response) {
+    redis.zrevrangebyscore([latest_type, '+inf', '-inf', 'WITHSCORES', 'LIMIT', page * 20, 20], function (err, response) {
         if (err) {
             console.log('307');
             console.log(err);
@@ -427,7 +451,6 @@ function getLatestData(page, req, next, done, recursion) {
                             } else {
                                 if (obj) {
                                     var original = obj;
-                                    console.log(original);
                                     latest_data.push(productObj.getProductPermit(req, original));
                                 }
                             }
@@ -445,18 +468,21 @@ function getLatestData(page, req, next, done, recursion) {
 //    });
 }
 router.all('/latest', function (req, res, next) {
+    var latest_type = req.param('father');
     var page = req.body.page;
     if (!page) {
         page = 0;
     }
     console.log('page' + page);
-    getLatestData(page, req, next, function (data) {
+    getLatestData(latest_type,page, req, next, function (data) {
         res.json({
             error: 0,
             data: data
         });
     });
 });
+
+
 //--end------latest feed-------------------
 
 

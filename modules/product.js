@@ -23,6 +23,7 @@ module.exports = function () {
             p_desktop_href = 'http://fashioniq.in/';
             price_drop = '';
             price_drop_final = 0;
+            p_image = 'http://dyc4yp9si5syy.cloudfront.net/v1/picture/images/';
             
             var p_website = p['website'];
             if( typeof p_website == 'undefined'){
@@ -35,6 +36,7 @@ module.exports = function () {
                 org_href = p_url;
                 price_drop = p.get('price_diff');
                 aff_url = productObj.getAffiliateUrl( p_website, p_url );
+                p_image = p_image+p_mongo_id;
             }else{
                 p_mongo_id = p['_id'];
                 p_cat_id = p['cat_id'];
@@ -43,6 +45,7 @@ module.exports = function () {
                 price_drop = p['price_diff'];
                 org_href = p_url;
                 aff_url = productObj.getAffiliateUrl( p_website, p_url );
+                p_image = p_image+p_mongo_id;
             }
             
             if( typeof price_drop != 'undefined'){
@@ -66,11 +69,13 @@ module.exports = function () {
                 p.set('href',aff_url);
                 p.set('price_drop',price_drop_final);
                 p.set('desktop_href',p_desktop_href);
+                p.set('img',p_image);
             }else{
                 p['org_href'] = org_href;
                 p['href'] = aff_url;
                 p['price_drop'] = price_drop_final;
                 p['desktop_href'] = p_desktop_href;
+                p['img'] = p_image;
             }
            // console.log(p_website);
             //var p_website = p.get('website');
