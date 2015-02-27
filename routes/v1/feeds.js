@@ -348,7 +348,7 @@ function updateLatestFeedData(req, done, next) {
                                             console.log('315');
                                             console.log(err);
                                         }
-                                        if (i == (latest_products.length - 1)) {
+                                        if (i === (latest_products.length - 1)) {
                                             console.log('!!! final update ho gya hai !!!');
                                             var end = new Date().getTime() - start;
                                             console.log('time taken ' + end);
