@@ -703,6 +703,50 @@ router.all('/search', function (req, res) {
     var mongoose = req.mongoose;
     var body = req.body;
     var search_text = body.search;
+    var father_key = body.father_key;
+    var where_search = {};
+    
+    var is_cat_sub_cat_search = false;
+    var search_cat_id = body.cat_id;
+    var search_sub_cat_id = body.sub_cat_id;
+    if( typeof search_cat_id !='undefined' && search_cat_id != -1 ){
+        where_search = {
+            'cat_id':search_cat_id*1,
+        };
+        is_cat_sub_cat_search = true;
+    }
+    if( typeof search_sub_cat_id !='undefined' && search_sub_cat_id != -1 ){
+        where_search = {
+            'sub_cat_id':search_sub_cat_id*1,
+        };
+        is_cat_sub_cat_search = true;
+    }
+    
+    var all_cat_id_found = false;
+    if( typeof father_key != 'undefined' && father_key !='' && is_cat_sub_cat_search == false){
+        console.log(father_key+' :: ');
+        var father_wise_listing = req.recycle_data.father_wise_listing;
+        if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
+            for( var i = 0; i < father_wise_listing.length ; i++){
+                var chk_father_key = father_wise_listing[i].father_key;
+                console.log( chk_father_key + ' :: '+father_key);
+                if( father_key == chk_father_key  ){
+                    console.log( 'yes found => ' +chk_father_key + ' :: '+father_key);
+                    var father_all_cat_id = father_wise_listing[i].all_cat_id;
+                    console.log(father_all_cat_id);
+                    if( typeof father_all_cat_id  != 'undefined' && father_all_cat_id.length > 0){
+                        all_cat_id_found = true;
+                        where_search = {
+                            'cat_id':{
+                                '$in':father_wise_listing[i].all_cat_id,
+                            }
+                        };
+                    }
+                }
+            }
+        }
+    }
+    console.log(where_search);
     //search_text = 'adidas';
     var product_data_list = req.config.product_data_list;
     var final_data = new Array();
@@ -717,13 +761,17 @@ router.all('/search', function (req, res) {
         var search_products = [];
         final_data.text = search_text;
         final_data.result = search_products;
-        website_scrap_data.db.db.command({
+        var command_where = {
             text: 'website_scrap_data',
             search: search_text,
             limit: 20,
             select: product_data_list,
-            //filter : where_similar
-        }, function (err, data) {
+        };
+        if( all_cat_id_found == true || is_cat_sub_cat_search == true ){
+            command_where.filter = where_search;
+        }
+        console.log(command_where);
+        website_scrap_data.db.db.command(command_where, function (err, data) {
             if (err) {
                 next(err);
             } else {

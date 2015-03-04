@@ -57,6 +57,7 @@ module.exports = function(){
                             generateFather['father_order'] = father_order;
                             generateFather['api_father_order'] = api_father_order;
                             generateFather['all_cat_id'] = new Array();
+                            generateFather['all_cat_id'].push(cat_id);
                             generateFather['data'] = new Array();
                             father_wise_listing.push(generateFather);
                         } 
