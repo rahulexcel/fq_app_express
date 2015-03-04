@@ -89,8 +89,9 @@ app.use(function (req, res, next) {
     }
 
     var cache_paths = [
-        //'catalog/products',
-        'product/view'
+        'catalog/products',
+        'product/view',
+        'catalog/filters'
     ];
     req.cache = false;
     for (var i = 0; i < cache_paths.length; i++) {

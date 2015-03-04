@@ -9,10 +9,12 @@ module.exports = function (mongoose) {
                 delete data.timestamp;
             }
             var string = JSON.stringify(data);
+            var req_url = req.originalUrl;
 
             var crypto = require('crypto');
             var shasum = crypto.createHash('sha1');
-            shasum.update(string);
+
+            shasum.update(string + req_url);
 
             var key = shasum.digest('hex');
             var redis = req.redis;
@@ -42,7 +44,10 @@ module.exports = function (mongoose) {
 
                 var crypto = require('crypto');
                 var shasum = crypto.createHash('sha1');
-                shasum.update(string);
+
+                var req_url = req.originalUrl;
+
+                shasum.update(string + req_url);
 
                 var key = shasum.digest('hex');
                 var redis = req.redis;

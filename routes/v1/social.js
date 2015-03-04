@@ -747,7 +747,7 @@ router.all('/user/follow', function (req, res, next) {
                                     } else {
                                         res.json({
                                             error: 1,
-                                            message: 'Your Have Already Followed ' + follow_user.get('name')
+                                            message: 'You Are Already Followed ' + follow_user.get('name')
                                         });
                                     }
                                 } else {
