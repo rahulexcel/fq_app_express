@@ -94,6 +94,7 @@ router.all('/view', function (req, res, next) {
                         product_brand = data.get('brand');
 
                         data.set('brand_filter_key', '');
+                        data.set('website_filter_key', '');
                         data.set('price_drop', 0);
                         data.set('price_history_new', []);
 
@@ -103,6 +104,11 @@ router.all('/view', function (req, res, next) {
                             var brand2 = arrayToString(brand1, '_');
                             //product_data.brand_filter_key = 'filter__text__brand__'+brand2;
                             data.set('brand_filter_key', 'filter__text__brand__' + brand2);
+                        }
+                        if (typeof product_website != 'undefined' && product_website != '') {
+                            var website1 = stringToArray(product_website, ' ');
+                            var website2 = arrayToString(website1, '_');
+                            data.set('website_filter_key', 'filter__text__website__' + website2);
                         }
                         product_price_diff = data.get('price_diff');
                         if (typeof product_price_diff != 'undefined') {

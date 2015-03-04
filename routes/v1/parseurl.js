@@ -150,6 +150,7 @@ router.get('/', function(req, res) {
             {'site':'shoppersstop.com','code':'shoppersstop'},
             {'site':'urbanladder.com','code':'urbanladder'},
             {'site':'pepperfry.com','code':'Pepperfry'},
+            {'site':'paytm.com','code':'paytm'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -206,6 +207,13 @@ router.get('/', function(req, res) {
             if (url.indexOf('.html') != -1) {
                 return true;
             } else {
+                return false;
+            }
+        }
+        else if( url.indexOf('paytm') != -1){
+            if( url.indexOf('shop/p/') != -1 ){
+                return true;
+            }else{
                 return false;
             }
         }
@@ -1278,7 +1286,13 @@ router.get('/', function(req, res) {
             'more_images': more_images
         }
     }
-    
+    function getLastSlash(url) {
+        if (typeof url == "undefined" || !url)
+            return;
+        url = url.split('/');
+        url = url[url.length - 1];
+        return url;
+    }
     function getHTML(url, actMobile, callback) {
         var headers = {
             //"accept-charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
@@ -1294,6 +1308,10 @@ router.get('/', function(req, res) {
         if (url.indexOf('jabong') != -1) {
             headers['X-Requested-With'] = 'XMLHttpRequest';
         }
+        if(website_detected == 'paytm'){
+            url = 'https://catalog.paytm.com/v1/p/'+getLastSlash(url);
+        }
+        
         var options = {
             url: url,
             headers: headers
@@ -1324,6 +1342,7 @@ router.get('/', function(req, res) {
             callback(err);
         });
     }
+    
     function processUrl(template, website_detected, data, cat_id, callback) {
         if (typeof data == "undefined") {
             data = false;
@@ -1336,11 +1355,23 @@ router.get('/', function(req, res) {
                 jQuery = w.$;
                 $ = w.$;
                 window = w;
-                var price = getPriceHtml();
-                var name = getNameHtml();
-                var images = getImages();
-                var main_image = images.main_image;
-                var more_images = images.more_images;
+                if( website_detected == 'paytm'){
+                    json_data = JSON.parse(template);
+                    var price = json_data.offer_price;
+                    if( price == '' || price == 0 ){
+                        price = json_data.actual_price;
+                    }
+                    var name = json_data.name;
+                    var main_image = json_data.image_url;
+                    var more_images = json_data.other_images;
+                    more_images.push(main_image);
+                }else{
+                    var price = getPriceHtml();
+                    var name = getNameHtml();
+                    var images = getImages();
+                    var main_image = images.main_image;
+                    var more_images = images.more_images;
+                }
                 
                 var isbn = '';
                 if (cat_id == 9) {
@@ -1411,7 +1442,7 @@ router.get('/', function(req, res) {
                             msg:err
                         });
                     } else {
-                        processUrl(data, false, false, false, function(ret) {
+                        processUrl(data, website_detected, false, false, function(ret) {
                             res.json({
                                 error:0,
                                 data:ret
