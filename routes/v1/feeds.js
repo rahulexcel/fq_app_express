@@ -503,18 +503,48 @@ router.all('/my', function (req, res, next) {
             next(err);
         } else {
             var ret = [];
-            for (var i = 0; i < response.length; i++) {
-                var obj = response[i];
-                obj.original = JSON.parse(obj.original);
-                obj.dimension = JSON.parse(obj.dimension);
-                obj.user = JSON.parse(obj.user);
-                obj.list = JSON.parse(obj.list);
-                ret.push(obj);
+            console.log(response);
+            var kk = 0;
+            var total = response.length;
+            if (total == 0) {
+                res.json({
+                    error: 0,
+                    data: []
+                });
+            } else {
+                for (var i = 0; i < response.length; i++) {
+                    var row_key = response[i];
+                    redis.hgetall('item_' + row_key, function (err, obj) {
+                        if (err) {
+                            console.log('line 355');
+                            console.log(err);
+                        } else {
+                            if (obj) {
+                                console.log(obj);
+                                if (obj.original) {
+                                    if (obj.img)
+                                        obj.image = obj.img;
+                                    obj.original = JSON.parse(obj.original);
+                                    obj.dimension = JSON.parse(obj.dimension);
+                                    obj.user = JSON.parse(obj.user);
+                                    obj.list = JSON.parse(obj.list);
+//                                    if (obj.meta)
+//                                        obj.meta = JSON.parse(obj.meta);
+                                    ret.push(obj);
+                                }
+                                //latest_data.push(productObj.getProductPermit(req, original));
+                            }
+                        }
+                        if (kk === total - 1) {
+                            res.json({
+                                error: 0,
+                                data: ret
+                            });
+                        }
+                        kk++;
+                    });
+                }
             }
-            res.json({
-                error: 0,
-                data: ret
-            });
         }
     });
 });

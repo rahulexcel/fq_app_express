@@ -9,17 +9,26 @@ module.exports = function (mongoose) {
     });
     var conn = mongoose.createConnection('mongodb://127.0.0.1/scrap_db3');
     var scrap_db3 = mongoose.connection;
+
+
+    var conn1 = mongoose.createConnection('mongodb://127.0.0.1/pricegenie');
+    var user_watch_schema = mongoose.Schema({}, {
+        strict: false,
+        collection: 'user_watch_map'
+    });
+
+
     var schema_final_fashion_filters = mongoose.Schema({}, {
         strict: false,
-        collection: 'final_fashion_filters',
+        collection: 'final_fashion_filters'
     });
     var schema_filters_category_wise = mongoose.Schema({}, {
         strict: false,
-        collection: 'filters_category_wise',
+        collection: 'filters_category_wise'
     });
     var schema_website_scrap_data = mongoose.Schema({}, {
         strict: false,
-        collection: 'website_scrap_data',
+        collection: 'website_scrap_data'
     });
     var final_fashion_filters = conn.model('final_fashion_filters', schema_final_fashion_filters);
     var filters_category_wise = conn.model('filters_category_wise', schema_filters_category_wise);
@@ -207,6 +216,7 @@ module.exports = function (mongoose) {
         collection: 'calcuation_stats',
     });
     var Calculation = conn.model('calcuation_stats', schema_calc_stats);
+    var user_watch_map = conn1.model('user_watch_map', user_watch_schema);
     var Grid = require('gridfs-stream');
     Grid.mongo = mongoose.mongo;
     var gfs = Grid(conn.db);
@@ -230,6 +240,7 @@ module.exports = function (mongoose) {
         req.GCM = GCM;
         req.FriendRequest = FriendRequest;
         req.Calculation = Calculation;
+        req.user_watch_map = user_watch_map;
         req.redis = client;
         next();
     }

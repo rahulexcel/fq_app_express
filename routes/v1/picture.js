@@ -74,6 +74,58 @@ router.get('/extract', function (req, res, next) {
         });
     }
 });
+
+
+/** when user adds a new pin through image url. save that url to folder **/
+router.get('/get_url', function (req, res, next) {
+    var url = req.query.url;
+
+    var fs = require('fs');
+    var sharp = require('sharp');
+    if (url) {
+        var crypto = require('crypto');
+        var shasum = crypto.createHash('sha1');
+        shasum.update(url);
+        var hex = shasum.digest('hex');
+        var dirname = require('path').dirname(__dirname) + '/../uploads/picture/' + hex;
+        req.html_helper.getImage(url, function (err, data) {
+            if (!err) {
+                var transformer = sharp();
+                transformer.png();
+                var r = data.pipe(transformer).pipe(fs.createWriteStream(dirname));
+                r.on('close', function (err) {
+                    if (!err) {
+                        var sizeOf = require('image-size');
+                        sizeOf(dirname, function (err, dimensions) {
+                            if (err) {
+                                next(err);
+                            } else {
+                                res.json({
+                                    error: 0,
+                                    data: {
+                                        data: hex,
+                                        size: dimensions
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        next(err);
+                    }
+                });
+
+            } else {
+                next(err);
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid URL'
+        });
+    }
+
+});
 /** 
  * Method To Make Product Image URL of website internal
  */
@@ -130,15 +182,17 @@ router.get('/images/:id', function (req, res, next) {
             }, function (err, row) {
                 if (row) {
                     var url = row.get('img');
-                    console.log('here');
+                    var dirname = require('path').dirname(__dirname) + '/../uploads/images/' + id;
+                    console.log('dirname ' + dirname);
+                    console.log('from url ' + url);
                     req.html_helper.getImage(url, function (err, data) {
                         if (!err) {
                             var transformer = sharp();
                             transformer.png();
                             var r = data.pipe(transformer).pipe(fs.createWriteStream(dirname));
                             r.on('close', function (err) {
-                                if (!err) {
-                                    var dirname = require('path').dirname(__dirname) + '/../uploads/images/' + id;
+                                var dirname = require('path').dirname(__dirname) + '/../uploads/images/' + id;
+                                if (!err && fs.existsSync(dirname)) {
                                     console.log('dirname ' + dirname);
                                     var steam = fs.createReadStream(dirname);
                                     steam.pipe(res);
@@ -170,7 +224,8 @@ router.get('/images/:id', function (req, res, next) {
  */
 router.get('/view/:filename/', function (req, res, next) {
     var filename = req.param('filename');
-    console.log(filename + 'filename');
+    var fs = require('fs');
+    console.log(filename + ' filename');
     if (filename) {
         var gfs = req.gfs;
         gfs.files.find({filename: filename}).toArray(function (err, files) {
@@ -253,9 +308,17 @@ router.get('/view/:filename/', function (req, res, next) {
                     }
                 }
             } else {
-                var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
-                var steam = fs.createReadStream(dirname);
-                steam.pipe(res);
+                var dirname = require('path').dirname(__dirname) + '/../uploads/picture/';
+                var fs_filename = dirname + filename;
+                console.log('fff ' + fs_filename);
+                if (fs.existsSync(fs_filename)) {
+                    var steam = fs.createReadStream(fs_filename);
+                    steam.pipe(res);
+                } else {
+                    var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                    var steam = fs.createReadStream(dirname);
+                    steam.pipe(res);
+                }
             }
         });
     } else {
@@ -272,6 +335,7 @@ router.all('/upload', function (req, res, next) {
     var gfs = req.gfs;
     var body = req.body;
     var size = body.size;
+    var temp = body.temp;
     if (req.files) {
         console.log(req.files);
         var filename = req.files.file.name;
@@ -289,26 +353,35 @@ router.all('/upload', function (req, res, next) {
             var mongo_filename = md5.digest('hex');
             console.log(dirname + "/../" + path);
             var read_stream = fs.createReadStream(dirname + "/../" + path);
-            var writestream = gfs.createWriteStream({
-                filename: mongo_filename
-            });
-            writestream.on('error', function (err) {
-                console.log(err);
-                next(err);
-            })
-            read_stream.on('error', function (err) {
-                console.log(err);
-                next(err);
-            })
-            read_stream.pipe(writestream);
+
+            if (temp) {
+                var transformer = sharp();
+                transformer.png();
+
+                var fs_filename = require('path').dirname(__dirname) + '/../uploads/picture/' + mongo_filename;
+                var writestream = fs.createWriteStream(fs_filename);
+                read_stream.pipe(transformer).pipe(writestream);
+            } else {
+                var writestream = gfs.createWriteStream({
+                    filename: mongo_filename
+                });
+                writestream.on('error', function (err) {
+                    console.log(err);
+                    next(err);
+                })
+                read_stream.on('error', function (err) {
+                    console.log(err);
+                    next(err);
+                })
+                read_stream.pipe(writestream);
+            }
             writestream.on('close', function () {
 
                 var dimensions = false;
                 if (size) {
                     var sizeOf = require('image-size');
-                    dimensions = sizeOf(dirname + "/../" + path);
+                    dimensions = sizeOf(fs_filename);
                 }
-                fs.unlink(dirname + "/../" + path);
                 res.json({
                     error: 0,
                     data: mongo_filename,

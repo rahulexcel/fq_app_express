@@ -43,6 +43,75 @@ router.all('/list', function (req, res, next) {
     }
 });
 
+//delete list
+
+router.all('/list/delete', function (req, res, next) {
+    var body = req.body;
+    var list_id = body.list_id;
+    var user_id = body.user_id;
+
+    var Wishlist = req.Wishlist;
+    var WishlistItem = req.WishlistItem;
+
+    if (list_id && user_id) {
+        Wishlist.findOne({
+            _id: mongoose.Types.ObjectId(list_id)
+        }).lean().exec(function (err, row) {
+            if (err) {
+                next(err);
+            } else {
+                if (row._id) {
+                    console.log(row.user_id + "====" + user_id);
+                    if (row && row.user_id == user_id) {;
+                        WishlistItem.count({
+                            'original.list_id': list_id
+                        }, function (err, count) {
+                            if (err) {
+                                next(err);
+                            } else {
+                                if (count > 0) {
+                                    res.json({
+                                        error: 1,
+                                        message: 'You Need To Empty The Wishlist To Delete!'
+                                    });
+                                } else {
+                                    Wishlist.remove({
+                                        _id: mongoose.Types.ObjectId(list_id)
+                                    }, function (err) {
+                                        if (err) {
+                                            next(err);
+                                        } else {
+                                            res.json({error: 0});
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    } else {
+                        res.json({
+                            error: 1,
+                            message: 'Wishlist Belongs To SomeOne Else, Cannot Delete'
+                        });
+                    }
+                } else {
+                    res.json({
+                        error: 1,
+                        message: 'Wishlist Not Found'
+                    });
+                }
+            }
+        });
+
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+
+});
+
+// add edit list
 router.all('/add', function (req, res, next) {
     //below used for editing also
     var body = req.body;
@@ -696,6 +765,75 @@ function getWishlistItemSize(img, req, done) {
     }, 5000);
 }
 
+router.all('/item/price_alert', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var product_id = body.product_id;
+
+    var user_watch_map = req.user_watch_map;
+    var website_scrap_data = req.conn_website_scrap_data;
+
+    if (user_id && product_id) {
+        website_scrap_data.findOne({
+            _id: mongoose.Types.ObjectId(product_id)
+        }, function (err, product_row) {
+            if (err) {
+                next();
+            } else {
+                if (!product_row) {
+                    res.json({
+                        error: 1,
+                        message: 'Product Not Found'
+                    });
+                } else {
+
+                    var unique = product_row.get('unique');
+                    var website = product_row.get('website');
+                    var name = product_row.get('name');
+                    var href = product_row.get('href');
+                    var price = product_row.get('price');
+                    var cat_id = product_row.get('cat_id');
+                    var sub_cat_id = product_row.get('sub_cat_id');
+
+                    var watch_model = new user_watch_map({
+                        for_fashion_iq: true,
+                        unique: unique,
+                        user_id: user_id,
+                        website: website,
+                        url: href,
+                        query_id: false,
+                        base_price: price * 1,
+                        start_time: new Date().getTime(),
+                        start_time_pretty: new Date(),
+                        is_first: 1,
+                        done: 0,
+                        tries: 0,
+                        done_time: new Date().getTime(),
+                        name: name,
+                        cat_id: cat_id * 1,
+                        sub_cat_id: sub_cat_id * 1,
+                        is_query_exist: false
+                    });
+                    watch_model.save(function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
+
 router.all('/item/add', function (req, res, next) {
     var body = req.body;
     var product_id = body.product_id;
@@ -863,13 +1001,14 @@ router.all('/item/add', function (req, res, next) {
                                                                                                 if (err) {
                                                                                                     next(err);
                                                                                                 } else {
+
 //                                                                                                    var updater = require('./../../modules/v1/update');
 //                                                                                                    updater.notification(user_id, 'item_add', {
 //                                                                                                        wishlist_model: wish_model,
 //                                                                                                        list: list
 //                                                                                                    }, req);
 
-                                                                                                    pushItemToUserFeed(list, wish_model, row, req);
+                                                                                                    pushItemToUserFeed(list, wish_model.toObject(), row, req);
                                                                                                     res.json({
                                                                                                         error: 0,
                                                                                                         data: {
@@ -900,74 +1039,94 @@ router.all('/item/add', function (req, res, next) {
                                             }
                                         })
                                     } else {
-                                        var item = {
-                                            name: body.item.title,
-                                            href: body.item.url,
-                                            img: body.item.picture,
-                                            dimension: body.item.picture_size,
-                                            description: body.item.description,
-                                            type: 'custom',
-                                            price: body.item.price,
-                                            access_type: list.type,
-                                            original: {
-                                                user_id: user_id,
-                                                list_id: list_id
-                                            },
-                                            meta: {
-                                                likes: 0,
-                                                comments: 0,
-                                                user_points: user_points,
-                                                list_points: list_points
-                                            }
-
-                                        };
-                                        if (body.item.location && body.item.location.lng) {
-                                            item['location'] = [body.item.location.lng, body.item.location.lat];
-                                            item['zoom'] = body.item.location.zoom;
-                                        }
-                                        var wish_model = new WishlistItem(item);
-                                        wish_model.save(function (err) {
-                                            if (err) {
-                                                next(err);
-                                            } else {
-
-
-                                                var assoc_model = new WishlistItemAssoc({
-                                                    list_id: list_id,
-                                                    item_id: wish_model._id
-                                                });
-                                                assoc_model.save(function (err) {
-                                                    if (err) {
-                                                        next(err);
-                                                    } else {
-                                                        Wishlist.update({
-                                                            _id: mongoose.Types.ObjectId(list_id)
-                                                        }, {
-                                                            $inc: {
-                                                                "meta.products": 1
-                                                            }
-                                                        }, function (err) {
-                                                            if (err) {
-                                                                next(err);
-                                                            } else {
-                                                                pushItemToUserFeed(list, wish_model, row, req);
-                                                                res.json({
-                                                                    error: 0,
-                                                                    data: {
-                                                                        id: wish_model._id,
-                                                                        list: list,
-                                                                        wishlist_model: wish_model,
-                                                                        user: row
-                                                                    }
-                                                                });
-                                                            }
-                                                        })
-                                                    }
-                                                });
-
-                                            }
+                                        var file_name = body.item.file_name;
+                                        var gfs = req.gfs;
+                                        var fs = require('fs');
+                                        var writestream = gfs.createWriteStream({
+                                            filename: file_name
                                         });
+                                        writestream.on('error', function (err) {
+                                            console.log(err);
+                                            next(err);
+                                        })
+                                        var dirname = require('path').dirname(__dirname) + '/../uploads/picture/';
+                                        var read_stream = fs.createReadStream(dirname + file_name);
 
+                                        read_stream.on('error', function (err) {
+                                            console.log(err);
+                                            next(err);
+                                        })
+                                        read_stream.pipe(writestream);
+                                        writestream.on('close', function () {
+
+                                            var item = {
+                                                name: body.item.title,
+                                                href: body.item.url,
+                                                img: body.item.file_name,
+                                                dimension: body.item.picture_size,
+                                                description: body.item.description,
+                                                type: 'custom',
+                                                price: body.item.price,
+                                                access_type: list.type,
+                                                original: {
+                                                    user_id: user_id,
+                                                    list_id: list_id
+                                                },
+                                                meta: {
+                                                    likes: 0,
+                                                    comments: 0,
+                                                    user_points: user_points,
+                                                    list_points: list_points
+                                                }
+
+                                            };
+                                            if (body.item.location && body.item.location.lng) {
+                                                item['location'] = [body.item.location.lng, body.item.location.lat];
+                                                item['zoom'] = body.item.location.zoom;
+                                            }
+                                            var wish_model = new WishlistItem(item);
+                                            wish_model.save(function (err) {
+                                                if (err) {
+                                                    next(err);
+                                                } else {
+
+
+                                                    var assoc_model = new WishlistItemAssoc({
+                                                        list_id: list_id,
+                                                        item_id: wish_model._id
+                                                    });
+                                                    assoc_model.save(function (err) {
+                                                        if (err) {
+                                                            next(err);
+                                                        } else {
+                                                            Wishlist.update({
+                                                                _id: mongoose.Types.ObjectId(list_id)
+                                                            }, {
+                                                                $inc: {
+                                                                    "meta.products": 1
+                                                                }
+                                                            }, function (err) {
+                                                                if (err) {
+                                                                    next(err);
+                                                                } else {
+                                                                    pushItemToUserFeed(list, wish_model.toObject(), row, req);
+                                                                    res.json({
+                                                                        error: 0,
+                                                                        data: {
+                                                                            id: wish_model._id,
+                                                                            list: list,
+                                                                            wishlist_model: wish_model,
+                                                                            user: row
+                                                                        }
+                                                                    });
+                                                                }
+                                                            })
+                                                        }
+                                                    });
+
+                                                }
+                                            });
+                                        });
 
                                     }
                                 }
@@ -992,6 +1151,8 @@ router.all('/item/add', function (req, res, next) {
 
 function pushItemToUserFeed(list, wish_model, user, req) {
     var redis = req.redis;
+
+    console.log(wish_model);
 
     wish_model.list = {
         name: list.name
