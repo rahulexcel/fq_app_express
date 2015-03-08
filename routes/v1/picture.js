@@ -189,7 +189,14 @@ router.get('/images/:id', function (req, res, next) {
                         if (!err) {
                             var transformer = sharp();
                             transformer.png();
+                            var dirname = require('path').dirname(__dirname) + '/../uploads/images/' + id;
                             var r = data.pipe(transformer).pipe(fs.createWriteStream(dirname));
+                            r.on('error', function (err) {
+                                console.log('errror in getting image ' + err);
+                                var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                                var steam = fs.createReadStream(dirname);
+                                steam.pipe(res);
+                            });
                             r.on('close', function (err) {
                                 var dirname = require('path').dirname(__dirname) + '/../uploads/images/' + id;
                                 if (!err && fs.existsSync(dirname)) {
@@ -204,13 +211,15 @@ router.get('/images/:id', function (req, res, next) {
                             });
 
                         } else {
-//                            var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                            console.log('get html error');
+                            var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
                             var steam = fs.createReadStream(dirname);
                             steam.pipe(res);
                         }
                     });
                 } else {
-//                   var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                    console.log('not found in mongodb')
+                    var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
                     var steam = fs.createReadStream(dirname);
                     steam.pipe(res);
                 }

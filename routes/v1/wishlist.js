@@ -23,12 +23,17 @@ router.all('/list', function (req, res, next) {
                         next(err);
                     } else {
 
-                        res.json({
-                            error: 0,
-                            data: {
-                                me: result,
-                                their: lists
-                            }
+                        Wishlist.find({
+                            shared_ids: user_id
+                        }).populate('user_id').exec(function (err, shared_lists) {
+                            res.json({
+                                error: 0,
+                                data: {
+                                    me: result,
+                                    their: lists,
+                                    shared: shared_lists
+                                }
+                            });
                         });
                     }
                 })
@@ -62,7 +67,8 @@ router.all('/list/delete', function (req, res, next) {
             } else {
                 if (row._id) {
                     console.log(row.user_id + "====" + user_id);
-                    if (row && row.user_id == user_id) {;
+                    if (row && row.user_id == user_id) {
+                        ;
                         WishlistItem.count({
                             'original.list_id': list_id
                         }, function (err, count) {
@@ -395,11 +401,58 @@ router.all('/item/remove', function (req, res, next) {
     }
 });
 
+router.all('/leave_list', function (req, res, next) {
+    var body = req.body;
+    var list_id = body.list_id;
+    var user_id = body.user_id;
+    if (list_id && user_id) {
+        req.list_helper.getListDetail(list_id, req, function (err, list_row) {
+            if (err) {
+                next(err);
+            } else {
+                if (list_row.type == 'shared') {
+                    var shared_ids = list_row.shared_ids;
+                    var new_shared_ids = [];
+                    for (var i = 0; i < shared_ids.length; i++) {
+                        if (shared_ids[i] != user_id) {
+                            new_shared_ids.push(shared_ids[i]);
+                        }
+                    }
+                    var Wishlist = req.Wishlist;
+                    Wishlist.update({
+                        _id: list_row._id
+                    }, {
+                        $set: {
+                            shared_ids: new_shared_ids
+                        }
+                    }, function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0
+                            });
+                        }
+                    });
+                } else {
+                    res.json({
+                        error: 1,
+                        message: 'This Is Not A Shared List!'
+                    });
+                }
+            }
+        });
+    } else {
+        res.json({
+            error: 0,
+            message: 'Invalid Request'
+        });
+    }
+});
 router.all('/item/list', function (req, res, next) {
     var body = req.body;
     //var user_id = body.user_id;
     var list_id = body.list_id;
-
     var page = req.body.page;
     if (!page) {
         page = 0;
@@ -407,13 +460,11 @@ router.all('/item/list', function (req, res, next) {
 
     var Wishlist = req.Wishlist;
     var website_scrap_data = req.conn_website_scrap_data;
-
     var WishlistItemAssoc = req.WishlistItemAssoc;
-
     if (list_id) {
         Wishlist.findOne({
             _id: mongoose.Types.ObjectId(list_id)
-        }).populate('user_id').exec(function (err, list) {
+        }).populate('user_id shared_ids').exec(function (err, list) {
             if (err) {
                 next(err);
             } else {
@@ -456,7 +507,6 @@ router.all('/item/list', function (req, res, next) {
 
                                                 var unique = wishlist_row.get('unique');
                                                 var website = wishlist_row.get('website');
-
                                                 var prod = {};
                                                 website_scrap_data.findOne({
                                                     unique: unique,
@@ -500,6 +550,9 @@ router.all('/item/list', function (req, res, next) {
                                                         user_id: list.get('user_id').get('_id'),
                                                         list_id: list.get('_id')
                                                     };
+                                                    prod.meta = wishlist_row.get('meta');
+                                                    var pins = wishlist_row.get('pins');
+                                                    prod.meta.pins = pins.length;
                                                     ret.push(prod);
                                                     console.log(k + "==" + (data.length - 1));
                                                     if (k == (data.length - 1)) {
@@ -522,7 +575,6 @@ router.all('/item/list', function (req, res, next) {
                                                 prod.description = wishlist_row.get('description');
                                                 prod.type = wishlist_row.get('type');
                                                 var created_at = wishlist_row.get('created_at');
-
                                                 prod.created_at = moment(created_at).tz('Asia/Calcutta').format('Do MMM h:mm a');
                                                 prod.list = {
                                                     name: list.get('name')
@@ -535,6 +587,9 @@ router.all('/item/list', function (req, res, next) {
                                                     user_id: list.get('user_id').get('_id'),
                                                     list_id: list.get('_id')
                                                 };
+                                                prod.meta = wishlist_row.get('meta');
+                                                var pins = wishlist_row.get('pins');
+                                                prod.meta.pins = pins.length;
                                                 ret.push(prod);
                                                 console.log(k + "==" + (data.length - 1));
                                                 if (k == (data.length - 1)) {
@@ -585,7 +640,6 @@ function populateWishlistItem(row, req, done) {
             if (type == 'product') {
                 var website = row.item_id.website;
                 var unique = row.item_id.unique;
-
                 website_scrap_data.findOne({
                     website: website,
                     unique: unique
@@ -617,12 +671,9 @@ function populateWishlistItem(row, req, done) {
 router.all('/item/view/:item_id/:list_id', function (req, res, next) {
     var item_id = req.params.item_id;
     var list_id = req.params.list_id;
-
     var WishlistItemAssoc = req.WishlistItemAssoc;
     var User = req.User;
-
     console.log(item_id + "XXX" + list_id);
-
     if (item_id && list_id) {
         WishlistItemAssoc.findOne({
             item_id: item_id,
@@ -719,10 +770,8 @@ function getWishlistItemSize(img, req, done) {
             var md5 = crypto.createHash('md5');
             md5.update(img);
             var fs_filename = md5.digest('hex');
-
             var gfs = req.gfs;
             var fs = require('fs');
-
             var sharp = require('sharp');
             var transformer = sharp();
             transformer.png();
@@ -758,7 +807,6 @@ function getWishlistItemSize(img, req, done) {
                     });
                 }
             });
-
         } else {
             done(err);
         }
@@ -769,10 +817,8 @@ router.all('/item/price_alert', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
     var product_id = body.product_id;
-
     var user_watch_map = req.user_watch_map;
     var website_scrap_data = req.conn_website_scrap_data;
-
     if (user_id && product_id) {
         website_scrap_data.findOne({
             _id: mongoose.Types.ObjectId(product_id)
@@ -794,7 +840,6 @@ router.all('/item/price_alert', function (req, res, next) {
                     var price = product_row.get('price');
                     var cat_id = product_row.get('cat_id');
                     var sub_cat_id = product_row.get('sub_cat_id');
-
                     var watch_model = new user_watch_map({
                         for_fashion_iq: true,
                         unique: unique,
@@ -833,21 +878,17 @@ router.all('/item/price_alert', function (req, res, next) {
         });
     }
 });
-
 router.all('/item/add', function (req, res, next) {
     var body = req.body;
     var product_id = body.product_id;
     var user_id = body.user_id;
     var list_id = body.list_id;
     var type = body.type;
-
-
     var website_scrap_data = req.conn_website_scrap_data;
     var Wishlist = req.Wishlist;
     var User = req.User;
     var WishlistItem = req.WishlistItem;
     var WishlistItemAssoc = req.WishlistItemAssoc;
-
     if (user_id) {
         User.findOne({
             _id: mongoose.Types.ObjectId(user_id)
@@ -865,7 +906,6 @@ router.all('/item/add', function (req, res, next) {
                             next(err);
                         } else {
                             var list_points = list.followers.length + list.meta.likes;
-
                             if (!list) {
                                 res.json({
                                     error: 1,
@@ -874,7 +914,20 @@ router.all('/item/add', function (req, res, next) {
                             } else {
 
                                 var list_user_id = list.get('user_id');
-                                if (list_user_id != user_id) {
+
+                                var has_access = false;
+                                if (list_user_id == user_id) {
+                                    has_access = true;
+                                } else if (list.type == 'shared') {
+                                    var shared_ids = list.shared_ids;
+                                    for (var i = 0; i < shared_ids.length; i++) {
+                                        if (shared_ids[i] == user_id) {
+                                            has_access = true;
+                                        }
+                                    }
+                                }
+
+                                if (!has_access) {
                                     res.json({
                                         error: 1,
                                         message: 'You Don\'t Have Access To This List'
@@ -904,8 +957,6 @@ router.all('/item/add', function (req, res, next) {
                                                     var cat_id = product_row.get('cat_id');
                                                     var sub_cat_id = product_row.get('sub_cat_id');
                                                     var img = product_row.get('img');
-
-
                                                     WishlistItemAssoc.find({
                                                         list_id: list_id
                                                     }).populate({
@@ -1025,16 +1076,12 @@ router.all('/item/add', function (req, res, next) {
                                                                                     })
                                                                                 }
                                                                             });
-
                                                                         }
                                                                     });
                                                                 });
                                                             }
                                                         }
                                                     });
-
-
-
                                                 }
                                             }
                                         })
@@ -1051,7 +1098,6 @@ router.all('/item/add', function (req, res, next) {
                                         })
                                         var dirname = require('path').dirname(__dirname) + '/../uploads/picture/';
                                         var read_stream = fs.createReadStream(dirname + file_name);
-
                                         read_stream.on('error', function (err) {
                                             console.log(err);
                                             next(err);
@@ -1123,11 +1169,9 @@ router.all('/item/add', function (req, res, next) {
                                                             })
                                                         }
                                                     });
-
                                                 }
                                             });
                                         });
-
                                     }
                                 }
                             }
@@ -1148,12 +1192,9 @@ router.all('/item/add', function (req, res, next) {
         });
     }
 });
-
 function pushItemToUserFeed(list, wish_model, user, req) {
     var redis = req.redis;
-
     console.log(wish_model);
-
     wish_model.list = {
         name: list.name
     };
@@ -1165,13 +1206,10 @@ function pushItemToUserFeed(list, wish_model, user, req) {
     wish_model.likes = wish_model.meta.likes;
     wish_model.user_points = wish_model.meta.user_points;
     wish_model.list_points = wish_model.meta.list_points;
-
-
     wish_model.original = JSON.stringify(wish_model.original);
     wish_model.dimension = JSON.stringify(wish_model.dimension);
     wish_model.user = JSON.stringify(wish_model.user);
     wish_model.list = JSON.stringify(wish_model.list);
-
     var shared_ids = list.shared_ids;
     var followers = list.followers;
     var user_followers = user.followers;
@@ -1179,25 +1217,27 @@ function pushItemToUserFeed(list, wish_model, user, req) {
         for (var i = 0; i < shared_ids.length; i++) {
             //ltrim
             redis.lpush('user_feed_' + shared_ids[i], wish_model._id, function (err) {
+                redis.incr('user_feed_unread_' + shared_ids[i]);
                 redis.ltrim(['user_feed_' + shared_ids[i], 0, 100], function (err, res) {
                 });
-                if (err) {
-                    console.log('1014');
-                    console.log(err);
-                } else {
-                    redis.hmset('item_' + wish_model._id, wish_model, function (err) {
-                        if (err) {
-                            console.log('1019');
-                            console.log(err);
-                        }
-                        redis.expire('item_' + wish_model._id, 60 * 24 * 7, function (err) {
-                            if (err) {
-                                console.log('1024');
-                                console.log(err);
-                            }
-                        });
-                    });
-                }
+                //only push id, actual data will be taken at run time
+//                if (err) {
+//                    console.log('1014');
+//                    console.log(err);
+//                } else {
+//                    redis.hmset('item_' + wish_model._id, wish_model, function (err) {
+//                        if (err) {
+//                            console.log('1019');
+//                            console.log(err);
+//                        }
+//                        redis.expire('item_' + wish_model._id, 60 * 24 * 7, function (err) {
+//                            if (err) {
+//                                console.log('1024');
+//                                console.log(err);
+//                            }
+//                        });
+//                    });
+//                }
 
             });
         }

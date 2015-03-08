@@ -12,6 +12,7 @@ var module_config = require('./modules/config');
 var module_conn_pricegenie = require('./modules/conn_pricegenie');
 var module_conn_db_scrap_db3 = require('./modules/conn_db_scrap_db3');
 var user_helper = require('./modules/v1/user_helper');
+var list_helper = require('./modules/v1/list_helper');
 var html_helper = require('./modules/v1/html_helper');
 var mail = require('./modules/mail');
 var module_recycle_data = require('./modules/recycle_data');
@@ -25,7 +26,7 @@ var v1_routes_wishlist = require('./routes/v1/wishlist');
 var v1_routes_product = require('./routes/v1/product');
 var v1_routes_feedback = require('./routes/v1/feedback');
 var v1_routes_parseurl = require('./routes/v1/parseurl');
-
+var v1_routes_notify = require('./routes/v1/notify');
 
 var app = express();
 app.use(useragent.express());
@@ -59,6 +60,7 @@ app.use(mail());
 app.use(module_recycle_data());
 app.use(module_product());
 app.use(user_helper());
+app.use(list_helper());
 app.use(html_helper());
 app.use(module_webp());
 
@@ -124,6 +126,7 @@ app.use('/v1/picture', require('./routes/v1/picture'));
 //app.use('/products',routes_catalog); //arun :: 2nd step
 app.use('/v1/parseurl', v1_routes_parseurl);
 app.use('/v1/feeds', require('./routes/v1/feeds'));
+app.use('/v1/notify', v1_routes_notify);
 
 //setting data into cache
 app.use(cache());

@@ -122,7 +122,7 @@ function checkTrendingFeedData(req, done, next) {
                                             row.list = {
                                                 name: list_row.name
                                             };
-                                            if (list_row.type == 'private') {
+                                            if (list_row.type == 'private' || list_row.type == 'shared') {
                                                 is_private = true;
                                             }
                                             row.original = JSON.stringify(row.original);
@@ -255,6 +255,10 @@ function getTrendingData(page, req, next, done, recursion) {
                         obj.dimension = JSON.parse(obj.dimension);
                         obj.user = JSON.parse(obj.user);
                         obj.list = JSON.parse(obj.list);
+                        obj.meta = {
+                            pins: obj.pins,
+                            likes: obj.likes
+                        };
                         if (!obj.description || obj.description == 'null') {
                             obj.description = '';
                         }
@@ -486,18 +490,36 @@ router.all('/latest', function (req, res, next) {
 
 //--end------latest feed-------------------
 
+router.all('/my/count', function (req, res, next) {
+    var redis = req.redis;
+    var body = req.body;
+    var user_id = body.user_id;
+
+    redis.get('user_feed_unread_' + user_id, function (err, unread) {
+        if (err) {
+            next(err);
+        } else {
+            res.json({
+                error: 0,
+                data: unread
+            });
+        }
+    });
+});
 
 
 router.all('/my', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
     var page = req.body.page;
+    var WishlistItem = req.WishlistItem;
     if (!page) {
         page = 0;
     }
     console.log('page' + page);
 
     var redis = req.redis;
+    redis.set('user_feed_unread_' + user_id, 0);
     redis.lrange(['user_feed_' + user_id, page * 10, 10], function (err, response) {
         if (err) {
             next(err);
@@ -514,39 +536,84 @@ router.all('/my', function (req, res, next) {
             } else {
                 for (var i = 0; i < response.length; i++) {
                     var row_key = response[i];
-                    redis.hgetall('item_' + row_key, function (err, obj) {
+                    WishlistItem.findOne({
+                        _id: mongoose.Types.ObjectId(row_key)
+                    }).lean().exec(function (err, obj) {
+//                    redis.hgetall('item_' + row_key, function (err, obj) {
                         if (err) {
                             console.log('line 355');
                             console.log(err);
+                            if (kk === total - 1) {
+                                res.json({
+                                    error: 0,
+                                    data: ret
+                                });
+                            }
+                            kk++;
                         } else {
                             if (obj) {
-                                console.log(obj);
                                 if (obj.original) {
                                     if (obj.img)
                                         obj.image = obj.img;
-                                    obj.original = JSON.parse(obj.original);
-                                    obj.dimension = JSON.parse(obj.dimension);
-                                    obj.user = JSON.parse(obj.user);
-                                    obj.list = JSON.parse(obj.list);
+
+                                    var user_id = obj.original.user_id;
+                                    var list_id = obj.original.list_id;
+
+                                    req.user_helper.getUserDetail(user_id, req, function (err, user) {
+                                        if (err) {
+                                            console.log(err);
+                                        }
+                                        console.log(user);
+                                        obj.user = {
+                                            name: user.name,
+                                            picture: user.picture
+                                        };
+                                        req.list_helper.getListDetail(list_id, req, function (err, list) {
+                                            if (err) {
+                                                console.log(err);
+                                            }
+                                            obj.list = {
+                                                name: list.name
+                                            };
+                                            console.log(obj);
+                                            ret.push(obj);
+
+                                            if (kk === total - 1) {
+                                                res.json({
+                                                    error: 0,
+                                                    data: ret
+                                                });
+                                            }
+                                            kk++;
+                                        });
+                                    });
+
+
+//                                    obj.original = JSON.parse(obj.original);
+//                                    obj.dimension = JSON.parse(obj.dimension);
+//                                    obj.user = JSON.parse(obj.user);
+//                                    obj.list = JSON.parse(obj.list);
 //                                    if (obj.meta)
 //                                        obj.meta = JSON.parse(obj.meta);
-                                    ret.push(obj);
+
                                 }
                                 //latest_data.push(productObj.getProductPermit(req, original));
+                            } else {
+                                if (kk === total - 1) {
+                                    res.json({
+                                        error: 0,
+                                        data: ret
+                                    });
+                                }
+                                kk++;
                             }
                         }
-                        if (kk === total - 1) {
-                            res.json({
-                                error: 0,
-                                data: ret
-                            });
-                        }
-                        kk++;
                     });
                 }
             }
         }
     });
+
 });
 
 router.all('/user/top', function (req, res, next) {
@@ -564,9 +631,13 @@ router.all('/user/top', function (req, res, next) {
     };
     if (user_id !== -1) {
         where['_id'] = {$ne: user_id};
-        where['friends'] = {$elemMatch: {$ne: user_id}};
-        where['followers'] = {$elemMatch: {$ne: user_id}};
+        //where['friends'] = {$elemMatch: {$ne: user_id}};
+        //where['followers'] = {$elemMatch: {$ne: user_id}};
+
+        where['friends'] = {$nin: [user_id]};
+        where['followers'] = {$nin: [user_id]};
     }
+    console.log(where);
     var User = req.User;
     User.find(where).sort({'meta.score': -1}).limit(10).skip(skip * 10).lean().exec(function (err, result) {
         if (err) {
@@ -597,7 +668,8 @@ router.all('/list/top', function (req, res, next) {
     };
     if (user_id !== -1) {
         where['user_id'] = {$ne: user_id};
-        where['followers'] = {$elemMatch: {$ne: user_id}};
+        //where['followers'] = {$elemMatch: {$ne: user_id}};
+        where['followers'] = {$nin: [user_id]};
     }
     Wishlist.find(where).sort({'meta.score': -1}).limit(10).skip(skip * 10).lean().exec(function (err, result) {
         if (err) {
@@ -773,8 +845,11 @@ router.all('/stats', function (req, res, next) {
 
     redis.exists('home_latest_generate', function (err, res) {
         if (res === 0) {
+            console.log('updating home latest');
             updateLatestFeedData(req, function () {
             }, next);
+        } else {
+            console.log('not updateing home latest');
         }
     });
 

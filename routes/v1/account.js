@@ -3,6 +3,49 @@ var fs = require('fs');
 var router = express.Router();
 var mongoose = require('mongoose');
 
+router.all('/update/facebook_image', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var User = req.User;
+    if (user_id) {
+        req.user_helper.getUserDetail(user_id, req, function (err, user_row) {
+            if (err) {
+                next(err);
+            } else {
+                if (user_row.fb_id) {
+                    var picture = 'http://graph.facebook.com/' + user_row.fb_id + '/picture?type=large';
+                    User.update({
+                        _id: user_row._id
+                    }, {
+                        $set: {
+                            picture: picture
+                        }
+                    }, function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0,
+                                data: picture
+                            });
+                        }
+                    });
+                } else {
+                    res.json({
+                        error: 1,
+                        message: 'Your Facebook Account Is Not Linked!'
+                    });
+                }
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+
+});
 
 router.all('/update/status', function (req, res, next) {
     var body = req.body;
@@ -552,5 +595,5 @@ router.all('/login', function (req, res, next) {
             message: 'InComplete Details'
         });
     }
-})
+});
 module.exports = router;

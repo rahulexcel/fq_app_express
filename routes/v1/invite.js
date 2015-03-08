@@ -116,7 +116,7 @@ router.all('/facebook/lookup', function (req, res, next) {
         if (fb_data.length == 0) {
             res.json({
                 error: 0
-            })
+            });
             return;
         }
 
@@ -142,12 +142,7 @@ router.all('/facebook/lookup', function (req, res, next) {
                             var friend_id = row.get('_id') + "";
                             if (friends.indexOf(friend_id) == -1) {
                                 friends.push(friend_id);
-                                friends_data.push({
-                                    name: row.get('name'),
-                                    picture: row.get('picture'),
-                                    type: 'facebook',
-                                    created_at: row.get('created_at')
-                                })
+                                friends_data.push(row);
                             }
                         }
                         updateFriends(me, row, req, res, function () {

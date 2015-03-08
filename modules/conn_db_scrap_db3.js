@@ -35,7 +35,7 @@ module.exports = function (mongoose) {
     var website_scrap_data = conn.model('website_scrap_data', schema_website_scrap_data);
     var genderTypes = ['M', 'F'];
     var allowedConnectinoType = ['facebook', 'google', 'contacts', 'signup'];
-    var wishlistTypes = ['private', 'public'];
+    var wishlistTypes = ['private', 'public', 'shared'];
     var wishlistItemType = ['product', 'custom'];
     var Schema = mongoose.Schema;
     var user_schema = mongoose.Schema({
@@ -46,6 +46,7 @@ module.exports = function (mongoose) {
         status: {type: String, default: ''},
         gender: {type: String, enum: genderTypes},
         created_at: {type: Date, default: Date.now},
+        updated_at: {type: Date, default: Date.now},
         type: {type: String, required: true, enum: allowedConnectinoType},
         fb_id: {type: String, default: '-1'},
         google_id: {type: String, default: '-1'},
@@ -57,8 +58,8 @@ module.exports = function (mongoose) {
             score_updated: {type: String}
         },
         friends: [{type: Schema.Types.ObjectId, ref: 'User'}],
-        followers: [{type: Schema.Types.ObjectId, ref: 'User'}]
-
+        followers: [{type: Schema.Types.ObjectId, ref: 'User'}],
+//        channel: {type: Mixed}
     });
     user_schema.index({email: -1}); //schema level
 //    user_schema.set('autoIndex', false);
@@ -162,13 +163,12 @@ module.exports = function (mongoose) {
     auth_schema.index({'api_key': -1});
     var gcm_schema = mongoose.Schema({
         user_id: {type: String, required: true},
-        api_key: {type: String, required: true},
         reg_id: {type: String, required: true},
         created_at: {type: Date, default: Date.now},
         device: {type: Schema.Types.Mixed}
     });
     gcm_schema.index({user_id: -1});
-    gcm_schema.index({user_id: -1, api_key: -1});
+//    gcm_schema.index({user_id: -1, api_key: -1});
     var feed_schema = mongoose.Schema({
         image: String,
         original: Schema.Types.Mixed,

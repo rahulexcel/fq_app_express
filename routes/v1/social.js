@@ -400,7 +400,7 @@ router.all('/user/profile/pins', function (req, res, next) {
                                     items = [];
                                 else {
                                     var new_items = [];
-                                    console.log(items);
+//                                    console.log(items);
                                     for (var i = 0; i < items.length; i++) {
                                         var item = items[i].item_id;
                                         if (!item) {
@@ -588,91 +588,109 @@ router.all('/user/profile/full', function (req, res, next) {
                 if (!me) {
                     row.friends = [];
                 }
-                Wishlist.find({
-                    user_id: user_id
-                }).lean().exec(function (err, lists) {
-                    if (err) {
-                        console.log(err);
+
+                req.user_helper.updateUserStats(row, req, function (err, new_user_row) {
+                    if (new_user_row) {
+                        row = new_user_row;
+                        console.log('getting updated user');
                     }
-                    if (!lists)
-                        lists = [];
-                    row.lists_mine = lists;
 
                     Wishlist.find({
-                        followers: user_id
-                    }).lean().exec(function (err, lists) {
+                        user_id: user_id
+                    }).sort({created_at: -1}).lean().exec(function (err, lists) {
                         if (err) {
                             console.log(err);
                         }
                         if (!lists)
                             lists = [];
-                        row.lists_their = lists;
+                        row.lists_mine = lists;
 
-                        var list_ids = [];
-
-                        for (var i = 0; i < row.lists_mine.length; i++) {
-                            list_ids.push(row.lists_mine[i]._id);
-                        }
-
-                        User.find({
+                        Wishlist.find({
                             followers: user_id
-                        }).limit(10).lean().exec(function (err, following) {
+                        }).sort({created_at: -1}).lean().exec(function (err, lists) {
                             if (err) {
                                 console.log(err);
-                            } else {
-                                row.following = following;
+                            }
+                            if (!lists)
+                                lists = [];
+                            row.lists_their = lists;
+
+                            var list_ids = [];
+
+                            for (var i = 0; i < row.lists_mine.length; i++) {
+                                list_ids.push(row.lists_mine[i]._id);
                             }
 
-                            FriendRequest.find({
-                                to_user_id: user_id,
-                                status: {$ne: 'declined'}
-                            }).populate('from_user_id').lean().exec(function (err, friend_requests) {
-                                row.friend_requests = friend_requests;
-
-                                //check if current user is following or is a friend
-                                // cannot check from above, because only loading 10 followers and friends
-
-                                if (me) {
-                                    row.is_friend = false;
-                                    row.is_following = false;
-                                    res.json({
-                                        error: 0,
-                                        data: row
-                                    });
-                                } else {
-
-                                    User.findOne({
-                                        _id: mongoose.Types.ObjectId(user_id)
-                                    }, function (err, user_row) {
-                                        row.is_friend = false;
-                                        row.is_following = false;
-                                        var friends = user_row.get('friends');
-                                        var followers = user_row.get('followers');
-
-                                        row.is_friend = false;
-                                        row.is_following = false;
-                                        for (var j = 0; j < friends.length; j++) {
-                                            if (friends[j] + "" === my_id + "") {
-                                                row.is_friend = true;
-                                                break;
-                                            }
-                                        }
-                                        for (var j = 0; j < followers.length; j++) {
-                                            if (followers[j] + "" === my_id + "") {
-                                                row.is_following = true;
-                                                break;
-                                            }
-                                        }
-
-                                        res.json({
-                                            error: 0,
-                                            data: row
-                                        });
-                                    });
+                            Wishlist.find({
+                                shared_ids: user_id
+                            }).sort({created_at: -1}).populate('user_id').exec(function (err, shared) {
+                                if (err) {
+                                    console.log(err);
                                 }
+                                if (!shared)
+                                    shared = [];
+                                row.lists_shared = shared;
+
+                                User.find({
+                                    followers: user_id
+                                }).limit(10).lean().exec(function (err, following) {
+                                    if (err) {
+                                        console.log(err);
+                                    } else {
+                                        row.following = following;
+                                    }
+
+                                    FriendRequest.find({
+                                        to_user_id: user_id,
+                                        status: {$ne: 'declined'}
+                                    }).populate('from_user_id').lean().exec(function (err, friend_requests) {
+                                        row.friend_requests = friend_requests;
+
+                                        //check if current user is following or is a friend
+                                        // cannot check from above, because only loading 10 followers and friends
+
+                                        if (me) {
+                                            row.is_friend = false;
+                                            row.is_following = false;
+                                            res.json({
+                                                error: 0,
+                                                data: row
+                                            });
+                                        } else {
+
+                                            User.findOne({
+                                                _id: mongoose.Types.ObjectId(user_id)
+                                            }, function (err, user_row) {
+                                                row.is_friend = false;
+                                                row.is_following = false;
+                                                var friends = user_row.get('friends');
+                                                var followers = user_row.get('followers');
+
+                                                row.is_friend = false;
+                                                row.is_following = false;
+                                                for (var j = 0; j < friends.length; j++) {
+                                                    if (friends[j] + "" === my_id + "") {
+                                                        row.is_friend = true;
+                                                        break;
+                                                    }
+                                                }
+                                                for (var j = 0; j < followers.length; j++) {
+                                                    if (followers[j] + "" === my_id + "") {
+                                                        row.is_following = true;
+                                                        break;
+                                                    }
+                                                }
+
+                                                res.json({
+                                                    error: 0,
+                                                    data: row
+                                                });
+                                            });
+                                        }
+                                    });
+                                });
                             });
                         });
-
                     });
                 });
             } else {
@@ -1212,7 +1230,7 @@ router.all('/item/comment', function (req, res, next) {
         WishlistItemAssoc.findOne({
             item_id: item_id,
             list_id: list_id
-        }).populate('item_id list_id').lean().exec(function (err, row) {
+        }).populate('item_id list_id comments').lean().exec(function (err, row) {
             if (err) {
                 next(err);
             } else {
