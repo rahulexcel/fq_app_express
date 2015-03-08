@@ -87,12 +87,19 @@ router.all('/view', function (req, res, next) {
                             message: 'product not found for product_id ' + product_id,
                         });
                     } else {
+                        var is_model_no_product = false;
                         product_name = data.get('name');
                         product_website = data.get('website');
                         product_cat_id = data.get('cat_id');
                         product_sub_cat_id = data.get('sub_cat_id');
                         product_brand = data.get('brand');
-
+                        product_model_no = '';
+                        
+                        if( typeof data.get('model_no') != 'undefined' && data.get('model_no') != ''){
+                            product_model_no = data.get('model_no');
+                            is_model_no_product = true;
+                            console.log(' product_model_no found :: '+product_model_no);
+                        }
                         data.set('brand_filter_key', '');
                         data.set('website_filter_key', '');
                         data.set('price_drop', 0);
@@ -142,11 +149,21 @@ router.all('/view', function (req, res, next) {
                                 product_data.product = productObj.getProductPermit(req, data);
                                 //--------------------------------------------------
                                 where_similar = {
+                                    '_id':{
+                                      '$nin' :[
+                                          mongoose.Types.ObjectId(product_id),
+                                      ]
+                                    },
                                     'cat_id': product_cat_id * 1,
                                     'sub_cat_id': product_sub_cat_id * 1,
                                     'website': product_website,
                                 };
                                 where_variant = {
+                                    '_id':{
+                                      '$nin' :[
+                                          mongoose.Types.ObjectId(product_id),
+                                      ]
+                                    },
                                     'cat_id': product_cat_id * 1,
                                     'sub_cat_id': product_sub_cat_id * 1,
                                     'website': {'$ne': product_website},
@@ -155,6 +172,12 @@ router.all('/view', function (req, res, next) {
                                 if (typeof product_brand != 'undefined' && product_brand != '') {
                                     where_similar['brand'] = new RegExp(product_brand, "i");
                                     where_variant['brand'] = new RegExp(product_brand, "i");
+                                }
+                                
+                                if( is_model_no_product == true){
+                                    where_variant['model_no'] = new RegExp(product_model_no, "i");
+                                    console.log('varient where');
+                                    console.log(where_variant);
                                 }
 
                                 website_scrap_data.db.db.command({
@@ -189,17 +212,55 @@ router.all('/view', function (req, res, next) {
                                                     message: err.err,
                                                 });
                                             } else {
-                                                if (data_var.results) {
+                                                if (data_var.results && data_var.results.length > 0) {
                                                     for (var i = 0; i < data_var.results.length; i++) {
                                                         var row = data_var.results[i];
                                                         var obj = row.obj
                                                         variant_arr.push(productObj.getProductPermit(req, obj));
                                                     }
                                                     product_data.variant = variant_arr;
+                                                    req.toCache = true;
+                                                    req.cache_data = product_data;
+                                                    next();
+                                                }else if( is_model_no_product == true ){
+                                                    //start---this will execute if products found with model is NULL
+                                                    if(is_model_no_product == true ){
+                                                        console.log('!!model -- will check without model no!!!');
+                                                        delete where_variant.model_no;
+                                                        console.log(where_variant);
+                                                        website_scrap_data.db.db.command({
+                                                            text: 'website_scrap_data',
+                                                            search: product_name,
+                                                            limit: 10,
+                                                            filter: where_variant
+                                                        }, function (err, data_var) {
+                                                            if (err) {
+                                                                res.json({
+                                                                    error: 2,
+                                                                    message: err.err,
+                                                                });
+                                                            } else {
+                                                                if (data_var.results && data_var.results.length > 0) {
+                                                                    for (var i = 0; i < data_var.results.length; i++) {
+                                                                        var row = data_var.results[i];
+                                                                        var obj = row.obj
+                                                                        variant_arr.push(productObj.getProductPermit(req, obj));
+                                                                    }
+                                                                    product_data.variant = variant_arr;
+                                                                }else{
+                                                                }
+                                                                req.toCache = true;
+                                                                req.cache_data = product_data;
+                                                                next();
+                                                            }
+                                                        });
+                                                    }
+                                                    //end---this will execute if products found with model is NULL
+                                                }else{
+                                                    req.toCache = true;
+                                                    req.cache_data = product_data;
+                                                    next();
                                                 }
-                                                req.toCache = true;
-                                                req.cache_data = product_data;
-                                                next();
                                             }
                                         });
                                     }
