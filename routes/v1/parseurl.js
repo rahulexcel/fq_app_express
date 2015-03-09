@@ -537,8 +537,11 @@ router.get('/', function(req, res) {
             if( $('div.price-box').find('span.price').length > 0 ){
                 price = $('div.price-box').find('span.price').text();
             }
-            if( $('div.price-box').find('span.special-price').length > 0 ){
+            if( ( price == 0 || price == '') && $('div.price-box').find('span.special-price').length > 0 ){
                 price = $('div.price-box').find('span.special-price').text();
+            }
+            if( ( price == 0 || price == '') && $('div.price-box').find('span.regular-price').length > 0 ){
+                price = $('div.price-box').find('span.regular-price').text();
             }
             price = getPrice(price);
         }
@@ -768,6 +771,8 @@ router.get('/', function(req, res) {
         }
         else if (website_detected == 'myntra') {
             price = $('div.price').find('span.coupon-offer-launcher').remove();
+            $('div.price').find('span.strike').remove();
+            $('div.price').find('span.discount').remove();
             price = getPrice($('div.price').text());
         }
         else if (website_detected == 'jabong') {
@@ -1019,6 +1024,12 @@ router.get('/', function(req, res) {
             return false;
         }
     }
+    function getTextBetween( start, end, string ){
+        var start_pos = string.indexOf(start) + start.length;
+        var end_pos = string.indexOf(end,start_pos);
+        var text_to_get = string.substring( start_pos,end_pos )
+        return text_to_get;
+    }
     function getImages() {
         var main_image = '';
         var more_images = [];
@@ -1033,13 +1044,27 @@ router.get('/', function(req, res) {
             }
         } 
         else if (website_detected == 'amazon') {
+            
             if ($('img#landingImage').length > 0) {
                 main_image = $('img#landingImage').attr('data-old-hires');
             }
-            if ($('div#altImages').find('li.item').length > 0) {
-                $('div#altImages').find('li.item').each(function() {
-                    more_images.push($(this).find('img').attr('src'));
-                });
+            try{
+                var amazon_raw = getTextBetween( '[{"hiRes"','}]',pageHTML );
+                amazon_raw_json = '[{"hiRes"'+amazon_raw+'}]';
+                json_data = JSON.parse(amazon_raw_json);
+                if( json_data.length > 0 ){
+                    for( var i = 0; i < json_data.length; i++ ){
+                        more_images.push(json_data[i].hiRes);
+                    }
+                }
+            }catch(e){
+                console.log(e);
+                console.log('!!! check amazon more images catch line 1054 !!!');
+                if ($('div#altImages').find('li.item').length > 0) {
+                    $('div#altImages').find('li.item').each(function() {
+                        more_images.push($(this).find('img').attr('src'));
+                    });
+                }
             }
         } 
         else if (website_detected == 'basicslife') {
@@ -1344,6 +1369,7 @@ router.get('/', function(req, res) {
     }
     
     function processUrl(template, website_detected, data, cat_id, callback) {
+        pageHTML = template;
         if (typeof data == "undefined") {
             data = false;
         }
@@ -1418,6 +1444,7 @@ router.get('/', function(req, res) {
     console.log("Parsing URL :: ");
     console.log(url);
     console.log('---------------------');
+    var pageHTML = '';
     if (url.length > 1) {
         var iden_website = identifyWebsite(url);
         if (iden_website == false) {
