@@ -125,6 +125,7 @@ module.exports = function (mongoose) {
                 created_at: {type: Date, default: Date.now}
             }],
         comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
+        created_at: {type: Date, default: Date.now}
     });
     wishlist_item_assoc_schema.index({list_id: -1});
     wishlist_item_assoc_schema.index({item_id: -1});

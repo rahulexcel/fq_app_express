@@ -3,6 +3,32 @@ var fs = require('fs');
 var router = express.Router();
 var mongoose = require('mongoose');
 
+
+/**
+ * 
+ * Used to Update User Profile Pic, Friends etc 2 times a day
+ */
+router.all('/user_info', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    if (user_id) {
+        req.user_helper.getUserDetail(user_id, req, function (err, user_row) {
+            if (err) {
+                next(err);
+            } else {
+                res.json({
+                    error: 0,
+                    data: user_row
+                });
+            }
+        });
+    } else {
+        res.json({
+            error: 0,
+            message: 'Invalid Request'
+        });
+    }
+});
 router.all('/update/facebook_image', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;

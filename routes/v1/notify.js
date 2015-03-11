@@ -84,9 +84,18 @@ router.all('/alert', function (req, res, next) {
     var GCM = req.GCM;
     var registrationIds = [];
 
-    GCM.find({
-        user_id: user_id
-    }, function (err, rows) {
+    var where = {};
+    console.log(typeof user_id);
+    if (typeof user_id !== 'string') {
+        where = {
+            user_id: {$in: user_id}
+        };
+    } else {
+        where = {
+            user_id: user_id
+        };
+    }
+    GCM.find(where, function (err, rows) {
         if (err) {
             next(err);
         } else {
@@ -95,6 +104,11 @@ router.all('/alert', function (req, res, next) {
             }
             console.log(registrationIds);
             var sender = new gcm.Sender('AIzaSyABDceQztvkstpKksCz86-hQAFeshqoBV4');
+
+            console.log(data.meta);
+            if (data.meta && data.meta.type && data.meta.type == 'item_add') {
+                pushItemToUserFeed(data.meta.item_id, user_id, req);
+            }
 
             sender.send(message, registrationIds, 1, function (err, result) {
                 if (err)
@@ -112,6 +126,15 @@ router.all('/alert', function (req, res, next) {
     });
 
 });
+
+function pushItemToUserFeed(item_id, user_id, req) {
+    var redis = req.redis;
+    redis.lpush('user_feed_' + user_id, item_id, function (err) {
+        redis.incr('user_feed_unread_' + user_id);
+        redis.ltrim(['user_feed_' + user_id, 0, 100], function (err, res) {
+        });
+    });
+}
 
 
 // doesnt make sense because we are always sending notification to user directly

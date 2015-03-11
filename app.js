@@ -50,7 +50,12 @@ app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Cache-Control, Pragma, Origin, Authorization, Content-Type, X-Requested-With");
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST");
-    next();
+    if ('OPTIONS' === req.method) {
+        res.status(204).send();
+    }
+    else {
+        next();
+    }
 });
 
 app.use(module_config());
@@ -91,9 +96,9 @@ app.use(function (req, res, next) {
     }
 
     var cache_paths = [
-        'catalog/products',
-        'product/view',
-        'catalog/filters'
+//        'catalog/products',
+//        'product/view',
+//        'catalog/filters'
     ];
     req.cache = false;
     for (var i = 0; i < cache_paths.length; i++) {
