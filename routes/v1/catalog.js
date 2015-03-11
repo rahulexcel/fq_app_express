@@ -260,6 +260,7 @@ router.all('/products', function (req, res, next) {
         //-end sorting---------------------------------------------------------------
         var finalData = {};
         //finalData.sort = sortBy_arr;
+        finalData.results_from = '';
         finalData.sort = {};
         //-------------------------------------------------------------------
         var filters_category_wise = req.conn_filters_category_wise;
@@ -565,6 +566,7 @@ router.all('/products', function (req, res, next) {
                                     console.log('444');
                                 } else {
                                     if (response.length == 0) {
+                                        finalData.results_from = 'mongo';
                                         console.log(" -- no data found in redis");
                                         console.log(" -- normal query will run");
                                         website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
@@ -572,6 +574,7 @@ router.all('/products', function (req, res, next) {
                                         console.log('time taken ' + end);
 
                                     } else {
+                                        finalData.results_from = 'redis';
                                         var new_array = [];
                                         var total = 0;
                                         for (var i = 0; i < response.length; i++) {
@@ -628,6 +631,7 @@ router.all('/products', function (req, res, next) {
                             console.log('!!! STOP :: redis check !!!');
                             //------check for redis data------
                         } else {
+                            finalData.results_from = 'mongo';
                             website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
                             var end = new Date().getTime() - start;
                             console.log('time taken ' + end);
