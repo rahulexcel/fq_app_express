@@ -388,11 +388,8 @@ router.all('/user/profile/pins', function (req, res, next) {
                                 $in: list_ids
                             }
                         }).populate({
-                            path: 'item_id',
-                            options: {
-                                sort: {created_at: -1}
-                            }
-                        }).limit(pin_limit).skip(skip * 1 * pin_limit).lean().exec(function (err, items) {
+                            path: 'item_id'
+                        }).sort({created_at: -1}).limit(pin_limit).skip(skip * 1 * pin_limit).lean().exec(function (err, items) {
                             if (err) {
                                 next(err);
                             } else {
@@ -428,6 +425,8 @@ router.all('/user/profile/pins', function (req, res, next) {
                                             list_id: list_id,
                                             user_id: user_id
                                         }
+                                        item.likes = items[i].likes;
+                                        item.meta.pins = item.pins.length;
                                         new_items.push(item);
                                     }
                                     items = new_items;
@@ -622,7 +621,8 @@ router.all('/user/profile/full', function (req, res, next) {
                             }
 
                             Wishlist.find({
-                                shared_ids: user_id
+                                shared_ids: user_id,
+                                type : 'shared'
                             }).sort({created_at: -1}).populate('user_id').exec(function (err, shared) {
                                 if (err) {
                                     console.log(err);
@@ -765,7 +765,7 @@ router.all('/user/follow', function (req, res, next) {
                                     } else {
                                         res.json({
                                             error: 1,
-                                            message: 'You Are Already Followed ' + follow_user.get('name')
+                                            message: 'You Are Already Following ' + follow_user.get('name')
                                         });
                                     }
                                 } else {
@@ -1249,7 +1249,6 @@ router.all('/item/comment', function (req, res, next) {
                             next(err);
                         } else {
                             comments.push(comment_model._id)
-                            console.log(comments);
                             WishlistItemAssoc.update({
                                 _id: row._id
                             }, {
@@ -1304,7 +1303,7 @@ router.all('/item/comment', function (req, res, next) {
                             var new_comment_ids = [];
                             var found = false;
                             for (var i = 0; i < comments.length; i++) {
-                                if (comments[i] == comment_id) {
+                                if (comments[i]._id == comment_id) {
                                     found = true;
                                 } else {
                                     new_comment_ids.push(comments[i])

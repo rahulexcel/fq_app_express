@@ -41,7 +41,7 @@ module.exports = function () {
                                         req.body = data;
                                         done(true);
                                     } else {
-                                        done(false, 'Data Tampered');
+                                        done(false, 'Data Tampered! Restart Your Application');
                                     }
 
                                 } else {

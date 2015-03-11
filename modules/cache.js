@@ -14,7 +14,7 @@ module.exports = function (mongoose) {
             var crypto = require('crypto');
             var shasum = crypto.createHash('sha1');
 
-            shasum.update(string + req_url);
+            shasum.update(string + req_url + "v1");
 
             var key = shasum.digest('hex');
             var redis = req.redis;
@@ -27,7 +27,7 @@ module.exports = function (mongoose) {
                     console.log(err);
                 }
                 //setting cache for 1hr. this can be easily increase
-                redis.expire(key, 60 * 60 * 60);
+                redis.expire(key, 60 * 60);
             });
             res.json({
                 error: 0,
@@ -47,7 +47,7 @@ module.exports = function (mongoose) {
 
                 var req_url = req.originalUrl;
 
-                shasum.update(string + req_url);
+                shasum.update(string + req_url + "v1");
 
                 var key = shasum.digest('hex');
                 var redis = req.redis;
@@ -70,7 +70,8 @@ module.exports = function (mongoose) {
                                     res.json({
                                         error: 0,
                                         data: json,
-                                        is_cache: true
+                                        is_cache: true,
+                                        cache_key: key
                                     });
                                 } catch (e) {
                                     next();

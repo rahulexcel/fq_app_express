@@ -24,7 +24,8 @@ router.all('/list', function (req, res, next) {
                     } else {
 
                         Wishlist.find({
-                            shared_ids: user_id
+                            shared_ids: user_id,
+                            type: 'shared'
                         }).populate('user_id').exec(function (err, shared_lists) {
                             res.json({
                                 error: 0,
@@ -553,6 +554,8 @@ router.all('/item/list', function (req, res, next) {
                                                     prod.meta = wishlist_row.get('meta');
                                                     var pins = wishlist_row.get('pins');
                                                     prod.meta.pins = pins.length;
+                                                    prod.pins = pins;
+                                                    prod.likes = ff.get('likes');
                                                     ret.push(prod);
                                                     console.log(k + "==" + (data.length - 1));
                                                     if (k == (data.length - 1)) {
@@ -590,6 +593,8 @@ router.all('/item/list', function (req, res, next) {
                                                 prod.meta = wishlist_row.get('meta');
                                                 var pins = wishlist_row.get('pins');
                                                 prod.meta.pins = pins.length;
+                                                prod.likes = ff.get('likes');
+                                                prod.pins = pins;
                                                 ret.push(prod);
                                                 console.log(k + "==" + (data.length - 1));
                                                 if (k == (data.length - 1)) {
@@ -681,7 +686,7 @@ router.all('/item/view/:item_id/:list_id', function (req, res, next) {
         }).populate('item_id list_id ').populate({
             path: 'comments',
             options: {
-                limit: 5,
+                limit: 20,
                 sort: {
                     created_at: -1
                 }
@@ -840,14 +845,17 @@ router.all('/item/price_alert', function (req, res, next) {
                     var price = product_row.get('price');
                     var cat_id = product_row.get('cat_id');
                     var sub_cat_id = product_row.get('sub_cat_id');
+                    var img = product_row.get('img');
                     var watch_model = new user_watch_map({
                         for_fashion_iq: true,
                         unique: unique,
                         user_id: user_id,
                         website: website,
                         url: href,
+                        img: img,
                         query_id: false,
                         base_price: price * 1,
+                        price: price * 1,
                         start_time: new Date().getTime(),
                         start_time_pretty: new Date(),
                         is_first: 1,
@@ -1059,7 +1067,7 @@ router.all('/item/add', function (req, res, next) {
 //                                                                                                        list: list
 //                                                                                                    }, req);
 
-                                                                                                    pushItemToUserFeed(list, wish_model.toObject(), row, req);
+                                                                                                    //pushItemToUserFeed(list, wish_model.toObject(), row, req);
                                                                                                     res.json({
                                                                                                         error: 0,
                                                                                                         data: {
@@ -1155,7 +1163,7 @@ router.all('/item/add', function (req, res, next) {
                                                                 if (err) {
                                                                     next(err);
                                                                 } else {
-                                                                    pushItemToUserFeed(list, wish_model.toObject(), row, req);
+                                                                    //pushItemToUserFeed(list, wish_model.toObject(), row, req);
                                                                     res.json({
                                                                         error: 0,
                                                                         data: {
@@ -1192,6 +1200,8 @@ router.all('/item/add', function (req, res, next) {
         });
     }
 });
+
+//below is not used, rather item is pushed in notify.js
 function pushItemToUserFeed(list, wish_model, user, req) {
     var redis = req.redis;
     console.log(wish_model);

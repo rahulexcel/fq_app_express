@@ -154,16 +154,15 @@ router.get('/images/:id', function (req, res, next) {
                     var transformer = sharp();
                     transformer.webp();
                     var r = steam.pipe(transformer).pipe(fs.createWriteStream(dirname1));
+                    r.on('error', function () {
+                        res.set('Content-Type', 'image/png');
+                        var steam = fs.createReadStream(dirname);
+                        steam.pipe(res);
+                    });
                     r.on('close', function (err) {
-                        if (!err) {
-                            res.set('Content-Type', 'image/webp');
-                            var steam = fs.createReadStream(dirname1);
-                            steam.pipe(res);
-                        } else {
-                            res.set('Content-Type', 'image/png');
-                            var steam = fs.createReadStream(dirname);
-                            steam.pipe(res);
-                        }
+                        res.set('Content-Type', 'image/webp');
+                        var steam = fs.createReadStream(dirname1);
+                        steam.pipe(res);
                     });
                 } else {
                     res.set('Content-Type', 'image/webp');
@@ -293,6 +292,11 @@ router.get('/view/:filename/', function (req, res, next) {
                             var writestream = fs.createWriteStream(fs_filename);
                             read_stream.pipe(transformer).pipe(writestream);
                         });
+                        read_stream.on('error', function () {
+                            var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                            var steam = fs.createReadStream(dirname);
+                            steam.pipe(res)
+                        });
 
                     }
                 } else {
@@ -314,6 +318,11 @@ router.get('/view/:filename/', function (req, res, next) {
                             var writestream = fs.createWriteStream(fs_filename);
                             read_stream.pipe(transformer).pipe(writestream);
                         });
+                        read_stream.on('error', function () {
+                            var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
+                            var steam = fs.createReadStream(dirname);
+                            steam.pipe(res)
+                        });
                     }
                 }
             } else {
@@ -322,7 +331,12 @@ router.get('/view/:filename/', function (req, res, next) {
                 console.log('fff ' + fs_filename);
                 if (fs.existsSync(fs_filename)) {
                     var steam = fs.createReadStream(fs_filename);
-                    steam.pipe(res);
+                    if (req.query.width) {
+                        var transformer = sharp().resize(req.query.width * 1);
+                        steam.pipe(transformer).pipe(res);
+                    } else {
+                        steam.pipe(res);
+                    }
                 } else {
                     var dirname = require('path').dirname(__dirname) + '/../uploads/empty.png';
                     var steam = fs.createReadStream(dirname);

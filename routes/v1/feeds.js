@@ -519,7 +519,8 @@ router.all('/my', function (req, res, next) {
     console.log('page' + page);
 
     var redis = req.redis;
-    redis.set('user_feed_unread_' + user_id, 0);
+    if (user_id)
+        redis.set('user_feed_unread_' + user_id, 0);
     redis.lrange(['user_feed_' + user_id, page * 10, 10], function (err, response) {
         if (err) {
             next(err);
@@ -534,71 +535,17 @@ router.all('/my', function (req, res, next) {
                     data: []
                 });
             } else {
+                console.log(response);
                 for (var i = 0; i < response.length; i++) {
                     var row_key = response[i];
-                    WishlistItem.findOne({
-                        _id: mongoose.Types.ObjectId(row_key)
-                    }).lean().exec(function (err, obj) {
+                    if (/[a-f0-9]{24}/.test(row_key)) {
+                        WishlistItem.findOne({
+                            _id: mongoose.Types.ObjectId(row_key)
+                        }).lean().exec(function (err, obj) {
 //                    redis.hgetall('item_' + row_key, function (err, obj) {
-                        if (err) {
-                            console.log('line 355');
-                            console.log(err);
-                            if (kk === total - 1) {
-                                res.json({
-                                    error: 0,
-                                    data: ret
-                                });
-                            }
-                            kk++;
-                        } else {
-                            if (obj) {
-                                if (obj.original) {
-                                    if (obj.img)
-                                        obj.image = obj.img;
-
-                                    var user_id = obj.original.user_id;
-                                    var list_id = obj.original.list_id;
-
-                                    req.user_helper.getUserDetail(user_id, req, function (err, user) {
-                                        if (err) {
-                                            console.log(err);
-                                        }
-                                        console.log(user);
-                                        obj.user = {
-                                            name: user.name,
-                                            picture: user.picture
-                                        };
-                                        req.list_helper.getListDetail(list_id, req, function (err, list) {
-                                            if (err) {
-                                                console.log(err);
-                                            }
-                                            obj.list = {
-                                                name: list.name
-                                            };
-                                            console.log(obj);
-                                            ret.push(obj);
-
-                                            if (kk === total - 1) {
-                                                res.json({
-                                                    error: 0,
-                                                    data: ret
-                                                });
-                                            }
-                                            kk++;
-                                        });
-                                    });
-
-
-//                                    obj.original = JSON.parse(obj.original);
-//                                    obj.dimension = JSON.parse(obj.dimension);
-//                                    obj.user = JSON.parse(obj.user);
-//                                    obj.list = JSON.parse(obj.list);
-//                                    if (obj.meta)
-//                                        obj.meta = JSON.parse(obj.meta);
-
-                                }
-                                //latest_data.push(productObj.getProductPermit(req, original));
-                            } else {
+                            if (err) {
+                                console.log('line 355');
+                                console.log(err);
                                 if (kk === total - 1) {
                                     res.json({
                                         error: 0,
@@ -606,9 +553,83 @@ router.all('/my', function (req, res, next) {
                                     });
                                 }
                                 kk++;
+                            } else {
+                                if (obj) {
+                                    if (obj.original) {
+                                        if (obj.img)
+                                            obj.image = obj.img;
+
+                                        var user_id = obj.original.user_id;
+                                        var list_id = obj.original.list_id;
+
+                                        req.user_helper.getUserDetail(user_id, req, function (err, user) {
+                                            if (err) {
+                                                console.log(err);
+                                            }
+                                            obj.user = {
+                                                name: user.name,
+                                                picture: user.picture
+                                            };
+                                            req.list_helper.getListDetail(list_id, req, function (err, list) {
+                                                if (err) {
+                                                    console.log(err);
+                                                }
+                                                obj.list = {
+                                                    name: list.name
+                                                };
+//                                                console.log(obj);
+                                                ret.push(obj);
+
+                                                if (kk === total - 1) {
+                                                    res.json({
+                                                        error: 0,
+                                                        data: ret
+                                                    });
+                                                }
+                                                kk++;
+                                            });
+                                        });
+
+                                    } else {
+                                        redis.lrem('user_feed_' + user_id, 0, row_key);
+                                        console.log('obj not found ' + row_key);
+                                        if (kk === total - 1) {
+                                            res.json({
+                                                error: 0,
+                                                data: ret
+                                            });
+                                        }
+                                        kk++;
+                                    }
+                                } else {
+                                    redis.lrem('user_feed_' + user_id, 0, row_key);
+                                    console.log('obj not found');
+                                    if (kk === total - 1) {
+                                        res.json({
+                                            error: 0,
+                                            data: ret
+                                        });
+                                    }
+                                    kk++;
+                                }
                             }
+                        });
+                    } else {
+                        console.log('not a valid mongo id');
+                        redis.lrem('user_feed_' + user_id, 0, row_key, function (err) {
+                            if (err) {
+                                console.log('lrem error');
+                                console.log(err);
+                            }
+                        });
+                        if (kk === total - 1) {
+                            res.json({
+                                error: 0,
+                                data: ret
+                            });
                         }
-                    });
+                        kk++;
+                    }
                 }
             }
         }
