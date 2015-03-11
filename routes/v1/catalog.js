@@ -557,7 +557,8 @@ router.all('/products', function (req, res, next) {
                         console.log("START TIME :: " + start);
                         console.log('!!! START :: redis check !!!');
                         var where_size = Object.keys(where).length;
-                        if (where_size == 2 && typeof where.cat_id != 'undefined' && where.cat_id != '' && where.sub_cat_id != 'undefined' && where.sub_cat_id != '') {
+                        var check_in_redis = false;
+                        if ( check_in_redis == true && where_size == 2 && typeof where.cat_id != 'undefined' && where.cat_id != '' && where.sub_cat_id != 'undefined' && where.sub_cat_id != '') {
                             var catlog_redis_key = 'catalog_' + where.cat_id + '_' + where.sub_cat_id;
                             console.log('redis key :: ' + catlog_redis_key);
 
