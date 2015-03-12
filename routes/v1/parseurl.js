@@ -1121,7 +1121,7 @@ router.get('/', function(req, res) {
                         if( mi_1.indexOf('prodimage') != -1){
                             mi_1_explode = stringToArray(mi_1,':');
                             mi_1_explode[2] = mi_1_explode[2].replace('//','');
-                            more_images.push(mi_1_explode[2]);
+                            more_images.push( 'http://'+mi_1_explode[2]);
                         }
                     }
                 });

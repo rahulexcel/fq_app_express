@@ -157,6 +157,7 @@ router.all('/view', function (req, res, next) {
                                     'cat_id': product_cat_id * 1,
                                     'sub_cat_id': product_sub_cat_id * 1,
                                     'website': product_website,
+                                    '$text':{'$search':product_name},
                                 };
                                 where_variant = {
                                     '_id':{
@@ -167,6 +168,7 @@ router.all('/view', function (req, res, next) {
                                     'cat_id': product_cat_id * 1,
                                     'sub_cat_id': product_sub_cat_id * 1,
                                     'website': {'$ne': product_website},
+                                    '$text':{'$search':product_name},
                                 };
 
                                 if (typeof product_brand != 'undefined' && product_brand != '') {
@@ -179,43 +181,48 @@ router.all('/view', function (req, res, next) {
                                     console.log('varient where');
                                     console.log(where_variant);
                                 }
-
+                                /*
                                 website_scrap_data.db.db.command({
                                     text: 'website_scrap_data',
                                     search: product_name,
                                     limit: 10,
                                     filter: where_similar
-                                }, function (err, data_sim) {
+                                }, 
+                                */
+                                website_scrap_data.where(where_similar).limit(10).sort({'sort_score': 1}).find(function (err, data_sim) {
                                     if (err) {
                                         res.json({
                                             error: 2,
                                             message: err.err,
                                         });
                                     } else {
-                                        if (data_sim.results) {
-                                            for (var i = 0; i < data_sim.results.length; i++) {
-                                                var row = data_sim.results[i];
-                                                var obj = row.obj
+                                        if (data_sim) {
+                                            for (var i = 0; i < data_sim.length; i++) {
+                                                var row = data_sim[i];
+                                                var obj = row;
                                                 similar_arr.push(productObj.getProductPermit(req, obj));
                                             }
                                             product_data.similar = similar_arr;
                                         }
+                                        /*
                                         website_scrap_data.db.db.command({
                                             text: 'website_scrap_data',
                                             search: product_name,
                                             limit: 10,
                                             filter: where_variant
-                                        }, function (err, data_var) {
+                                        }, */
+                                        console.log(where_variant);
+                                        website_scrap_data.where(where_variant).limit(10).sort({'sort_score': 1}).find(function (err, data_var) {
                                             if (err) {
                                                 res.json({
                                                     error: 2,
                                                     message: err.err,
                                                 });
                                             } else {
-                                                if (data_var.results && data_var.results.length > 0) {
-                                                    for (var i = 0; i < data_var.results.length; i++) {
-                                                        var row = data_var.results[i];
-                                                        var obj = row.obj
+                                                if (data_var && data_var.length > 0) {
+                                                    for (var i = 0; i < data_var.length; i++) {
+                                                        var row = data_var[i];
+                                                        var obj = row;
                                                         variant_arr.push(productObj.getProductPermit(req, obj));
                                                     }
                                                     product_data.variant = variant_arr;
@@ -228,22 +235,24 @@ router.all('/view', function (req, res, next) {
                                                         console.log('!!model -- will check without model no!!!');
                                                         delete where_variant.model_no;
                                                         console.log(where_variant);
+                                                        /*
                                                         website_scrap_data.db.db.command({
                                                             text: 'website_scrap_data',
                                                             search: product_name,
                                                             limit: 10,
                                                             filter: where_variant
-                                                        }, function (err, data_var) {
+                                                        }, */
+                                                        website_scrap_data.where(where_variant).limit(10).sort({'sort_score': 1}).find(function (err, data_var) {
                                                             if (err) {
                                                                 res.json({
                                                                     error: 2,
                                                                     message: err.err,
                                                                 });
                                                             } else {
-                                                                if (data_var.results && data_var.results.length > 0) {
-                                                                    for (var i = 0; i < data_var.results.length; i++) {
-                                                                        var row = data_var.results[i];
-                                                                        var obj = row.obj
+                                                                if (data_var && data_var.length > 0) {
+                                                                    for (var i = 0; i < data_var.length; i++) {
+                                                                        var row = data_var[i];
+                                                                        var obj = row;
                                                                         variant_arr.push(productObj.getProductPermit(req, obj));
                                                                     }
                                                                     product_data.variant = variant_arr;
