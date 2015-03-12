@@ -122,7 +122,19 @@ module.exports = function () {
                     url += '&utm_campaign=afts';
                 }
                 aff_url = url;
-            } else {
+            }else  if (website == 'amazon') {
+                if (url.indexOf('pricegenie-21') != -1) {
+                    url = url;
+                } else {
+                    if (url.indexOf('?') == -1) {
+                        url += '?linkCode=as2';
+                    } else {
+                        url += '&linkCode=as2';
+                    }
+                    url += '&tag=pricegenie-21';
+                }
+                aff_url = url;
+            }  else {
                 aff_url = 'http://linksredirect.com?pub_id=2491CL2376&url=' + encodeURIComponent(url);
             }
             return aff_url;
