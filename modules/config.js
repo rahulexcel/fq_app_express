@@ -1,7 +1,7 @@
 module.exports = function () {
     return function (req, res, next) {
         config = {
-            'products_per_page': 10,
+            'products_per_page': 20,
             'product_data_list': 'cat_id sub_cat_id name website brand price img href offrate price_history price_diff sort_score model_no', // add here to get fields in product info
         };
 //        body = {
