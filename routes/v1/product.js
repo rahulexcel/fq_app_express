@@ -181,20 +181,15 @@ router.all('/view', function (req, res, next) {
                                     console.log('varient where');
                                     console.log(where_variant);
                                 }
-                                /*
-                                website_scrap_data.db.db.command({
-                                    text: 'website_scrap_data',
-                                    search: product_name,
-                                    limit: 10,
-                                    filter: where_similar
-                                }, 
-                                */
-                                website_scrap_data.where(where_similar).limit(10).sort({'sort_score': 1}).find(function (err, data_sim) {
+                                console.log('!! where_similar !!!');
+                                console.log(where_similar);
+                                website_scrap_data.find(where_similar,{ "score": { "$meta": "textScore" }},{ limit : 10,sort:{ 'score': { '$meta': "textScore" } }} , data_sim_res);
+                                function data_sim_res(err, data_sim){
                                     if (err) {
-                                        res.json({
-                                            error: 2,
-                                            message: err.err,
-                                        });
+                                         res.json({
+                                             error: 2,
+                                             message: err.err,
+                                         });
                                     } else {
                                         if (data_sim) {
                                             for (var i = 0; i < data_sim.length; i++) {
@@ -204,26 +199,37 @@ router.all('/view', function (req, res, next) {
                                             }
                                             product_data.similar = similar_arr;
                                         }
-                                        /*
-                                        website_scrap_data.db.db.command({
-                                            text: 'website_scrap_data',
-                                            search: product_name,
-                                            limit: 10,
-                                            filter: where_variant
-                                        }, */
+                                        console.log(' !!! where_variant !!! ');
                                         console.log(where_variant);
-                                        website_scrap_data.where(where_variant).limit(10).sort({'sort_score': 1}).find(function (err, data_var) {
+                                        website_scrap_data.aggregate(
+                                                {   $match : where_variant },
+                                                { $sort: { score: { $meta: "textScore" }}},
+                                                {   $limit : 100 },
+                                                {   $group:{    '_id':'$website',   'data': { $push:"$$ROOT" }  }   },
+                                                 data_var_res
+                                        );
+                                        function data_var_res( err, data_var){
+                                            //console.log(data_var);
                                             if (err) {
                                                 res.json({
                                                     error: 2,
                                                     message: err.err,
                                                 });
                                             } else {
-                                                if (data_var && data_var.length > 0) {
-                                                    for (var i = 0; i < data_var.length; i++) {
-                                                        var row = data_var[i];
-                                                        var obj = row;
-                                                        variant_arr.push(productObj.getProductPermit(req, obj));
+                                                if( typeof data_var != 'undefined' && data_var.length > 0 ){
+                                                    for( var k = 0 ; k < data_var.length;k++ ){
+                                                        if( data_var[k].data && data_var[k].data.length > 0 ){
+                                                            website_wise = data_var[k].data;
+                                                            for( var kk = 0 ; kk < 2; kk++ ){
+                                                                rec = website_wise[kk];
+                                                                variant_arr.push(productObj.getProductPermit(req, rec));
+                                                            }
+                                                            if(  variant_arr.length > 0 ){
+                                                                variant_arr.sort(function (a, b) {
+                                                                    return a.sort_score - b.sort_score;
+                                                                });
+                                                            }
+                                                        }
                                                     }
                                                     product_data.variant = variant_arr;
                                                     req.toCache = true;
@@ -235,34 +241,40 @@ router.all('/view', function (req, res, next) {
                                                         console.log('!!model -- will check without model no!!!');
                                                         delete where_variant.model_no;
                                                         console.log(where_variant);
-                                                        /*
-                                                        website_scrap_data.db.db.command({
-                                                            text: 'website_scrap_data',
-                                                            search: product_name,
-                                                            limit: 10,
-                                                            filter: where_variant
-                                                        }, */
-                                                        website_scrap_data.where(where_variant).limit(10).sort({'sort_score': 1}).find(function (err, data_var) {
+                                                        website_scrap_data.aggregate(
+                                                            {   $match : where_variant },
+                                                            { $sort: { score: { $meta: "textScore" }}},
+                                                            {   $limit : 100 },
+                                                            {   $group:{    '_id':'$website',   'data': { $push:"$$ROOT" }  }   },
+                                                            data_var_res2
+                                                        );
+                                                        function data_var_res2(err,data_var2){
                                                             if (err) {
                                                                 res.json({
                                                                     error: 2,
                                                                     message: err.err,
                                                                 });
                                                             } else {
-                                                                if (data_var && data_var.length > 0) {
-                                                                    for (var i = 0; i < data_var.length; i++) {
-                                                                        var row = data_var[i];
-                                                                        var obj = row;
-                                                                        variant_arr.push(productObj.getProductPermit(req, obj));
+                                                                for( var k = 0 ; k < data_var2.length;k++ ){
+                                                                    if( data_var2[k].data && data_var2[k].data.length > 0 ){
+                                                                        website_wise = data_var2[k].data;
+                                                                        for( var kk = 0 ; kk < 2; kk++ ){
+                                                                            rec = website_wise[kk];
+                                                                            variant_arr.push(productObj.getProductPermit(req, rec));
+                                                                        }
+                                                                        if(  variant_arr.length > 0 ){
+                                                                            variant_arr.sort(function (a, b) {
+                                                                                return a.sort_score - b.sort_score;
+                                                                            });
+                                                                        }
                                                                     }
-                                                                    product_data.variant = variant_arr;
-                                                                }else{
                                                                 }
+                                                                product_data.variant = variant_arr;
                                                                 req.toCache = true;
                                                                 req.cache_data = product_data;
                                                                 next();
                                                             }
-                                                        });
+                                                        }
                                                     }
                                                     //end---this will execute if products found with model is NULL
                                                 }else{
@@ -271,15 +283,13 @@ router.all('/view', function (req, res, next) {
                                                     next();
                                                 }
                                             }
-                                        });
+                                        }
                                     }
-                                });
+                                }
                             }
                         }
-
                     }
                 }
-
             }
         }
     }

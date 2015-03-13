@@ -535,109 +535,95 @@ router.all('/products', function (req, res, next) {
                     console.log(query_sort);
                     console.log('---END------sort applied----------------');
 
-                    var is_text_search = false;
-                    if (typeof req.body.search != 'undefined' && req.body.search != '') {
-                        is_text_search = true;
-                    }
-                    if (is_text_search == true) {
-                        console.log('text search ::: ' + req.body.search);
-                        finalData.current_page = -1; // coz only one page will be shown during search
-                        website_scrap_data.db.db.command({
-                            text: 'website_scrap_data',
-                            search: req.body.search,
-                            filter: where,
-                            limit: search_limit
-                        }, query_results);
-                    } else {
-                        //redis.flushall();
-                        //console.log('flush hua hau');
-                        //process.exit(0);
-                        //------check for redis data------
-                        var start = new Date().getTime();
-                        console.log("START TIME :: " + start);
-                        console.log('!!! START :: redis check !!!');
-                        var where_size = Object.keys(where).length;
-                        var check_in_redis = false;
-                        if ( check_in_redis == true && where_size == 2 && typeof where.cat_id != 'undefined' && where.cat_id != '' && where.sub_cat_id != 'undefined' && where.sub_cat_id != '') {
-                            var catlog_redis_key = 'catalog_' + where.cat_id + '_' + where.sub_cat_id;
-                            console.log('redis key :: ' + catlog_redis_key);
+                    //redis.flushall();
+                    //console.log('flush hua hau');
+                    //process.exit(0);
+                    //------check for redis data------
+                    var start = new Date().getTime();
+                    console.log("START TIME :: " + start);
+                    console.log('!!! START :: redis check !!!');
+                    var where_size = Object.keys(where).length;
+                    var check_in_redis = false;
+                    if ( check_in_redis == true && where_size == 2 && typeof where.cat_id != 'undefined' && where.cat_id != '' && where.sub_cat_id != 'undefined' && where.sub_cat_id != '') {
+                        var catlog_redis_key = 'catalog_' + where.cat_id + '_' + where.sub_cat_id;
+                        console.log('redis key :: ' + catlog_redis_key);
 
-                            redis.zrevrangebyscore([catlog_redis_key, '+inf', '-inf', 'WITHSCORES', 'LIMIT', skip_count, products_per_page], function (err, response) {
-                                if (err) {
-                                    console.log('444');
+                        redis.zrevrangebyscore([catlog_redis_key, '+inf', '-inf', 'WITHSCORES', 'LIMIT', skip_count, products_per_page], function (err, response) {
+                            if (err) {
+                                console.log('444');
+                            } else {
+                                if (response.length == 0) {
+                                    finalData.results_from = 'mongo';
+                                    console.log(" -- no data found in redis");
+                                    console.log(" -- normal query will run");
+                                    website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
+                                    var end = new Date().getTime() - start;
+                                    console.log('time taken ' + end);
+
                                 } else {
-                                    if (response.length == 0) {
-                                        finalData.results_from = 'mongo';
-                                        console.log(" -- no data found in redis");
-                                        console.log(" -- normal query will run");
-                                        website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
-                                        var end = new Date().getTime() - start;
-                                        console.log('time taken ' + end);
-
-                                    } else {
-                                        finalData.results_from = 'redis';
-                                        var new_array = [];
-                                        var total = 0;
-                                        for (var i = 0; i < response.length; i++) {
-                                            if (i % 2 === 0) {
-                                                new_array.push(response[i]);
-                                                total++;
-                                            }
+                                    finalData.results_from = 'redis';
+                                    var new_array = [];
+                                    var total = 0;
+                                    for (var i = 0; i < response.length; i++) {
+                                        if (i % 2 === 0) {
+                                            new_array.push(response[i]);
+                                            total++;
                                         }
-                                        var end = new Date().getTime() - start;
-                                        finalData.products = [];
-                                        for (var k = 0; k < total; k++) {
-                                            var row_key = new_array[k];
-                                            (function (kk, row_key, total) {
-                                                row_key = JSON.parse(row_key);
-                                                finalData.products.push(productObj.getProductPermit(req, row_key));
-                                                if (kk === total - 1) {
-                                                    var end = new Date().getTime() - start;
-                                                    console.log('time taken ' + end);
-                                                    req.toCache = true;
-                                                    req.cache_data = finalData;
-                                                    next();
-                                                }
-                                            })(k, row_key, total);
-                                        }
-
-                                        /*
-                                         for (var k = 0; k < total; k++) {
-                                         var row_key = new_array[k];
-                                         (function (kk, row_key, total) {
-                                         redis.hgetall('item_' + row_key, function (err, obj) {
-                                         if (err) {
-                                         console.log('line 463');
-                                         console.log(err);
-                                         } else {
-                                         if (obj) {
-                                         var original = obj;
-                                         finalData.products.push(productObj.getProductPermit(req, original));
-                                         }
-                                         }
-                                         if (kk === total - 1) {
-                                         var end = new Date().getTime() - start;
-                                         console.log('time taken ' + end);
-                                         req.toCache = true;
-                                         req.cache_data = finalData;
-                                         next();
-                                         }
-                                         });
-                                         })(k, row_key, total);
-                                         }
-                                         */
                                     }
+                                    var end = new Date().getTime() - start;
+                                    finalData.products = [];
+                                    for (var k = 0; k < total; k++) {
+                                        var row_key = new_array[k];
+                                        (function (kk, row_key, total) {
+                                            row_key = JSON.parse(row_key);
+                                            finalData.products.push(productObj.getProductPermit(req, row_key));
+                                            if (kk === total - 1) {
+                                                var end = new Date().getTime() - start;
+                                                console.log('time taken ' + end);
+                                                req.toCache = true;
+                                                req.cache_data = finalData;
+                                                next();
+                                            }
+                                        })(k, row_key, total);
+                                    }
+
+                                    /*
+                                     for (var k = 0; k < total; k++) {
+                                     var row_key = new_array[k];
+                                     (function (kk, row_key, total) {
+                                     redis.hgetall('item_' + row_key, function (err, obj) {
+                                     if (err) {
+                                     console.log('line 463');
+                                     console.log(err);
+                                     } else {
+                                     if (obj) {
+                                     var original = obj;
+                                     finalData.products.push(productObj.getProductPermit(req, original));
+                                     }
+                                     }
+                                     if (kk === total - 1) {
+                                     var end = new Date().getTime() - start;
+                                     console.log('time taken ' + end);
+                                     req.toCache = true;
+                                     req.cache_data = finalData;
+                                     next();
+                                     }
+                                     });
+                                     })(k, row_key, total);
+                                     }
+                                     */
                                 }
-                            });
-                            console.log('!!! STOP :: redis check !!!');
-                            //------check for redis data------
+                            }
+                        });
+                        console.log('!!! STOP :: redis check !!!');
+                        //------check for redis data------
                         } else {
                             finalData.results_from = 'mongo';
                             website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
                             var end = new Date().getTime() - start;
                             console.log('time taken ' + end);
                         }
-                    }
+                    
 
                     function query_results(err, data) {
                         if (err) {
@@ -651,31 +637,15 @@ router.all('/products', function (req, res, next) {
                                 });
                             } else {
                                 var modify_data = {};
-                                if (is_text_search == false) {
-                                    for (var j = 0; j < data.length; j++) {
-                                        var row1 = data[j];
-                                        var product_price_diff = row1.get('price_diff');
-                                        if (typeof product_price_diff != 'undefined') {
-                                            row1.set('price_drop', product_price_diff);
-                                        } else {
-                                            row1.set('price_drop', 0);
-                                        }
-                                        finalData.products.push(productObj.getProductPermit(req, row1));
+                                for (var j = 0; j < data.length; j++) {
+                                    var row1 = data[j];
+                                    var product_price_diff = row1.get('price_diff');
+                                    if (typeof product_price_diff != 'undefined') {
+                                        row1.set('price_drop', product_price_diff);
+                                    } else {
+                                        row1.set('price_drop', 0);
                                     }
-                                } else {
-                                    if (data.results) {
-                                        for (var i = 0; i < data.results.length; i++) {
-                                            var row = data.results[i];
-                                            var obj = row.obj
-                                            var product_price_diff = obj['price_diff'];
-                                            if (typeof product_price_diff != 'undefined') {
-                                                obj['price_drop'] = product_price_diff;
-                                            } else {
-                                                obj['price_drop'] = 0;
-                                            }
-                                            finalData.products.push(productObj.getProductPermitreq, (obj));
-                                        }
-                                    }
+                                    finalData.products.push(productObj.getProductPermit(req, row1));
                                 }
                                 var end = new Date().getTime() - start;
                                 console.log('time taken ' + end);
@@ -768,24 +738,18 @@ router.all('/search', function (req, res) {
         var search_products = [];
         final_data.text = search_text;
         final_data.result = search_products;
-        var command_where = {
-            text: 'website_scrap_data',
-            search: search_text,
-            limit: 20,
-            select: product_data_list,
-        };
-        if( all_cat_id_found == true || is_cat_sub_cat_search == true ){
-            command_where.filter = where_search;
-        }
-        console.log(command_where);
-        website_scrap_data.db.db.command(command_where, function (err, data) {
+        where_search['$text'] = {'$search':search_text};
+        console.log('!!! where_search !!!');
+        console.log(where_search);
+        website_scrap_data.find(where_search,{ "score": { "$meta": "textScore" }},{ limit : 20,sort:{ 'score': { '$meta': "textScore" } }} , search_results);
+        function search_results( err,data){
             if (err) {
                 next(err);
             } else {
-                if (data.results) {
-                    for (var i = 0; i < data.results.length; i++) {
-                        var row = data.results[i];
-                        var obj = row.obj
+                if (typeof data != 'undefined' && data.length > 0 ) {
+                    for (var i = 0; i < data.length; i++) {
+                        var row = data[i];
+                        var obj = row;
                         search_products.push(productObj.getProductPermit(req, obj));
                     }
                     final_data.result = search_products;
@@ -800,7 +764,7 @@ router.all('/search', function (req, res) {
                     });
                 }
             }
-        });
+        }
     }
 });
 module.exports = router;
