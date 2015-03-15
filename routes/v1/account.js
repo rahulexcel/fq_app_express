@@ -249,7 +249,44 @@ router.all('/update/picture', function (req, res, next) {
             message: 'Invalid Request. No File Uploaded'
         });
     }
-})
+});
+function createDefaultWishlist(user, req, next) {
+    var Wishlist = req.Wishlist;
+    var wishlist = new Wishlist({
+        name: 'Public',
+        description: '',
+        user_id: user.id,
+        type: 'public',
+        shared_ids: [],
+        likes: [],
+        followers: []
+    });
+    wishlist.save(function (err) {
+        if (err) {
+            next(err);
+        } else {
+
+
+            var wishlist = new Wishlist({
+                name: 'Private',
+                description: '',
+                user_id: user.id,
+                type: 'private',
+                shared_ids: [],
+                likes: [],
+                followers: []
+            });
+            wishlist.save(function (err) {
+                if (err) {
+                    next(err);
+                } else {
+                    next(false);
+                }
+            });
+
+        }
+    });
+}
 function addAuth(user, device, req, res, next) {
     var auth_strategy = req.auth_strategy;
     auth_strategy.createAuth(user.id, device, req, function (err, data) {
@@ -261,10 +298,7 @@ function addAuth(user, device, req, res, next) {
             user.api_key = data.api_key;
             user.api_secret = data.api_secret;
             console.log(user);
-            res.json({
-                error: 0,
-                data: user
-            });
+            next(false, user);
         }
     });
 }
@@ -341,7 +375,16 @@ router.all('/create/facebook', function (req, res, next) {
                         picture: user.get('picture'),
                         gender: user.get('gender')
                     };
-                    addAuth(user, device, req, res, next);
+                    addAuth(user, device, req, res, function (err, user) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0,
+                                data: user
+                            });
+                        }
+                    });
                 } else {
                     var crypto = require('crypto');
                     var md5 = crypto.createHash('md5');
@@ -358,7 +401,18 @@ router.all('/create/facebook', function (req, res, next) {
                         } else {
                             var id = model._id;
                             userObj.id = id;
-                            addAuth(userObj, device, req, res, next);
+                            addAuth(userObj, device, req, res, function (err, userObj) {
+                                createDefaultWishlist(userObj, req, function () {
+                                    if (err) {
+                                        next(err);
+                                    } else {
+                                        res.json({
+                                            error: 0,
+                                            data: userObj
+                                        });
+                                    }
+                                });
+                            });
                         }
                     });
 
@@ -437,7 +491,16 @@ router.all('/create/google', function (req, res, next) {
                         picture: user.get('picture'),
                         gender: user.get('gender')
                     };
-                    addAuth(user, device, req, res, next);
+                    addAuth(user, device, req, res, function (err, user) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0,
+                                data: user
+                            });
+                        }
+                    });
 
 
                 } else {
@@ -456,7 +519,18 @@ router.all('/create/google', function (req, res, next) {
                         } else {
                             var id = model._id;
                             userObj.id = id;
-                            addAuth(userObj, device, req, res, next);
+                            addAuth(userObj, device, req, res, function (err, userObj) {
+                                createDefaultWishlist(userObj, req, function () {
+                                    if (err) {
+                                        next(err);
+                                    } else {
+                                        res.json({
+                                            error: 0,
+                                            data: userObj
+                                        });
+                                    }
+                                });
+                            });
                         }
                     });
 
@@ -528,7 +602,18 @@ router.all('/create', function (req, res, next) {
                         } else {
                             var id = model._id;
                             userObj.id = id;
-                            addAuth(userObj, device, req, res, next);
+                            addAuth(userObj, device, req, res, function (err, userObj) {
+                                createDefaultWishlist(userObj, req, function () {
+                                    if (err) {
+                                        next(err);
+                                    } else {
+                                        res.json({
+                                            error: 0,
+                                            data: userObj
+                                        });
+                                    }
+                                });
+                            });
                         }
                     });
 
@@ -597,7 +682,16 @@ router.all('/login', function (req, res, next) {
                     console.log(pass_md5 + 'xxx' + userObj.password);
                     if (pass_md5 == user.password) {
                         user.id = user._id;
-                        addAuth(user, device, req, res, next);
+                        addAuth(user, device, req, res, function (err, user) {
+                            if (err) {
+                                next(err);
+                            } else {
+                                res.json({
+                                    error: 0,
+                                    data: user
+                                });
+                            }
+                        });
                     } else {
                         res.json({
                             error: 1,

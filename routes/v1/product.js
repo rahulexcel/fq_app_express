@@ -94,11 +94,11 @@ router.all('/view', function (req, res, next) {
                         product_sub_cat_id = data.get('sub_cat_id');
                         product_brand = data.get('brand');
                         product_model_no = '';
-                        
-                        if( typeof data.get('model_no') != 'undefined' && data.get('model_no') != ''){
+
+                        if (typeof data.get('model_no') != 'undefined' && data.get('model_no') != '') {
                             product_model_no = data.get('model_no');
                             is_model_no_product = true;
-                            console.log(' product_model_no found :: '+product_model_no);
+                            console.log(' product_model_no found :: ' + product_model_no);
                         }
                         data.set('brand_filter_key', '');
                         data.set('website_filter_key', '');
@@ -149,47 +149,47 @@ router.all('/view', function (req, res, next) {
                                 product_data.product = productObj.getProductPermit(req, data);
                                 //--------------------------------------------------
                                 where_similar = {
-                                    '_id':{
-                                      '$nin' :[
-                                          mongoose.Types.ObjectId(product_id),
-                                      ]
+                                    '_id': {
+                                        '$nin': [
+                                            mongoose.Types.ObjectId(product_id),
+                                        ]
                                     },
                                     'cat_id': product_cat_id * 1,
                                     'sub_cat_id': product_sub_cat_id * 1,
                                     'website': product_website,
-                                    '$text':{'$search':product_name},
+                                    '$text': {'$search': product_name},
                                 };
                                 where_variant = {
-                                    '_id':{
-                                      '$nin' :[
-                                          mongoose.Types.ObjectId(product_id),
-                                      ]
+                                    '_id': {
+                                        '$nin': [
+                                            mongoose.Types.ObjectId(product_id),
+                                        ]
                                     },
                                     'cat_id': product_cat_id * 1,
                                     'sub_cat_id': product_sub_cat_id * 1,
                                     'website': {'$ne': product_website},
-                                    '$text':{'$search':product_name},
+                                    '$text': {'$search': product_name},
                                 };
 
                                 if (typeof product_brand != 'undefined' && product_brand != '') {
                                     where_similar['brand'] = new RegExp(product_brand, "i");
                                     where_variant['brand'] = new RegExp(product_brand, "i");
                                 }
-                                
-                                if( is_model_no_product == true){
+
+                                if (is_model_no_product == true) {
                                     where_variant['model_no'] = new RegExp(product_model_no, "i");
                                     console.log('varient where');
                                     console.log(where_variant);
                                 }
                                 console.log('!! where_similar !!!');
                                 console.log(where_similar);
-                                website_scrap_data.find(where_similar,{ "score": { "$meta": "textScore" }},{ limit : 10,sort:{ 'score': { '$meta': "textScore" } }} , data_sim_res);
-                                function data_sim_res(err, data_sim){
+                                website_scrap_data.find(where_similar, {"score": {"$meta": "textScore"}}, {limit: 10, sort: {'score': {'$meta': "textScore"}}}, data_sim_res);
+                                function data_sim_res(err, data_sim) {
                                     if (err) {
-                                         res.json({
-                                             error: 2,
-                                             message: err.err,
-                                         });
+                                        res.json({
+                                            error: 2,
+                                            message: err.err,
+                                        });
                                     } else {
                                         if (data_sim) {
                                             for (var i = 0; i < data_sim.length; i++) {
@@ -202,13 +202,13 @@ router.all('/view', function (req, res, next) {
                                         console.log(' !!! where_variant !!! ');
                                         console.log(where_variant);
                                         website_scrap_data.aggregate(
-                                                {   $match : where_variant },
-                                                { $sort: { score: { $meta: "textScore" }}},
-                                                {   $limit : 100 },
-                                                {   $group:{    '_id':'$website',   'data': { $push:"$$ROOT" }  }   },
-                                                 data_var_res
-                                        );
-                                        function data_var_res( err, data_var){
+                                                {$match: where_variant},
+                                        {$sort: {score: {$meta: "textScore"}}},
+                                        {$limit: 100},
+                                        {$group: {'_id': '$website', 'data': {$push: "$$ROOT"}}},
+                                        data_var_res
+                                                );
+                                        function data_var_res(err, data_var) {
                                             //console.log(data_var);
                                             if (err) {
                                                 res.json({
@@ -216,15 +216,16 @@ router.all('/view', function (req, res, next) {
                                                     message: err.err,
                                                 });
                                             } else {
-                                                if( typeof data_var != 'undefined' && data_var.length > 0 ){
-                                                    for( var k = 0 ; k < data_var.length;k++ ){
-                                                        if( data_var[k].data && data_var[k].data.length > 0 ){
-                                                            website_wise = data_var[k].data;
-                                                            for( var kk = 0 ; kk < 2; kk++ ){
-                                                                rec = website_wise[kk];
-                                                                variant_arr.push(productObj.getProductPermit(req, rec));
+                                                if (typeof data_var != 'undefined' && data_var.length > 0) {
+                                                    for (var k = 0; k < data_var.length; k++) {
+                                                        if (data_var[k].data && data_var[k].data.length > 0) {
+                                                            var website_wise = data_var[k].data;
+                                                            for (var kk = 0; kk < 2; kk++) {
+                                                                var rec = website_wise[kk];
+                                                                if (rec)
+                                                                    variant_arr.push(productObj.getProductPermit(req, rec));
                                                             }
-                                                            if(  variant_arr.length > 0 ){
+                                                            if (variant_arr.length > 0) {
                                                                 variant_arr.sort(function (a, b) {
                                                                     return a.sort_score - b.sort_score;
                                                                 });
@@ -235,34 +236,35 @@ router.all('/view', function (req, res, next) {
                                                     req.toCache = true;
                                                     req.cache_data = product_data;
                                                     next();
-                                                }else if( is_model_no_product == true ){
+                                                } else if (is_model_no_product == true) {
                                                     //start---this will execute if products found with model is NULL
-                                                    if(is_model_no_product == true ){
+                                                    if (is_model_no_product == true) {
                                                         console.log('!!model -- will check without model no!!!');
                                                         delete where_variant.model_no;
                                                         console.log(where_variant);
                                                         website_scrap_data.aggregate(
-                                                            {   $match : where_variant },
-                                                            { $sort: { score: { $meta: "textScore" }}},
-                                                            {   $limit : 100 },
-                                                            {   $group:{    '_id':'$website',   'data': { $push:"$$ROOT" }  }   },
-                                                            data_var_res2
-                                                        );
-                                                        function data_var_res2(err,data_var2){
+                                                                {$match: where_variant},
+                                                        {$sort: {score: {$meta: "textScore"}}},
+                                                        {$limit: 100},
+                                                        {$group: {'_id': '$website', 'data': {$push: "$$ROOT"}}},
+                                                        data_var_res2
+                                                                );
+                                                        function data_var_res2(err, data_var2) {
                                                             if (err) {
                                                                 res.json({
                                                                     error: 2,
                                                                     message: err.err,
                                                                 });
                                                             } else {
-                                                                for( var k = 0 ; k < data_var2.length;k++ ){
-                                                                    if( data_var2[k].data && data_var2[k].data.length > 0 ){
-                                                                        website_wise = data_var2[k].data;
-                                                                        for( var kk = 0 ; kk < 2; kk++ ){
-                                                                            rec = website_wise[kk];
-                                                                            variant_arr.push(productObj.getProductPermit(req, rec));
+                                                                for (var k = 0; k < data_var2.length; k++) {
+                                                                    if (data_var2[k].data && data_var2[k].data.length > 0) {
+                                                                        var website_wise = data_var2[k].data;
+                                                                        for (var kk = 0; kk < 2; kk++) {
+                                                                            var rec = website_wise[kk];
+                                                                            if (rec)
+                                                                                variant_arr.push(productObj.getProductPermit(req, rec));
                                                                         }
-                                                                        if(  variant_arr.length > 0 ){
+                                                                        if (variant_arr.length > 0) {
                                                                             variant_arr.sort(function (a, b) {
                                                                                 return a.sort_score - b.sort_score;
                                                                             });
@@ -277,7 +279,7 @@ router.all('/view', function (req, res, next) {
                                                         }
                                                     }
                                                     //end---this will execute if products found with model is NULL
-                                                }else{
+                                                } else {
                                                     req.toCache = true;
                                                     req.cache_data = product_data;
                                                     next();
