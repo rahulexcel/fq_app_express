@@ -39,7 +39,28 @@ router.all('/filters', function (req, res, next) {
         //req.body.search = 'adidas';
         //req.body.cat_id = 30;
         //req.body.sub_cat_id = 3003;
-
+        
+        var father_key = req.body.father_key;
+        var request_filter_cat_id = req.body.cat_id;
+        var request_filter_sub_cat_id = req.body.sub_cat_id;
+        var filters_category_wise = req.conn_filters_category_wise;
+        
+        var is_cat_id_set = false;
+        var is_sub_cat_id_set = false;
+        
+        if( typeof request_filter_cat_id !='undefined' && request_filter_cat_id != -1 ){
+            is_cat_id_set = true;
+        }
+        if( typeof request_filter_sub_cat_id !='undefined' && request_filter_sub_cat_id != -1 ){
+            is_sub_cat_id_set = true;
+        }
+        
+        
+        var is_father_request = false;
+        if( typeof father_key != 'undefined' && father_key != '' ){
+            is_father_request = true;
+        }
+        
         if (!req.body.cat_id && !req.body.sub_cat_id && is_father_request == false) {
             res.json({
                 error: 1,
@@ -47,74 +68,86 @@ router.all('/filters', function (req, res, next) {
             });
             return;
         } else {
-            var request_filter_cat_id = req.body.cat_id;
-            var request_filter_sub_cat_id = req.body.sub_cat_id;
-            var filters_category_wise = req.conn_filters_category_wise;
-            var where_filter = {
-                'cat_id': request_filter_cat_id * 1,
-                'sub_cat_id': request_filter_sub_cat_id * 1
-            };
-            console.log('----START-----where for filters------------');
-            console.log(where_filter);
-            console.log('----END-----where for filters------------');
-            var sortBy_arr = new Array;
-            sortBy_arr.push({
-                'text': 'Popular',
-                'param': 'popular',
-                'sort': {'sort_score': 1}
-            });
-            sortBy_arr.push({
-                'text': 'New Arrivals',
-                'param': 'new',
-                'sort': {'is_new_insert': -1, 'time': -1}
-            });
-            sortBy_arr.push({
-                'text': 'Price -- Low to High',
-                'param': 'pricelth',
-                'sort': {'price': 1}
-            });
-            sortBy_arr.push({
-                'text': 'Price -- High to Low',
-                'param': 'pricehtl',
-                'sort': {'price': -1}
-            });
-            //sortBy_arr.push({
-            //'text': 'Off % -- Low to High',
-            //'param': 'offlth',
-            //'sort': {'offrate': 1}
-            //});
-            //sortBy_arr.push({
-            //'text': 'Off % -- High to Low',
-            //'param': 'offhtl',
-            //'sort': {'offrate': -1}
-            //});
-            sortBy_arr.push({
-                'text': 'Price Change',
-                'param': 'pricechange',
-                'sort': {'price_diff': -1}
-            });
             var finalData = {};
-            finalData.sort = sortBy_arr;
             finalData.filters = {};
-            //var filters = {};
-            filters_category_wise.where(where_filter).find(results);
-            function results(err, data) {
-                if (err) {
-                    next(err);
-                } else {
-                    if (data.length == 0) {
-                        res.json({
-                            error: 1,
-                            message: 'filters not found !!',
-                        });
-                        return;
+            
+            var sortBy_arr = new Array;
+            sortBy_arr.push({'text': 'Popular','param': 'popular','sort': {'sort_score': 1}});
+            sortBy_arr.push({'text': 'New Arrivals','param': 'new','sort': {'is_new_insert': -1, 'time': -1}});
+            sortBy_arr.push({'text': 'Price -- Low to High','param': 'pricelth','sort': {'price': 1}});
+            sortBy_arr.push({'text': 'Price -- High to Low','param': 'pricehtl','sort': {'price': -1}});
+            //sortBy_arr.push({'text': 'Off % -- Low to High','param': 'offlth','sort': {'offrate': 1}});
+            //sortBy_arr.push({'text': 'Off % -- High to Low','param': 'offhtl','sort': {'offrate': -1}});
+            sortBy_arr.push({'text': 'Price Change','param': 'pricechange','sort': {'price_diff': -1}});
+            finalData.sort = sortBy_arr; //filter
+            
+            
+            
+            var father_wise_listing = req.recycle_data.father_wise_listing;
+            var category_filters = [];
+            if( is_father_request == true ){
+                if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
+                    for( var i = 0; i < father_wise_listing.length ; i++){
+                        var chk_father_key = father_wise_listing[i].father_key;
+                        if( father_key == chk_father_key && typeof father_wise_listing[i].data != 'undefined' && father_wise_listing[i].data.length > 0 ){
+                            for( k = 0; k < father_wise_listing[i].data.length; k++ ){
+                                delete father_wise_listing[i].data[k].data;
+                                $p_cat_data = father_wise_listing[i].data[k];
+                                category_filters.push($p_cat_data);
+                            }
+                        }
+                    }
+                }
+                finalData.filters.category_filters = category_filters;
+                res.json({
+                    error: 0,
+                    data: finalData,
+                });
+            }else if( is_cat_id_set == true && is_sub_cat_id_set == false ){
+                if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
+                    for( var i = 0; i < father_wise_listing.length ; i++){
+                        if( typeof father_wise_listing[i].data != 'undefined' && father_wise_listing[i].data.length > 0 ){
+                            for( k = 0; k < father_wise_listing[i].data.length; k++ ){
+                                var chk_cat_id = father_wise_listing[i].data[k].cat_id;
+                                if( chk_cat_id == request_filter_cat_id ){
+                                    for( j = 0 ; j < father_wise_listing[i].data[k].data.length; j++ ){
+                                        $p_cat_data = father_wise_listing[i].data[k].data[j];
+                                        category_filters.push($p_cat_data);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                finalData.filters.category_filters = category_filters;
+                res.json({
+                    error: 0,
+                    data: finalData,
+                });
+            }else{
+                var where_filter = {
+                    'cat_id': request_filter_cat_id * 1,
+                    'sub_cat_id': request_filter_sub_cat_id * 1
+                };
+                filters_category_wise.where(where_filter).find(results);
+                function results(err, data) {
+                    if (err) {
+                        next(err);
                     } else {
-                        raw_filters = data[0].get('filters').api_filters;
-                        finalData.filters = raw_filters;
-                        res.json({
-                            error: 0,
-                            data: finalData,
-                        });
+                        if (data.length == 0) {
+                            res.json({
+                                error: 1,
+                                message: 'filters not found !!',
+                            });
+                            return;
+                        } else {
+                            raw_filters = data[0].get('filters').api_filters;
+                            finalData.filters = raw_filters;
+                            res.json({
+                                error: 0,
+                                data: finalData,
+                            });
+                        }
                     }
                 }
             }
@@ -237,7 +270,7 @@ router.all('/products', function (req, res, next) {
         sortBy_arr.push({
             'text': 'Price Change',
             'param': 'pricechange',
-            'sort': {'price_diff': -1}
+            'sort': {'price_diff': 1}
         });
         //console.log(sortBy_arr);
 
@@ -474,7 +507,14 @@ router.all('/products', function (req, res, next) {
                             query_sort = val.sort;
                         }
                     });
-
+                    
+                    if (param_sort_by == 'pricechange') {
+                        where['price_diff'] = {
+                            '$exists': true,
+                            '$lt': 0 * 1,
+                        };
+                    }
+                    
                     /*
                      if (param_sort_by == 'popular') {
                      where['sort_score'] = {
@@ -681,28 +721,49 @@ router.all('/search', function (req, res) {
     var body = req.body;
     var search_text = body.search;
     var father_key = body.father_key;
+    var current_page = body.page;
+    var products_per_page = req.config.products_per_page;
+    if( typeof current_page === 'undefined' || current_page == -1) {
+        current_page = 1;
+    } 
+    var skip_count = (current_page - 1) * products_per_page;
+    
+    console.log('current_page :: '+ current_page);
+    console.log('skip :: '+skip_count);
+    
     var where_search = {};
     
     var is_cat_sub_cat_search = false;
     var search_cat_id = body.cat_id;
     var search_sub_cat_id = body.sub_cat_id;
+    
+    //search_cat_id = 30;
+    //search_sub_cat_id = 3003;
+    
+    var is_cat_id_set = false;
+    var is_sub_cat_id_set = false;
+    var get_cat_sub_cat_filters = false;
     if( typeof search_cat_id !='undefined' && search_cat_id != -1 ){
         where_search = {
             'cat_id':search_cat_id*1,
         };
-        is_cat_sub_cat_search = true;
+        is_cat_id_set = true;
     }
     if( typeof search_sub_cat_id !='undefined' && search_sub_cat_id != -1 ){
         where_search = {
             'sub_cat_id':search_sub_cat_id*1,
         };
+        is_sub_cat_id_set = true;
+    }
+    
+    if( is_cat_id_set == true || is_sub_cat_id_set == true ){
         is_cat_sub_cat_search = true;
     }
     
     var all_cat_id_found = false;
+    var father_wise_listing = req.recycle_data.father_wise_listing;
     if( typeof father_key != 'undefined' && father_key !='' && is_cat_sub_cat_search == false){
         console.log(father_key+' :: ');
-        var father_wise_listing = req.recycle_data.father_wise_listing;
         if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
             for( var i = 0; i < father_wise_listing.length ; i++){
                 var chk_father_key = father_wise_listing[i].father_key;
@@ -741,7 +802,11 @@ router.all('/search', function (req, res) {
         where_search['$text'] = {'$search':search_text};
         console.log('!!! where_search !!!');
         console.log(where_search);
-        website_scrap_data.find(where_search,{ "score": { "$meta": "textScore" }},{ limit : 20,sort:{ 'score': { '$meta': "textScore" } }} , search_results);
+        website_scrap_data.find(where_search,{ "score": { "$meta": "textScore" }},{ 
+            skip:skip_count,
+            limit : products_per_page,
+            sort:{ 'score': { '$meta': "textScore" } }
+        } , search_results);
         function search_results( err,data){
             if (err) {
                 next(err);
@@ -755,12 +820,15 @@ router.all('/search', function (req, res) {
                     final_data.result = search_products;
                     res.json({
                         error: 0,
-                        data: {products: search_products}
+                        data: {
+                            current_page:current_page,
+                            products: search_products
+                        }
                     });
                 } else {
                     res.json({
-                        error: 1,
-                        data: 'error in data.results'
+                        error: 0,
+                        data: {}
                     });
                 }
             }
