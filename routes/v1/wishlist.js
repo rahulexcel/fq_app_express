@@ -848,6 +848,7 @@ router.all('/item/price_alert', function (req, res, next) {
                     var img = product_row.get('img');
                     var watch_model = new user_watch_map({
                         for_fashion_iq: true,
+                        fq_product_id: product_id,
                         unique: unique,
                         user_id: user_id,
                         website: website,
