@@ -70,6 +70,11 @@ router.all('/filters', function (req, res, next) {
         } else {
             var finalData = {};
             finalData.filters = {};
+            finalData.filters.category_filters =  {
+                text:'Category',
+                key:'category_filter',
+                data : []
+            };
             
             var sortBy_arr = new Array;
             sortBy_arr.push({'text': 'Popular','param': 'popular','sort': {'sort_score': 1}});
@@ -93,12 +98,14 @@ router.all('/filters', function (req, res, next) {
                             for( k = 0; k < father_wise_listing[i].data.length; k++ ){
                                 delete father_wise_listing[i].data[k].data;
                                 $p_cat_data = father_wise_listing[i].data[k];
+                                $p_cat_data.text = father_wise_listing[i].data[k].name;
+                                $p_cat_data.param = 'filter__integer__cat_id__'+father_wise_listing[i].data[k].cat_id;
                                 category_filters.push($p_cat_data);
                             }
                         }
                     }
                 }
-                finalData.filters.category_filters = category_filters;
+                finalData.filters.category_filters.data = category_filters;
                 res.json({
                     error: 0,
                     data: finalData,
@@ -112,6 +119,8 @@ router.all('/filters', function (req, res, next) {
                                 if( chk_cat_id == request_filter_cat_id ){
                                     for( j = 0 ; j < father_wise_listing[i].data[k].data.length; j++ ){
                                         $p_cat_data = father_wise_listing[i].data[k].data[j];
+                                        $p_cat_data.text = father_wise_listing[i].data[k].data[j].name;
+                                        $p_cat_data.param = 'filter__integer__sub_cat_id__'+father_wise_listing[i].data[k].data[j].sub_cat_id;
                                         category_filters.push($p_cat_data);
                                     }
                                 }
@@ -119,7 +128,7 @@ router.all('/filters', function (req, res, next) {
                         }
                     }
                 }
-                finalData.filters.category_filters = category_filters;
+                finalData.filters.category_filters.data = category_filters;
                 res.json({
                     error: 0,
                     data: finalData,
