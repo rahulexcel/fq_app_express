@@ -50,21 +50,17 @@ router.all('/filters', function (req, res, next) {
     if (req.method === 'OPTIONS') {
         res.json('');
     } else {
-        
-        
-        //req.body.father_key = 'men';
-        //req.body.search = 'adidas';
-        //req.body.cat_id = 30;
-        //req.body.sub_cat_id = 3003;
-        
+        var is_search_filter = false;
+        var search_text = req.body.search;
+        if( typeof search_text != 'undefined' && search_text.length > 0){
+            is_search_filter = true;
+        }
         var father_key = req.body.father_key;
         var request_filter_cat_id = req.body.cat_id;
         var request_filter_sub_cat_id = req.body.sub_cat_id;
         var filters_category_wise = req.conn_filters_category_wise;
-        
         var is_cat_id_set = false;
         var is_sub_cat_id_set = false;
-        
         if( typeof request_filter_cat_id !='undefined' && request_filter_cat_id != -1 ){
             is_cat_id_set = true;
         }
@@ -72,14 +68,8 @@ router.all('/filters', function (req, res, next) {
             is_sub_cat_id_set = true;
         }
         var applied_filters = req.body.filters;
-        console.log('arun ');
-        console.log('arun ');
-        console.log(applied_filters);
-        console.log('arun ');
-        console.log('arun ');
         var is_filter_applied = false;
         if (typeof applied_filters != 'undefined' && applied_filters.length > 0) {
-            console.log('STEP 1');
             is_filter_applied = true;
             Object.keys(applied_filters).forEach(function (key) {
                 fltr = applied_filters[key].param;
@@ -106,23 +96,16 @@ router.all('/filters', function (req, res, next) {
         if( typeof father_key != 'undefined' && father_key != '' ){
             is_father_request = true;
         }
-        
         if (!req.body.cat_id && !req.body.sub_cat_id && is_father_request == false && is_filter_applied == false) {
-            console.log('STEP 2');
             res.json({
                 error: 0,
                 data:[]
             });
             return;
         } else {
-            console.log('STEP 3');
             var finalData = {};
             finalData.filters = {};
-            finalData.filters.category_filters =  {
-                text:'Category',
-                key:'category_filter',
-                data : []
-            };
+            
             
             var sortBy_arr = new Array;
             sortBy_arr.push({'text': 'Popular','param': 'popular','sort': {'sort_score': 1}});
@@ -132,14 +115,13 @@ router.all('/filters', function (req, res, next) {
             //sortBy_arr.push({'text': 'Off % -- Low to High','param': 'offlth','sort': {'offrate': 1}});
             //sortBy_arr.push({'text': 'Off % -- High to Low','param': 'offhtl','sort': {'offrate': -1}});
             sortBy_arr.push({'text': 'Price Change','param': 'pricechange','sort': {'price_diff': -1}});
-            finalData.sort = sortBy_arr; //filter
-            
-            
-            
+            if( is_search_filter == false ){
+                // if search page no need of sort
+                finalData.sort = sortBy_arr; //filter
+            }
             var father_wise_listing = req.recycle_data.father_wise_listing;
             var category_filters = [];
             if( is_father_request == true && is_filter_applied == false ){
-                console.log('STEP 4');
                 if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
                     for( var i = 0; i < father_wise_listing.length ; i++){
                         var chk_father_key = father_wise_listing[i].father_key;
@@ -148,19 +130,27 @@ router.all('/filters', function (req, res, next) {
                                 delete father_wise_listing[i].data[k].data;
                                 $p_cat_data = father_wise_listing[i].data[k];
                                 $p_cat_data.text = father_wise_listing[i].data[k].name;
-                                $p_cat_data.param = 'filter__integer__cat_id__'+father_wise_listing[i].data[k].cat_id;
+                                if( father_wise_listing[i].data[k].sub_cat_id != -1 && father_wise_listing[i].data[k].sub_cat_id != 1){
+                                    // for watches and sunglasses
+                                    $p_cat_data.param = 'filter__integer__sub_cat_id__'+father_wise_listing[i].data[k].sub_cat_id;
+                                }else{
+                                    $p_cat_data.param = 'filter__integer__cat_id__'+father_wise_listing[i].data[k].cat_id;
+                                }
                                 category_filters.push($p_cat_data);
                             }
                         }
                     }
                 }
-                finalData.filters.category_filters.data = category_filters;
+                finalData.filters.category_filters =  {
+                    text:'Category',
+                    key:'category_filter',
+                    data : category_filters
+                };
                 res.json({
                     error: 0,
                     data: finalData,
                 });
             }else if( is_cat_id_set == true && is_sub_cat_id_set == false ){
-                console.log('STEP 5');
                 if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
                     for( var i = 0; i < father_wise_listing.length ; i++){
                         if( typeof father_wise_listing[i].data != 'undefined' && father_wise_listing[i].data.length > 0 ){
@@ -178,13 +168,16 @@ router.all('/filters', function (req, res, next) {
                         }
                     }
                 }
-                finalData.filters.category_filters.data = category_filters;
+                finalData.filters.sub_category_filters =  {
+                    text:'Sub-Category',
+                    key:'sub_category_filter',
+                    data : category_filters
+                };
                 res.json({
                     error: 0,
                     data: finalData,
                 });
             }else{
-                
                 if( is_cat_id_set == false  && is_sub_cat_id_set == true ){
                     var where_filter = {
                         'sub_cat_id': request_filter_sub_cat_id * 1
@@ -195,8 +188,6 @@ router.all('/filters', function (req, res, next) {
                         'sub_cat_id': request_filter_sub_cat_id * 1
                     };
                 }
-                
-                
                 filters_category_wise.where(where_filter).find(results);
                 function results(err, data) {
                     if (err) {
@@ -204,12 +195,20 @@ router.all('/filters', function (req, res, next) {
                     } else {
                         if (data.length == 0) {
                             res.json({
-                                error: 1,
-                                message: 'filters not found !!',
+                                error: 0,
+                                data: finalData,
                             });
                             return;
                         } else {
                             raw_filters = data[0].get('filters').api_filters;
+                            if( is_search_filter == true ){
+                                Object.keys(raw_filters).forEach(function (key) {
+                                   if( key == 'brand' || key == 'price'){
+                                   }else{
+                                       delete raw_filters[key];
+                                   }
+                               });
+                            }
                             finalData.filters = raw_filters;
                             res.json({
                                 error: 0,
@@ -786,7 +785,7 @@ router.all('/search', function (req, res) {
     console.log('current_page :: '+ current_page);
     console.log('skip :: '+skip_count);
     
-    var where_search = {};
+    var where = {};
     
     var is_cat_sub_cat_search = false;
     var search_cat_id = body.cat_id;
@@ -797,13 +796,13 @@ router.all('/search', function (req, res) {
     var is_cat_id_set = false;
     var is_sub_cat_id_set = false;
     if( typeof search_cat_id !='undefined' && search_cat_id != -1 ){
-        where_search = {
+        where = {
             'cat_id':search_cat_id*1,
         };
         is_cat_id_set = true;
     }
     if( typeof search_sub_cat_id !='undefined' && search_sub_cat_id != -1 ){
-        where_search = {
+        where = {
             'sub_cat_id':search_sub_cat_id*1,
         };
         is_sub_cat_id_set = true;
@@ -829,7 +828,7 @@ router.all('/search', function (req, res) {
                     console.log(father_all_cat_id);
                     if( typeof father_all_cat_id  != 'undefined' && father_all_cat_id.length > 0){
                         all_cat_id_found = true;
-                        where_search = {
+                        where = {
                             'cat_id':{
                                 '$in':father_wise_listing[i].all_cat_id,
                             }
@@ -878,7 +877,7 @@ router.all('/search', function (req, res) {
                                                             for (var jj = 0; jj < size_query_params.length; jj++) {
                                                                 var s_size = size_query_params[jj];
                                                                 s_size = new RegExp(s_size, 'i');
-                                                                where_search[fltr_key]['$in'].push(s_size);
+                                                                where[fltr_key]['$in'].push(s_size);
                                                             }
                                                         }
                                                     }
@@ -887,7 +886,7 @@ router.all('/search', function (req, res) {
                                         } else {
                                             fltr_val = new RegExp(fltr_val, 'i');
                                             console.log(fltr_val);
-                                            where_search[fltr_key]['$in'].push(fltr_val);
+                                            where[fltr_key]['$in'].push(fltr_val);
                                         }
                                     } else if (fltr_key == 'color') {
                                         color_filter_is_set = true;
@@ -955,7 +954,7 @@ router.all('/search', function (req, res) {
                     range_arr = stringToArray(fltr_val, '_');
                     fltr_val_low = range_arr[0];
                     fltr_val_high = range_arr[1];
-                    where_search[fltr_key] = {
+                    where[fltr_key] = {
                         '$gte': fltr_val_low * 1,
                         '$lte': fltr_val_high * 1
                     };
@@ -965,15 +964,15 @@ router.all('/search', function (req, res) {
                     console.log(fltr_key);
                     console.log(fltr_val);
                     console.log('**********');
-                    where_search[fltr_key] = fltr_val*1;
-                    console.log(where_search);
+                    where[fltr_key] = fltr_val*1;
+                    console.log(where);
                     console.log('*************');
                 }
             }
         });
     }
     
-    console.log(where_search);
+    console.log(where);
     //search_text = 'adidas';
     var product_data_list = req.config.product_data_list;
     var final_data = new Array();
@@ -988,10 +987,10 @@ router.all('/search', function (req, res) {
         var search_products = [];
         final_data.text = search_text;
         final_data.result = search_products;
-        where_search['$text'] = {'$search':search_text};
-        console.log('!!! where_search !!!');
-        console.log(where_search);
-        website_scrap_data.find(where_search,{ "score": { "$meta": "textScore" }},{ 
+        where['$text'] = {'$search':search_text};
+        console.log('!!! where !!!');
+        console.log(where);
+        website_scrap_data.find(where,{ "score": { "$meta": "textScore" }},{ 
             skip:skip_count,
             limit : products_per_page,
             sort:{ 'score': { '$meta': "textScore" } }
