@@ -253,11 +253,11 @@ router.get('/', function(req, res) {
             }
         }
         else if (url.indexOf('bewakoof') != -1) {
-            if (url.indexOf('product/') != -1) {
+            //if (url.indexOf('product/') != -1) {
                 return true;
-            } else {
-                return false;
-            }
+            //} else {
+               // return false;
+            //}
         }
         else if (url.indexOf('fashionara') != -1) {
             if (url.indexOf('.html') != -1) {
