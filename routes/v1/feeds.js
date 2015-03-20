@@ -94,92 +94,45 @@ function checkTrendingFeedData(req, done, next) {
                         }
                     }
                 }
-                redis.del('home_trending', function (err) {
-                    if (err) {
-                        console.log('201');
-                        console.log(err);
-                    }
-                    if (new_result.length > 0) {
-                        var k = 0;
-                        for (var i = 0; i < new_result.length; i++) {
-                            (function (row, i) {
-                                var user_id = row.original.user_id;
-//                                req.user_helper.getUserDetail(user_id, req, function (err, user_detail) {
-//                                    if (!err) {
-//                                        row.user = {
-//                                            name: user_detail.name,
-//                                            picture: user_detail.picture
-//                                        };
-//                                        new_result[i] = row;
-//                                    }
-
-                                var Wishlist = req.Wishlist;
-                                Wishlist.findOne({
-                                    _id: mongoose.Types.ObjectId(row.original.list_id)
-                                }).lean().exec(function (err, list_row) {
-                                    var is_private = false;
-                                    if (!err) {
-//                                            row.list = {
-//                                                name: list_row.name
-//                                            };
-                                        if (list_row.type == 'private' || list_row.type == 'shared') {
-                                            is_private = true;
-                                        }
-//                                            row.original = JSON.stringify(row.original);
-//                                            row.dimension = JSON.stringify(row.dimension);
-//                                            row.user = JSON.stringify(row.user);
-//                                            row.list = JSON.stringify(row.list);
-//                                            new_result[i] = row;
+                if (new_result.length > 0) {
+                    var k = 0;
+                    for (var i = 0; i < new_result.length; i++) {
+                        (function (row, i) {
+                            var Wishlist = req.Wishlist;
+                            Wishlist.findOne({
+                                _id: mongoose.Types.ObjectId(row.original.list_id)
+                            }).lean().exec(function (err, list_row) {
+                                var is_private = false;
+                                if (!err) {
+                                    if (list_row.type == 'private' || list_row.type == 'shared') {
+                                        is_private = true;
                                     }
-                                    if (!is_private) {
-                                        console.log('adding ' + row.name + "with score " + row.baseScore);
-//                                            redis.hmset('item_' + row._id, row, function (err) {
-//                                                if (err) {
-//                                                    console.log('227');
-//                                                    console.log(err);
-//                                                }
-//                                                redis.expire('item_' + row._id, 60 * 60 * 24 * 7, function () {
-//                                                    if (err) {
-//                                                        console.log('246');
-//                                                        console.log(err);
-//                                                    }
-                                        redis.zadd('home_trending', row.baseScore, row._id, function (err) {
-                                            if (err) {
-                                                console.log('236');
-                                                console.log(err);
-                                            }
-                                            if (k === (new_result.length - 1)) {
-                                                done();
-                                                //one minute right now.
-                                                redis.expire('home_trending', 60);
-                                                redis.lpush('home_trending_block', '1');
-                                            }
-                                            k++;
-//                                                    });
-//                                                });
-                                        });
-                                    } else {
+                                }
+                                if (!is_private) {
+                                    console.log('adding ' + row.name + "with score " + row.baseScore);
+                                    redis.zadd('home_trending', row.baseScore, row._id, function (err) {
+                                        if (err) {
+                                            console.log('236');
+                                            console.log(err);
+                                        }
                                         if (k === (new_result.length - 1)) {
                                             done();
-                                            //one minute right now.
-                                            redis.expire('home_trending', 60);
-                                            redis.lpush('home_trending_block', '1');
                                         }
                                         k++;
+                                    });
+                                } else {
+                                    if (k === (new_result.length - 1)) {
+                                        done();
                                     }
-                                });
-
-//                                });
-                            })(new_result[i], i);
-                        }
-
-                    } else {
-                        done();
-                        redis.expire('home_trending', 60);
-                        redis.lpush('home_trending_block', '1');
+                                    k++;
+                                }
+                            });
+                        })(new_result[i], i);
                     }
-                });
 
+                } else {
+                    done();
+                }
             }
 
         }
@@ -197,44 +150,46 @@ function getTrendingData(page, req, next, done, recursion) {
         } else {
             if (response.length === 0) {
                 console.log('no trending data, fetch from mongo');
-                if (page === 0) {
-                    if (recursion) {
-                        //check if blocking key exists
-                        redis.exists('home_trending_block', function (err, res) {
-                            console.log('key exists');
-                            console.log(res);
-                            if (res === 1) {
-                                //delete it and block till you get new data
-                                redis.del('home_trending_block', function () {
-                                    checkTrendingFeedData(req, function () {
-                                        getTrendingData(page, req, next, function (data1) {
-                                            done(data1);
-                                        }, false);
-                                    }, next);
-
-                                });
-                            } else {
-                                //wait for data
-                                redis.blpop(['home_trending_block', 10], function (err) {
-                                    getTrendingData(page, req, next, function (data1) {
-                                        if (data1.length === 0) {
-                                            //safe mesaure incase trending feed gets stuck
-                                            checkTrendingFeedData(req, function () {
-                                            });
-                                        }
-
-                                        done(data1);
-                                    }, false);
-                                });
-                            }
-                        })
-                    } else {
-                        done([]);
-                    }
-
-                } else {
-                    done([]);
-                }
+                //fetch from mongo is done via cron now
+                done([]);
+//                if (page === 0) {
+//                    if (recursion) {
+//                        //check if blocking key exists
+//                        redis.exists('home_trending_block', function (err, res) {
+//                            console.log('key exists');
+//                            console.log(res);
+//                            if (res === 1) {
+//                                //delete it and block till you get new data
+//                                redis.del('home_trending_block', function () {
+//                                    checkTrendingFeedData(req, function () {
+//                                        getTrendingData(page, req, next, function (data1) {
+//                                            done(data1);
+//                                        }, false);
+//                                    }, next);
+//
+//                                });
+//                            } else {
+//                                //wait for data
+//                                redis.blpop(['home_trending_block', 10], function (err) {
+//                                    getTrendingData(page, req, next, function (data1) {
+//                                        if (data1.length === 0) {
+//                                            //safe mesaure incase trending feed gets stuck
+//                                            checkTrendingFeedData(req, function () {
+//                                            });
+//                                        }
+//
+//                                        done(data1);
+//                                    }, false);
+//                                });
+//                            }
+//                        })
+//                    } else {
+//                        done([]);
+//                    }
+//
+//                } else {
+//                    done([]);
+                //                }
             } else {
 
                 console.log('309');
@@ -306,7 +261,7 @@ function getTrendingData(page, req, next, done, recursion) {
 //                            done(ret);
 //                        }
 //                        k++;
-//                    });
+                    //                    });
                 }
             }
         }
@@ -314,7 +269,6 @@ function getTrendingData(page, req, next, done, recursion) {
 }
 
 router.all('/trending', function (req, res, next) {
-
     var page = req.body.page;
     if (!page) {
         page = 0;
@@ -337,7 +291,7 @@ function updateLatestFeedData(req, done, next) {
     var website_scrap_data = req.conn_website_scrap_data;
     var product_data_list = req.config.product_data_list;
     product_data_list = product_data_list.replace('price_history', '');
-    //-------------------------------------------------
+    //-------------------------------------------------   
     var latest_types = new Array;
     latest_types.push({
         'type': 'men',
@@ -359,7 +313,6 @@ function updateLatestFeedData(req, done, next) {
         },
         'redis_key': 'home_latest_women',
     });
-
     var latest_where = {};
     var latest_sort = {
         'sort_score': 1
@@ -428,36 +381,30 @@ function updateLatestFeedData(req, done, next) {
         })(key, val);
     });
 }
-function getLatestData(latest_type, page, req, next, done, recursion) {
+
+var latest_ids_cache = [];
+var latest_cache = [];
+var latest_cache_expiry = false;
+function getLatestData(latest_type, page, only_ids, req, next, done, recursion) {
     var redis = req.redis;
     var productObj = req.productObj;
-    //redis.flushall();
-    //console.log('flush hua hau');
-    //process.exit(0);
     var latest_data = [];
-//    redis.exists('home_latest', function (err, res) {
-//        if (res === 0) {
-//            if (!recursion) {
-//                updateLatestFeedData(req, function () {
-//                    console.log('update latest feed data done');
-//                    redis.exists('home_latest_block', function (err, res) {
-//                        if (res === 1) {
-//                            redis.lpush('home_latest_block', 1, function () {
-//                                redis.del('home_latest_block');
-//                            });
-//                        }
-//                    });
-//                }, next);
-//                redis.blpop(['home_latest_block', 20], function () {
-//                    console.log('calling latest data again');
-//                    getLatestData(page, req, next, done, true);
-//                });
-//            } else {
-//                console.log('empty data even after recursion');
-//                done([]);
-//            }
-//        }
-//        else {
+    if (only_ids) {
+
+        var cur_time = new Date().getTime();
+
+        if (cur_time - latest_cache_expiry < 60 * 60 * 1000) {
+            if (latest_ids_cache[page]) {
+                return latest_ids_cache[page];
+            } else if (latest_cache[page]) {
+                return latest_cache[page];
+            }
+
+        } else {
+            latest_ids_cache = [];
+            latest_cache = [];
+        }
+    }
     redis.zrevrangebyscore([latest_type, '+inf', '-inf', 'WITHSCORES', 'LIMIT', page * 20, 20], function (err, response) {
         if (err) {
             console.log('307');
@@ -478,25 +425,34 @@ function getLatestData(latest_type, page, req, next, done, recursion) {
                     }
                 }
 
-                for (var k = 0; k < total; k++) {
-                    var row_key = new_array[k];
-                    (function (kk, row_key, total) {
-                        redis.hgetall('item_' + row_key, function (err, obj) {
-                            if (err) {
-                                console.log('line 355');
-                                console.log(err);
-                            } else {
-                                if (obj) {
-                                    var original = obj;
-                                    latest_data.push(productObj.getProductPermit(req, original));
-                                }
-                            }
-                            if (kk === total - 1) {
-                                done(latest_data);
-                            }
-                        });
-                    })(k, row_key, total);
+                if (only_ids) {
+                    latest_ids_cache[page] = new_array;
+                    latest_cache_expiry = new Date().getTime();
+                    done(new_array);
+                } else {
 
+                    for (var k = 0; k < total; k++) {
+                        var row_key = new_array[k];
+                        (function (kk, row_key, total) {
+                            redis.hgetall('item_' + row_key, function (err, obj) {
+                                if (err) {
+                                    console.log('line 355');
+                                    console.log(err);
+                                } else {
+                                    if (obj) {
+                                        var original = obj;
+                                        latest_data.push(productObj.getProductPermit(req, original));
+                                    }
+                                }
+                                if (kk === total - 1) {
+                                    latest_cache[page] = latest_data;
+                                    latest_cache_expiry = new Date().getTime();
+                                    done(latest_data);
+                                }
+                            });
+                        })(k, row_key, total);
+
+                    }
                 }
             }
         }
@@ -504,6 +460,78 @@ function getLatestData(latest_type, page, req, next, done, recursion) {
 //        }
 //    });
 }
+
+
+
+router.all('/latest/count', function (req, res, next) {
+    var redis = req.redis;
+    var body = req.body;
+    var user_id = body.user_id;
+    var latest_type = body.father;
+    if (user_id && latest_type) {
+        redis.exists('user_latest_count_' + latest_type + user_id, function (err, response) {
+            if (response == 0) {
+                getLatestData(latest_type, 0, true, req, next, function (data) {
+                    var ids = '';
+                    for (var i = 0; i < data.length; i++) {
+                        ids = ids + ",";
+                    }
+                    redis.set('user_latest_count_' + latest_type + user_id, ids, function (err) {
+                        res.json({
+                            error: 0,
+                            data: data.length
+                        });
+                    });
+                });
+            } else {
+                redis.get('user_latest_count_' + latest_type + user_id, function (err, ids) {
+                    if (ids) {
+                        var ids = ids.split(',');
+                        var diff = 0;
+                        getLatestData(latest_type, 0, true, req, next, function (data) {
+                            var new_ids = '';
+                            for (var i = 0; i < data.length; i++) {
+                                new_ids = new_ids + ",";
+                            }
+                            var same = 0;
+                            for (var i = 0; i < ids.length; i++) {
+                                var found = false;
+                                for (var j = 0; j < data.length; j++) {
+                                    if (ids[i] == data[j]) {
+                                        found = true;
+                                        break
+                                    }
+                                }
+                                if (found)
+                                    same++;
+                            }
+                            diff = data.length - same;
+                            redis.set('user_latest_count_' + latest_type + user_id, new_ids, function (err) {
+                                res.json({
+                                    error: 0,
+                                    data: diff
+                                });
+                            });
+                        });
+
+
+                    } else {
+                        res.json({
+                            error: 0,
+                            data: 0
+                        });
+                    }
+                });
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
+
 router.all('/latest', function (req, res, next) {
     var latest_type = req.param('father');
     var page = req.body.page;
@@ -511,7 +539,7 @@ router.all('/latest', function (req, res, next) {
         page = 0;
     }
     console.log('page' + page);
-    getLatestData(latest_type, page, req, next, function (data) {
+    getLatestData(latest_type, page, false, req, next, function (data) {
         res.json({
             error: 0,
             data: data
@@ -521,7 +549,6 @@ router.all('/latest', function (req, res, next) {
 
 
 //--end------latest feed-------------------
-
 router.all('/my/count', function (req, res, next) {
     var redis = req.redis;
     var body = req.body;
@@ -549,7 +576,6 @@ router.all('/my', function (req, res, next) {
         page = 0;
     }
     console.log('page' + page);
-
     var redis = req.redis;
     if (user_id)
         redis.set('user_feed_unread_' + user_id, 0);
@@ -574,7 +600,7 @@ router.all('/my', function (req, res, next) {
                         WishlistItem.findOne({
                             _id: mongoose.Types.ObjectId(row_key)
                         }).lean().exec(function (err, obj) {
-//                    redis.hgetall('item_' + row_key, function (err, obj) {
+                            //                    redis.hgetall('item_' + row_key, function (err, obj) {
                             if (err) {
                                 console.log('line 355');
                                 console.log(err);
@@ -609,7 +635,7 @@ router.all('/my', function (req, res, next) {
                                                 obj.list = {
                                                     name: list.name
                                                 };
-//                                                console.log(obj);
+                                                //                                                console.log(obj);
                                                 ret.push(obj);
 
                                                 if (kk === total - 1) {
@@ -744,9 +770,7 @@ function calculateTop(type, req, limit, skip, done) {
     }
 }
 function processCalc(type, req, res, next, done) {
-
     var limit = 50;
-
     var moment = require('moment-timezone');
     var Calculation = req.Calculation;
     var current_date = moment().tz("Asia/Kolkata").format('DD-MM-YYYY');
@@ -889,23 +913,41 @@ function processCalc(type, req, res, next, done) {
     });
 }
 
+//cron route
 router.all('/stats', function (req, res, next) {
     var moment = require('moment-timezone');
     var current_date = moment().tz("Asia/Kolkata").format('DD-MM-YYYY');
     var current_hour = moment().tz("Asia/Kolkata").format('HH');
-
     var redis = req.redis;
-
-    redis.exists('home_latest_generate', function (err, res) {
+    var msg = '';
+    redis.exists('home_trending_generate', function (err, res) {
+        if (err) {
+            msg += 'home trending error';
+        }
         if (res === 0) {
-            console.log('updating home latest');
+            msg += 'generating home trending data';
+            checkTrendingFeedData(req, function () {
+                redis.set('home_trending_generate', 1);
+                //1mintue right now
+                redis.expire('home_trending_generate', 60);
+            }, next);
+        } else {
+            msg += 'home trending data already there';
+        }
+    });
+    redis.exists('home_latest_generate', function (err, res) {
+        if (err) {
+            msg += 'home latest err';
+            console.log(err);
+        }
+        if (res === 0) {
+            msg += 'updating home latest';
             updateLatestFeedData(req, function () {
             }, next);
         } else {
-            console.log('not updateing home latest');
+            msg += 'not updateing home latest';
         }
     });
-
     if (current_hour > 1) {
         //night 1am
         processCalc('top_users', req, res, next, function (res0) {
@@ -914,7 +956,8 @@ router.all('/stats', function (req, res, next) {
                     error: 0,
                     data: {
                         top_users: res0,
-                        top_lists: res1
+                        top_lists: res1,
+                        msg: msg
                     }
                 });
             });
@@ -926,15 +969,12 @@ router.all('/stats', function (req, res, next) {
         });
     }
 });
-
 function calculateTopLists(req, limit, skip, done) {
     console.log('generating new data for top lists');
     var WishlistItem = req.WishlistItem;
     var Wishlist = req.Wishlist;
-
     var moment = require('moment-timezone');
     var current_date = moment().tz("Asia/Kolkata").format('DD-MM-YYYY HH:mm');
-
     if (!skip) {
         skip = 0;
     }
@@ -1048,21 +1088,17 @@ function getItemScore(item) {
     if (!created_at) {
         created_at = new Date(the_day_of_reckoning);
     }
-
     var s = 2 * pins + 8 * likes + user_points + list_points;
     var baseScore = Math.log(Math.max(s, 1));
     var now = new Date().getTime();
-
     var timeDiff = (now - created_at.getTime()) / (1000 * 60 * 60 * 24 * 7);
     //time different in weeks
-    //if you have more and more posts we can reduce time difference to days, hours as well
-
+    //if you have more and more posts we can reduce time difference to days, hours as well 
     if (timeDiff > 1) {
         //if more than 1week
         var x = timeDiff - 1;
         baseScore = baseScore * Math.exp(-8 * x * x)
     }
-
     var base_time = new Date(the_day_of_reckoning).getTime();
     var seconds = created_at.getTime() - base_time;
     return Math.round(baseScore + 1 * seconds / 45000, 7);
