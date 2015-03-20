@@ -3,6 +3,12 @@ var router = express.Router();
 var mongoose = require('mongoose');
 
 
+router.all('/get_alerts', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    
+});
+
 router.all('/register', function (req, res, next) {
     var body = req.body;
 
@@ -193,5 +199,7 @@ function pushItemToUserFeed(item_id, user_id, req) {
 //        });
 //    }
 //});
+
+
 
 module.exports = router;
