@@ -206,39 +206,50 @@ function getTrendingData(page, req, next, done, recursion) {
 
                 var k = 0;
                 var ret = [];
+
+                var i = 0;
                 for (var key in new_array) {
                     var value = new_array[key];
+                    (function (value, key, i) {
+                        WishlistItem.findOne({
+                            _id: mongoose.Types.ObjectId(key)
+                        }).lean().exec(function (err, row) {
+                            if (row) {
+                                row.score = value;
+                                row.image = row.img;
 
-                    WishlistItem.findOne({
-                        _id: mongoose.Types.ObjectId(key)
-                    }).lean().exec(function (err, row) {
-                        if (row) {
-                            row.score = value;
-                            row.image = row.img;
-
-                            req.user_helper.getUserDetail(row.original.user_id, req, function (err, user_detail) {
-                                if (!err) {
-                                    row.user = {
-                                        name: user_detail.name,
-                                        picture: user_detail.picture
-                                    };
-                                }
-                                req.list_helper.getListDetail(row.original.list_id, req, function (err, list_detail) {
+                                req.user_helper.getUserDetail(row.original.user_id, req, function (err, user_detail) {
                                     if (!err) {
-                                        row.list = {
-                                            name: list_detail.name
+                                        row.user = {
+                                            name: user_detail.name,
+                                            picture: user_detail.picture
                                         };
                                     }
-                                    ret.push(row);
-                                    if (k === (total - 1)) {
-                                        done(ret);
-                                    }
-                                    k++;
-                                });
+                                    req.list_helper.getListDetail(row.original.list_id, req, function (err, list_detail) {
+                                        if (!err) {
+                                            row.list = {
+                                                name: list_detail.name
+                                            };
+                                        }
+                                        ret[i] = row;
+                                        //ret.push(row);
+                                        if (k === (total - 1)) {
+                                            done(ret);
+                                        }
+                                        k++;
+                                    });
 
-                            });
-                        }
-                    });
+                                });
+                            } else {
+                                ret[i] = false;
+                                if (k === (total - 1)) {
+                                    done(ret);
+                                }
+                                k++;
+                            }
+                        });
+                    })(value, key, i);
+                    i++;
 
 //                    redis.hgetall('item_' + key, function (err, obj) {
 //                        obj.score = value;
@@ -395,9 +406,11 @@ function getLatestData(latest_type, page, only_ids, req, next, done, recursion) 
 
         if (cur_time - latest_cache_expiry < 60 * 60 * 1000) {
             if (latest_ids_cache[page]) {
-                return latest_ids_cache[page];
+                done(latest_ids_cache[page]);
+                return;
             } else if (latest_cache[page]) {
-                return latest_cache[page];
+                done(latest_cache[page]);
+                return;
             }
 
         } else {
@@ -471,27 +484,37 @@ router.all('/latest/count', function (req, res, next) {
     if (user_id && latest_type) {
         redis.exists('user_latest_count_' + latest_type + user_id, function (err, response) {
             if (response == 0) {
-                getLatestData(latest_type, 0, true, req, next, function (data) {
+                getLatestData('home_latest_' + latest_type, 0, true, req, next, function (data) {
                     var ids = '';
                     for (var i = 0; i < data.length; i++) {
-                        ids = ids + ",";
+                        ids = ids + data[i] + ",";
                     }
-                    redis.set('user_latest_count_' + latest_type + user_id, ids, function (err) {
+                    if (ids.length > 0) {
+                        redis.set('user_latest_count_' + latest_type + user_id, ids, function (err) {
+                            res.json({
+                                error: 0,
+                                data: data.length
+                            });
+                        });
+                    } else {
                         res.json({
                             error: 0,
-                            data: data.length
+                            data: 0
                         });
-                    });
+                    }
                 });
             } else {
                 redis.get('user_latest_count_' + latest_type + user_id, function (err, ids) {
-                    if (ids) {
+                    if (ids && ids.length > 0) {
                         var ids = ids.split(',');
                         var diff = 0;
-                        getLatestData(latest_type, 0, true, req, next, function (data) {
+                        getLatestData('home_latest_' + latest_type, 0, true, req, next, function (data) {
+
+                            console.log(data);
+
                             var new_ids = '';
                             for (var i = 0; i < data.length; i++) {
-                                new_ids = new_ids + ",";
+                                new_ids = new_ids + data[i] + ",";
                             }
                             var same = 0;
                             for (var i = 0; i < ids.length; i++) {
@@ -499,7 +522,7 @@ router.all('/latest/count', function (req, res, next) {
                                 for (var j = 0; j < data.length; j++) {
                                     if (ids[i] == data[j]) {
                                         found = true;
-                                        break
+                                        break;
                                     }
                                 }
                                 if (found)
@@ -948,6 +971,7 @@ router.all('/stats', function (req, res, next) {
             msg += 'not updateing home latest';
         }
     });
+    console.log(current_hour);
     if (current_hour > 1) {
         //night 1am
         processCalc('top_users', req, res, next, function (res0) {
@@ -987,33 +1011,34 @@ function calculateTopLists(req, limit, skip, done) {
         if (result && result.length) {
             var k = 0;
             for (var i = 0; i < result.length; i++) {
-                var list = result[i];
-                var list_id = list._id;
-                WishlistItem.find({
-                    'original.list_id': list_id
-                }).lean().exec(function (err, items) {
-                    var list_score = 0;
-                    if (items && items.length > 0) {
-                        for (var i = 0; i < items.length; i++) {
-                            var item = items[i];
-                            var baseScore = getItemScore(item);
-                            list_score = list_score + baseScore;
+                (function (list) {
+                    var list_id = list._id;
+                    WishlistItem.find({
+                        'original.list_id': list_id
+                    }).lean().exec(function (err, items) {
+                        var list_score = 0;
+                        if (items && items.length > 0) {
+                            for (var i = 0; i < items.length; i++) {
+                                var item = items[i];
+                                var baseScore = getItemScore(item);
+                                list_score = list_score + baseScore;
+                            }
                         }
-                    }
-                    Wishlist.update({
-                        _id: mongoose.Types.ObjectId(list_id)
-                    }, {
-                        $set: {
-                            'meta.score': list_score,
-                            'meta.score_updated': current_date
-                        }
-                    }, function () {
-                        if (k === (result.length - 1)) {
-                            done(true);
-                        }
-                        k++;
+                        Wishlist.update({
+                            _id: mongoose.Types.ObjectId(list_id)
+                        }, {
+                            $set: {
+                                'meta.score': list_score,
+                                'meta.score_updated': current_date
+                            }
+                        }, function () {
+                            if (k === (result.length - 1)) {
+                                done(true);
+                            }
+                            k++;
+                        });
                     });
-                });
+                })(result[i]);
             }
         } else {
             done(false);
@@ -1036,41 +1061,42 @@ function calculateTopUsers(req, limit, skip, done) {
         if (result && result.length > 0) {
             var k = 0;
             for (var i = 0; i < result.length; i++) {
-                var user = result[i];
-                var user_id = user._id;
-                WishlistItem.find({
-                    'original.user_id': user_id
-                }).lean().exec(function (err, items) {
-                    if (err) {
-                        console.log('err 572');
-                        console.log(err);
-                    }
-                    var user_score = 0;
-                    if (items && items.length > 0) {
-                        for (var i = 0; i < items.length; i++) {
-                            var item = items[i];
-                            var baseScore = getItemScore(item);
-                            user_score = user_score + baseScore;
-                        }
-                    }
-                    console.log("user _id " + user_id + 'score ' + user_score);
-                    User.update({
-                        _id: mongoose.Types.ObjectId(user_id)
-                    }, {
-                        $set: {
-                            'meta.score': user_score,
-                            'meta.score_updated': current_date
-                        }
-                    }, function (err) {
+                (function (user) {
+                    var user_id = user._id;
+                    WishlistItem.find({
+                        'original.user_id': user_id
+                    }).lean().exec(function (err, items) {
                         if (err) {
+                            console.log('err 572');
                             console.log(err);
                         }
-                        if (k === (result.length - 1)) {
-                            done(true);
+                        var user_score = 0;
+                        if (items && items.length > 0) {
+                            for (var i = 0; i < items.length; i++) {
+                                var item = items[i];
+                                var baseScore = getItemScore(item);
+                                user_score = user_score + baseScore;
+                            }
                         }
-                        k++;
+                        console.log("user _id " + user.name + 'score ' + user_score + " with items " + items.length);
+                        User.update({
+                            _id: mongoose.Types.ObjectId(user_id)
+                        }, {
+                            $set: {
+                                'meta.score': user_score,
+                                'meta.score_updated': current_date
+                            }
+                        }, function (err) {
+                            if (err) {
+                                console.log(err);
+                            }
+                            if (k === (result.length - 1)) {
+                                done(true);
+                            }
+                            k++;
+                        });
                     });
-                });
+                })(result[i]);
             }
         } else {
             done(false);

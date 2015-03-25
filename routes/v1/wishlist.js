@@ -490,9 +490,10 @@ router.all('/item/list', function (req, res, next) {
                                 });
                             } else {
                                 for (var i = 0; i < data.length; i++) {
-                                    (function (ff) {
+                                    (function (ff, i) {
                                         var wishlist_row = ff.get('item_id');
                                         if (!wishlist_row) {
+                                            ret[i] = false;
                                             if (k == (data.length - 1)) {
                                                 res.json({
                                                     error: 0,
@@ -556,7 +557,8 @@ router.all('/item/list', function (req, res, next) {
                                                     prod.meta.pins = pins.length;
                                                     prod.pins = pins;
                                                     prod.likes = ff.get('likes');
-                                                    ret.push(prod);
+//                                                    ret.push(prod);
+                                                    ret[i] = prod;
                                                     console.log(k + "==" + (data.length - 1));
                                                     if (k == (data.length - 1)) {
                                                         res.json({
@@ -595,7 +597,8 @@ router.all('/item/list', function (req, res, next) {
                                                 prod.meta.pins = pins.length;
                                                 prod.likes = ff.get('likes');
                                                 prod.pins = pins;
-                                                ret.push(prod);
+//                                                ret.push(prod);
+                                                ret[i] = prod;
                                                 console.log(k + "==" + (data.length - 1));
                                                 if (k == (data.length - 1)) {
                                                     res.json({
@@ -609,7 +612,7 @@ router.all('/item/list', function (req, res, next) {
                                                 k++;
                                             }
                                         }
-                                    })(data[i]);
+                                    })(data[i], i);
                                 }
                             }
                         }
