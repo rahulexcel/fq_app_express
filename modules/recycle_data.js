@@ -122,7 +122,7 @@ module.exports = function(){
                             }
                         });
                         father_wise_listing.forEach(function (val11, key11) {
-                            if( val11.father_key == 'women'){
+                            if( val11.father_key == 'women' || val11.father_key == 'men'){
                                 val11_data = val11.data;
                                 val11_data.sort(function (a, b) {
                                     if( a.api_menu_cat_order > b.api_menu_cat_order){

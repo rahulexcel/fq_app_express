@@ -151,6 +151,7 @@ router.get('/', function(req, res) {
             {'site':'urbanladder.com','code':'urbanladder'},
             {'site':'pepperfry.com','code':'Pepperfry'},
             {'site':'paytm.com','code':'paytm'},
+            {'site':'forever21.com','code':'forever21'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -203,7 +204,14 @@ router.get('/', function(req, res) {
         return false;
     }
     function isProductPage(url) {
-        if (url.indexOf('pepperfry') != -1) {
+        if (url.indexOf('forever21') != -1) {
+            if (url.indexOf('Product.aspx') != -1) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        else if (url.indexOf('pepperfry') != -1) {
             if (url.indexOf('.html') != -1) {
                 return true;
             } else {
@@ -253,11 +261,11 @@ router.get('/', function(req, res) {
             }
         }
         else if (url.indexOf('bewakoof') != -1) {
-            if (url.indexOf('product/') != -1) {
+            //if (url.indexOf('product/') != -1) {
                 return true;
-            } else {
-                return false;
-            }
+            //} else {
+               // return false;
+            //}
         }
         else if (url.indexOf('fashionara') != -1) {
             if (url.indexOf('.html') != -1) {
@@ -489,6 +497,10 @@ router.get('/', function(req, res) {
             if($('h2.vip_heading_1').length > 0 ){
                 ptitle = $('h2.vip_heading_1').text();
             }
+        }else if( website_detected == 'forever21'){
+            if( $('font#ItemName').length > 0 ){
+                ptitle = $('font#ItemName').text();
+            }
         }
         if (ptitle)
             ptitle = ptitle.trim();
@@ -533,7 +545,13 @@ router.get('/', function(req, res) {
     }
     function getPriceHtml() {
         var price = 0;
-        if( website_detected == 'shoppersstop'){
+        if( website_detected == 'forever21'){
+            if( $('font.items_price').length > 0 ){
+                price = $('font.items_price').text();
+            }
+            price = getPrice(price);
+        }
+        else if( website_detected == 'shoppersstop'){
             if( $('div.price-box').find('span.price').length > 0 ){
                 price = $('div.price-box').find('span.price').text();
             }
@@ -1033,7 +1051,21 @@ router.get('/', function(req, res) {
     function getImages() {
         var main_image = '';
         var more_images = [];
-        if (website_detected == 'Flipkart') {
+        if (website_detected == 'forever21') {
+            if ($('ul#scroller').find('li').find('img').length > 0) {
+                $('ul#scroller').find('li').find('img').each(function() {
+                    var small_img = $(this).attr('src');
+                    if( small_img.indexOf('_58') != -1 ){
+                        small_img = small_img.replace("_58", "_330");
+                        more_images.push(small_img);
+                    }
+                });
+            }
+            if( more_images.length > 0 ){
+                main_image = more_images[0];
+            }
+        } 
+        else if (website_detected == 'Flipkart') {
             if ($('img.productImage').length > 0) {
                 main_image = $('img.productImage').attr("data-src");
             }
