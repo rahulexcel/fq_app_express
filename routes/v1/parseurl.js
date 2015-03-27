@@ -152,6 +152,8 @@ router.get('/', function(req, res) {
             {'site':'pepperfry.com','code':'Pepperfry'},
             {'site':'paytm.com','code':'paytm'},
             {'site':'forever21.com','code':'forever21'},
+            {'site':'fabindia.com','code':'fabindia'},
+            {'site':'zara.com','code':'zara'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -501,6 +503,14 @@ router.get('/', function(req, res) {
             if( $('font#ItemName').length > 0 ){
                 ptitle = $('font#ItemName').text();
             }
+        }else if( website_detected == 'fabindia'){
+            if( $('div#product-col-middle').find('h1').length > 0 ){
+                ptitle = $('div#product-col-middle').find('h1').text();
+            }
+        }else if( website_detected == 'zara'){
+            if( $('div.right').find('h1').length > 0 ){
+                ptitle = $('div.right').find('h1').text();
+            }
         }
         if (ptitle)
             ptitle = ptitle.trim();
@@ -795,6 +805,10 @@ router.get('/', function(req, res) {
         }
         else if (website_detected == 'jabong') {
             price = getPrice($('#price_div').find('span.price').text());
+        }else if( website_detected == 'fabindia'){
+            price = getPrice($('span.regular-price').find('span.price').text());
+        }else if( website_detected == 'zara'){
+            price = getPrice($('span.price').attr('data-price'));
         }
 
         if (typeof price == 'undefined' || price == 'undefined' || price == false || price.length == 0) {
@@ -1051,7 +1065,31 @@ router.get('/', function(req, res) {
     function getImages() {
         var main_image = '';
         var more_images = [];
-        if (website_detected == 'forever21') {
+        if (website_detected == 'zara') {
+            if ($('img.image-big').length > 0) {
+                $('img.image-big').each(function() {
+                    var img = $(this).attr('data-src');
+                    img = img.replace("//",'');
+                    img = 'http://'+img;
+                    more_images.push(img);
+                });
+            }
+            if( more_images.length > 0 ){
+                main_image = more_images[0];
+            }
+        } 
+        else if (website_detected == 'fabindia') {
+            if ($('div.MagicToolboxContainer').find('a').find('img').length > 0) {
+                $('div.MagicToolboxContainer').find('a').each(function() {
+                    var img = $(this).attr('href');
+                    more_images.push(img);
+                });
+            }
+            if( more_images.length > 0 ){
+                main_image = more_images[0];
+            }
+        } 
+        else if (website_detected == 'forever21') {
             if ($('ul#scroller').find('li').find('img').length > 0) {
                 $('ul#scroller').find('li').find('img').each(function() {
                     var small_img = $(this).attr('src');
@@ -1368,6 +1406,9 @@ router.get('/', function(req, res) {
         if(website_detected == 'paytm'){
             url = 'https://catalog.paytm.com/v1/p/'+getLastSlash(url);
         }
+        if( url.indexOf('fabindia') != -1 ){
+              headers['Cookie'] = '_we_wk_ss_lsf_=true; external_no_cache=1; frontend=be584b4464d789a49bfa17d1da6e371b; sub_cookie_page=50; __utma=33308457.168459215.1427283275.1427434183.1427438273.4; __utmb=33308457.11.10.1427438273; __utmc=33308457; __utmz=33308457.1427434183.3.2.utmcsr=pricegenie.co|utmccn=(referral)|utmcmd=referral|utmcct=/dev/admin/admin/stats-website-catalog-urls.php; my_fab_store=ind';
+            }
         
         var options = {
             url: url,
