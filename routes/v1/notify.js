@@ -6,7 +6,32 @@ var mongoose = require('mongoose');
 router.all('/get_alerts', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
-    
+    var user_watch_map = req.user_watch_map;
+
+    var page = 0;
+    if (body.page) {
+        page = body.page;
+    }
+    if (user_id) {
+        user_watch_map.find({
+            user_id: user_id,
+            for_fashion_iq: true
+        }).skip(page * 10).limit(10).lean().exec(function (err, data) {
+            if (err) {
+                next(err);
+            } else {
+                res.json({
+                    error: 0,
+                    data: data
+                });
+            }
+        });
+    } else {
+        res.json({
+            error: 0,
+            message: 'Invalid Request'
+        });
+    }
 });
 
 router.all('/register', function (req, res, next) {

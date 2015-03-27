@@ -977,9 +977,60 @@ router.all('/list/follow', function (req, res, next) {
         });
     }
 });
+router.all('/item/comment/unlike', function (req, res, next) {
+    var comment_id = req.body.comment_id;
+    var user_id = req.body.user_id;
+    if (comment_id && user_id) {
+        var Comment = req.Comment;
+        Comment.findOne({
+            _id: mongoose.Types.ObjectId(comment_id)
+        }).lean().exec(function (err, data) {
+            if (err) {
+                next(err);
+            } else {
+                var likes = data.likes;
+                if (!likes) {
+                    likes = [];
+                }
+                var new_likes = [];
+                for (var i = 0; i < likes.length; i++) {
+                    var like = likes[i];
+                    var like_user_id = like.user_id;
+                    if (like_user_id + "" !== user_id + "") {
+                        new_likes.push(like);
+                    }
+                }
+                likes.push({
+                    user_id: user_id
+                });
+                Comment.update({
+                    _id: mongoose.Types.ObjectId(comment_id)
+                }, {
+                    $set: {
+                        likes: new_likes
+                    }
+                }, function (err) {
+                    if (err) {
+                        next(err);
+                    } else {
+                        res.json({
+                            error: 0,
+                            data: []
+                        });
+                    }
+                });
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
 router.all('/item/comment/like', function (req, res, next) {
-    var comment_id = req.comment_id;
-    var user_id = req.user_id;
+    var comment_id = req.body.comment_id;
+    var user_id = req.body.user_id;
     if (comment_id && user_id) {
         var Comment = req.Comment;
         Comment.findOne({
