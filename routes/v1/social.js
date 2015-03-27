@@ -18,12 +18,10 @@ client.verifyKey(function (err, valid) {
     }
 });
 var pin_limit = 10;
-
 router.all('/updates', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
     var summary = body.summary;
-
     var Updates = req.Updates;
     if (summary) {
         Updates.count({
@@ -41,14 +39,12 @@ router.all('/updates', function (req, res, next) {
         });
     }
 });
-
 ////remove user as friend
 router.all('/user/unfriend', function (req, res, next) {
     var body = req.body;
     var me_id = body.me_id;
     var friend_id = body.friend_id;
     var User = req.User;
-
     var User = req.User;
     if (me_id && friend_id) {
 
@@ -65,7 +61,8 @@ router.all('/user/unfriend', function (req, res, next) {
                     }
                     var new_friends = [];
                     for (var i = 0; i < friends.length; i++) {
-                        if (friends[i] !== friend_id) {
+                        console.log(friends[i] + "=====" + friend_id);
+                        if (friends[i] + "" !== friend_id + "") {
                             new_friends.push(friends[i]);
                         }
                     }
@@ -94,7 +91,7 @@ router.all('/user/unfriend', function (req, res, next) {
 
                                     var new_friends = [];
                                     for (var i = 0; i < friends.length; i++) {
-                                        if (friends[i] !== friend_id) {
+                                        if (friends[i] + "" !== friend_id + "") {
                                             new_friends.push(friends[i]);
                                         }
                                     }
@@ -127,7 +124,6 @@ router.all('/user/unfriend', function (req, res, next) {
                 }
             }
         });
-
     } else {
         res.json({
             error: 1,
@@ -143,7 +139,6 @@ router.all('/user/acceptfriendrequest', function (req, res, next) {
     var to_user_id = body.to_user_id;
     var FriendRequest = req.FriendRequest;
     var User = req.User;
-
     if (from_user_id && to_user_id) {
         FriendRequest.findOne({
             from_user_id: from_user_id,
@@ -155,7 +150,6 @@ router.all('/user/acceptfriendrequest', function (req, res, next) {
                 if (friend_row) {
                     var from_user_id = friend_row.get('from_user_id');
                     var to_user_id = friend_row.get('to_user_id');
-
                     User.update({
                         _id: mongoose.Types.ObjectId(from_user_id)
                     }, {
@@ -191,15 +185,10 @@ router.all('/user/acceptfriendrequest', function (req, res, next) {
                                             });
                                         }
                                     });
-
-
                                 }
                             });
-
-
                         }
                     });
-
                 } else {
                     res.json({
                         error: 1,
@@ -221,7 +210,6 @@ router.all('/user/declinefriendrequest', function (req, res, next) {
     var to_user_id = body.to_user_id;
     var from_user_id = body.from_user_id;
     var FriendRequest = req.FriendRequest;
-
     if (from_user_id && to_user_id) {
         FriendRequest.findOne({
             from_user_id: from_user_id,
@@ -270,7 +258,6 @@ router.all('/user/addfriend', function (req, res, next) {
     var to_user_id = body.to_user_id;
     var FriendRequest = req.FriendRequest;
     var User = req.User;
-
     if (from_user_id && to_user_id) {
 
         User.findOne({
@@ -353,7 +340,6 @@ router.all('/user/addfriend', function (req, res, next) {
     }
 
 });
-
 router.all('/user/profile/pins', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
@@ -364,7 +350,6 @@ router.all('/user/profile/pins', function (req, res, next) {
     var User = req.User;
     var Wishlist = req.Wishlist;
     var WishlistItemAssoc = req.WishlistItemAssoc;
-
     if (user_id) {
         User.findOne({
             _id: mongoose.Types.ObjectId(user_id)
@@ -404,7 +389,6 @@ router.all('/user/profile/pins', function (req, res, next) {
                                             continue;
                                         }
                                         var list_id = items[i].list_id;
-
                                         var list_name = '';
                                         for (var j = 0; j < rows.length; j++) {
                                             if (rows[j]._id + "" === list_id + "") {
@@ -439,7 +423,6 @@ router.all('/user/profile/pins', function (req, res, next) {
                         });
                     }
                 });
-
             } else {
                 res.json({
                     error: 1,
@@ -455,8 +438,6 @@ router.all('/user/profile/pins', function (req, res, next) {
     }
 
 });
-
-
 //get friend list
 router.all('/user/friends', function (req, res, next) {
     var body = req.body;
@@ -467,7 +448,6 @@ router.all('/user/friends', function (req, res, next) {
     }
 
     var User = req.User;
-
     if (user_id) {
         User.findOne({
             _id: mongoose.Types.ObjectId(user_id)
@@ -492,7 +472,6 @@ router.all('/user/friends', function (req, res, next) {
         });
     }
 });
-
 //get follower list
 router.all('/user/followers', function (req, res, next) {
     var body = req.body;
@@ -503,7 +482,6 @@ router.all('/user/followers', function (req, res, next) {
     }
 
     var User = req.User;
-
     if (user_id) {
         User.findOne({
             _id: mongoose.Types.ObjectId(user_id)
@@ -528,8 +506,6 @@ router.all('/user/followers', function (req, res, next) {
         });
     }
 });
-
-
 //get following list
 router.all('/user/following', function (req, res, next) {
     var body = req.body;
@@ -540,7 +516,6 @@ router.all('/user/following', function (req, res, next) {
     }
 
     var User = req.User;
-
     if (user_id) {
         User.find({
             followers: user_id
@@ -561,7 +536,33 @@ router.all('/user/following', function (req, res, next) {
         });
     }
 });
+//get list of friend request
+//mainly user when a user vists another users profile page
 
+router.all('/user/friend_requests', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var FriendRequest = req.FriendRequest;
+    if (user_id) {
+        FriendRequest.find({
+            to_user_id: user_id
+        }, function (err, data) {
+            if (err) {
+                next(err);
+            } else {
+                res.json({
+                    error: 0,
+                    data: data
+                });
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
 //get full profile of users. used in myaccount page
 router.all('/user/profile/full', function (req, res, next) {
     var body = req.body;
@@ -603,7 +604,6 @@ router.all('/user/profile/full', function (req, res, next) {
                         if (!lists)
                             lists = [];
                         row.lists_mine = lists;
-
                         Wishlist.find({
                             followers: user_id
                         }).sort({created_at: -1}).lean().exec(function (err, lists) {
@@ -613,16 +613,14 @@ router.all('/user/profile/full', function (req, res, next) {
                             if (!lists)
                                 lists = [];
                             row.lists_their = lists;
-
                             var list_ids = [];
-
                             for (var i = 0; i < row.lists_mine.length; i++) {
                                 list_ids.push(row.lists_mine[i]._id);
                             }
 
                             Wishlist.find({
                                 shared_ids: user_id,
-                                type : 'shared'
+                                type: 'shared'
                             }).sort({created_at: -1}).populate('user_id').exec(function (err, shared) {
                                 if (err) {
                                     console.log(err);
@@ -630,7 +628,6 @@ router.all('/user/profile/full', function (req, res, next) {
                                 if (!shared)
                                     shared = [];
                                 row.lists_shared = shared;
-
                                 User.find({
                                     followers: user_id
                                 }).limit(10).lean().exec(function (err, following) {
@@ -645,7 +642,6 @@ router.all('/user/profile/full', function (req, res, next) {
                                         status: {$ne: 'declined'}
                                     }).populate('from_user_id').lean().exec(function (err, friend_requests) {
                                         row.friend_requests = friend_requests;
-
                                         //check if current user is following or is a friend
                                         // cannot check from above, because only loading 10 followers and friends
 
@@ -665,7 +661,6 @@ router.all('/user/profile/full', function (req, res, next) {
                                                 row.is_following = false;
                                                 var friends = user_row.get('friends');
                                                 var followers = user_row.get('followers');
-
                                                 row.is_friend = false;
                                                 row.is_following = false;
                                                 for (var j = 0; j < friends.length; j++) {
@@ -981,7 +976,116 @@ router.all('/list/follow', function (req, res, next) {
             message: 'Invalid Request'
         });
     }
-})
+});
+router.all('/item/comment/unlike', function (req, res, next) {
+    var comment_id = req.body.comment_id;
+    var user_id = req.body.user_id;
+    if (comment_id && user_id) {
+        var Comment = req.Comment;
+        Comment.findOne({
+            _id: mongoose.Types.ObjectId(comment_id)
+        }).lean().exec(function (err, data) {
+            if (err) {
+                next(err);
+            } else {
+                var likes = data.likes;
+                if (!likes) {
+                    likes = [];
+                }
+                var new_likes = [];
+                for (var i = 0; i < likes.length; i++) {
+                    var like = likes[i];
+                    var like_user_id = like.user_id;
+                    if (like_user_id + "" !== user_id + "") {
+                        new_likes.push(like);
+                    }
+                }
+                likes.push({
+                    user_id: user_id
+                });
+                Comment.update({
+                    _id: mongoose.Types.ObjectId(comment_id)
+                }, {
+                    $set: {
+                        likes: new_likes
+                    }
+                }, function (err) {
+                    if (err) {
+                        next(err);
+                    } else {
+                        res.json({
+                            error: 0,
+                            data: []
+                        });
+                    }
+                });
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
+router.all('/item/comment/like', function (req, res, next) {
+    var comment_id = req.body.comment_id;
+    var user_id = req.body.user_id;
+    if (comment_id && user_id) {
+        var Comment = req.Comment;
+        Comment.findOne({
+            _id: mongoose.Types.ObjectId(comment_id)
+        }).lean().exec(function (err, data) {
+            if (err) {
+                next(err);
+            } else {
+                var likes = data.likes;
+                if (!likes) {
+                    likes = [];
+                }
+                var already_liked = false;
+                for (var i = 0; i < likes.length; i++) {
+                    var like = likes[i];
+                    var like_user_id = like.user_id;
+                    if (like_user_id + "" === user_id + "") {
+                        already_liked = true;
+                    }
+                }
+                if (already_liked) {
+                    res.json({
+                        error: 1,
+                        message: 'You Have Already Liked This Comment'
+                    });
+                } else {
+                    likes.push({
+                        user_id: user_id
+                    });
+                    Comment.update({
+                        _id: mongoose.Types.ObjectId(comment_id)
+                    }, {
+                        $set: {
+                            likes: likes
+                        }
+                    }, function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0,
+                                data: []
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
 router.all('/item/view/comment/:list_id/:item_id', function (req, res, next) {
     var item_id = req.params.item_id;
     var list_id = req.params.list_id;

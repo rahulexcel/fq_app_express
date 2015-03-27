@@ -17,7 +17,6 @@ module.exports = function (mongoose) {
         collection: 'user_watch_map'
     });
 
-
     var schema_final_fashion_filters = mongoose.Schema({}, {
         strict: false,
         collection: 'final_fashion_filters'
@@ -133,7 +132,11 @@ module.exports = function (mongoose) {
         user_id: {type: Schema.Types.ObjectId, ref: 'User'},
         comment: String,
         picture: String,
-        created_at: {type: Date, default: Date.now}
+        created_at: {type: Date, default: Date.now},
+        likes: [{
+                user_id: {type: Schema.Types.ObjectId, ref: 'User'},
+                created_at: {type: Date, default: Date.now}
+            }]
     })
     item_comment_schema.index({user_id: -1});
     var wishlist_item_update_schema = mongoose.Schema({
