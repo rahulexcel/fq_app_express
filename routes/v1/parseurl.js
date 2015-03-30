@@ -9,6 +9,10 @@ var util = require('util');
 
 router.get('/', function(req, res) {
     var url = req.query.url;
+    var urlsource = req.query.source;
+    if( typeof urlsource == 'undefined' || urlsource == '' ){
+        urlsource = '-NA-';
+    }
     //-----------------------------------------------------------------------------------------------
     var jquery = fs.readFileSync(__dirname + '/../../../../../js/jquery-1.8.3.min.js').toString();
     var jQuery;
@@ -589,12 +593,25 @@ router.get('/', function(req, res) {
             price = getPrice(price);
         }
         else if( website_detected == 'trendin'){
-            if($('div.price_block').find('h1').length > 0 ){
-                price = $('div.lhs_block price_block').find('h1').text();
+            $('script').each(function(){
+                var scriptText = $(this).text();
+                if( scriptText.indexOf('discount_price') != -1 ){
+                    price = getTextBetween('var discount_price=',';',scriptText);
+                }
+            });
+            if( typeof price == 'undefined' || price == '' || price == 0 || price == null){
+                if( $('div.lhs_block price_block').find('h1').length > 0 ){
+                    price = $('div.lhs_block price_block').find('h1').text();
+                }
             }
-            if( price == '' || price == 0 || price == null){
-                if($('.price_detail_block').find('h1').length > 0 ){
-                    price = $('.price_detail_block').find('h1').text();
+            if( typeof price == 'undefined' || price == '' || price == 0 || price == null){
+                if($('div.price_block').find('h1').length > 0 ){
+                    price = $('div.lhs_block price_block').find('h1').text();
+                }
+            }
+            if( typeof price == 'undefined' || price == '' || price == 0 || price == null){
+                if($('div.price_detail_block').find('h1').length > 0 ){
+                    price = $('div.price_detail_block').find('h1').text();
                 }
             }
             price = getPrice(price);
@@ -1441,7 +1458,8 @@ router.get('/', function(req, res) {
         });
     }
     
-    function processUrl(template, website_detected, data, cat_id, callback) {
+    function processUrl(template, website_detected, url,urlsource,data, cat_id, callback) {
+        var adminEmailAlert = '';
         pageHTML = template;
         if (typeof data == "undefined") {
             data = false;
@@ -1480,8 +1498,28 @@ router.get('/', function(req, res) {
 
                 console.log('price found to be ' + price);
                 console.log('name found to be ' + name);
+                
+                if( typeof price == 'undefined' || price == '' || price == 0 ){
+                    adminEmailAlert += ' price found :: '+price+'<br>';
+                }
+                if( typeof name == 'undefined' || name == '' ){
+                    adminEmailAlert += ' name not found <br>';
+                }
+                
+                if( adminEmailAlert != ''){
+                    adminEmailAlert += '<hr>';
+                    adminEmailAlert += 'url source : '+urlsource+'<br>';
+                    adminEmailAlert += 'website :: '+website_detected+'<br>';
+                    adminEmailAlert += 'url :: '+url+'<br>';
+                    var alertSubject = 'Product Parse Error : '+'Fashioniq : ' + website_detected;
+                    var alertMsgData = {
+                        subject:alertSubject,
+                        body:adminEmailAlert,
+                    };
+                    req.mailer.send('arun@excellencetechnologies.in',alertSubject,'template',alertMsgData);
+                }
+                
                 if (data) {
-
                     data.set('price_found', price);
                     data.set('name_found', name);
                     data.set('isbn_found', isbn);
@@ -1535,6 +1573,7 @@ router.get('/', function(req, res) {
             } else {
                 console.log(website_detected);
                 console.log('yes product page hai !!!');
+                console.log(' !! URL SOURCE :: '+urlsource);
                 getHTML(url, false, function(err, data) {
                     if (err) {
                         res.json({
@@ -1542,7 +1581,7 @@ router.get('/', function(req, res) {
                             msg:err
                         });
                     } else {
-                        processUrl(data, website_detected, false, false, function(ret) {
+                        processUrl(data, website_detected,url ,urlsource,false, false, function(ret) {
                             res.json({
                                 error:0,
                                 data:ret
