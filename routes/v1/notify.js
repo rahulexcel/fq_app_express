@@ -3,6 +3,227 @@ var router = express.Router();
 var mongoose = require('mongoose');
 
 
+
+//subscribe to price alerts
+router.all('/item/price_alert', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var product_id = body.product_id;
+    var user_watch_map = req.user_watch_map;
+    var website_scrap_data = req.conn_website_scrap_data;
+    if (user_id && product_id) {
+        website_scrap_data.findOne({
+            _id: mongoose.Types.ObjectId(product_id)
+        }, function (err, product_row) {
+            if (err) {
+                next();
+            } else {
+                if (!product_row) {
+                    res.json({
+                        error: 1,
+                        message: 'Product Not Found'
+                    });
+                } else {
+
+                    var unique = product_row.get('unique');
+                    var website = product_row.get('website');
+                    var name = product_row.get('name');
+                    var href = product_row.get('href');
+                    var price = product_row.get('price');
+                    var cat_id = product_row.get('cat_id');
+                    var sub_cat_id = product_row.get('sub_cat_id');
+                    var img = product_row.get('img');
+
+                    user_watch_map.findOne({
+                        for_fashion_iq: true,
+                        unique: unique,
+                        website: website,
+                    }, function (err, row) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            if (row._id) {
+
+                                user_watch_map.update({
+                                    _id: row._id
+                                }, {
+                                    $push: {
+                                        user_id: user_id
+                                    }
+                                }, function (err) {
+                                    if (err) {
+                                        next(err);
+                                    } else {
+                                        res.json({
+                                            error: 0
+                                        });
+                                    }
+                                });
+
+                            } else {
+                                var watch_model = new user_watch_map({
+                                    for_fashion_iq: true,
+                                    fq_product_id: product_id,
+                                    unique: unique,
+                                    user_id: [user_id],
+                                    website: website,
+                                    url: href,
+                                    img: img,
+                                    query_id: false,
+                                    base_price: price * 1,
+                                    price: price * 1,
+                                    start_time: new Date().getTime(),
+                                    start_time_pretty: new Date(),
+                                    is_first: 1,
+                                    done: 0,
+                                    tries: 0,
+                                    done_time: new Date().getTime(),
+                                    name: name,
+                                    cat_id: cat_id * 1,
+                                    sub_cat_id: sub_cat_id * 1,
+                                    is_query_exist: false
+                                });
+                                watch_model.save(function (err) {
+                                    if (err) {
+                                        next(err);
+                                    } else {
+                                        res.json({
+                                            error: 0
+                                        });
+                                    }
+                                });
+                            }
+
+                        }
+                    });
+                }
+            }
+        });
+    } else {
+        res.json({
+            error: 1,
+            message: 'Invalid Request'
+        });
+    }
+});
+
+//stop price alerts for a user
+router.all('/stop_alert', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var alert_id = body.alert_id;
+
+    var user_watch_map = req.user_watch_map;
+
+    user_watch_map.find({
+        _id: mongoose.Types.Object(alert_id)
+    }).lean().exec(function (err, row) {
+        if (err) {
+            next(err);
+        } else {
+
+            var user_ids = row.user_id;
+
+            var new_user_ids = [];
+
+            for (var i = 0; i < user_ids.length; i++) {
+                if (user_ids[i] + "" !== user_id + "") {
+                    new_user_ids.push(user_ids[i]);
+                }
+            }
+
+            user_watch_map.update({
+                _id: mongoose.Types.Object(alert_id)
+            }, {
+                $set: {
+                    user_id: new_user_ids
+                }
+            }, function (err) {
+                if (err) {
+                    next(err);
+                } else {
+                    res.json({
+                        error: 0,
+                        data: []
+                    });
+                }
+            });
+
+        }
+    });
+});
+
+//change price in price alert
+router.all('/modify_alerts', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var item_id = body.item_id;
+    var price = body.price;
+    var user_watch_map = req.user_watch_map;
+
+    if (user_id && item_id && price) {
+
+        user_watch_map.find({
+            _id: mongoose.Types.ObjectId(item_id)
+        }).lean().exec(function (err, row) {
+            if (err) {
+                next(err);
+            } else {
+                if (row) {
+
+                    var user_setting = row.user_setting;
+                    if (!user_setting) {
+                        user_setting = [];
+                    }
+
+                    var new_user_setting = [];
+
+                    for (var i = 0; i < user_setting.length; i++) {
+                        if (user_setting[i].user_id + "" !== user_id + "") {
+                            new_user_setting.push(user_setting[i]);
+                        }
+                    }
+                    if (price != "remove") {
+                        new_user_setting.push({
+                            user_id: user_id,
+                            price: price * 1
+                        });
+                    }
+                    user_watch_map.update({
+                        _id: mongoose.Types.ObjectId(item_id)
+                    }, {
+                        $set: {
+                            user_setting: new_user_setting
+                        }
+                    }, function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0,
+                                data: []
+                            });
+                        }
+                    });
+
+                } else {
+                    res.json({
+                        error: 1,
+                        message: 'Price Alert Not Found'
+                    });
+                }
+            }
+        });
+
+    } else {
+        res.json({
+            error: 0,
+            message: 'Invalid Request'
+        });
+    }
+
+});
+
 router.all('/get_alerts', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
@@ -16,7 +237,7 @@ router.all('/get_alerts', function (req, res, next) {
         user_watch_map.find({
             user_id: user_id,
             for_fashion_iq: true
-        }).skip(page * 10).limit(10).lean().exec(function (err, data) {
+        }).skip(page * 10).sort({created: -1}).limit(10).lean().exec(function (err, data) {
             if (err) {
                 next(err);
             } else {
