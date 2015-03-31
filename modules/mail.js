@@ -32,12 +32,15 @@ module.exports = function () {
             }));
             mailer.use('compile', hbs(options));
             mailer.sendMail({
-                from: 'noreply@fashioniq.co',
+                from: 'noreply@fashioniq.in',
                 to: to,
                 subject: subject,
                 template: template,
                 context: context
             }, function (error, response) {
+                if( error ){
+                    console.log(error);
+                }
                 console.log('mail sent to ' + to);
                 mailer.close();
             });

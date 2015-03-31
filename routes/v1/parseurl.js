@@ -9,6 +9,10 @@ var util = require('util');
 
 router.get('/', function(req, res) {
     var url = req.query.url;
+    var urlsource = req.query.source;
+    if( typeof urlsource == 'undefined' || urlsource == '' ){
+        urlsource = '-NA-';
+    }
     //-----------------------------------------------------------------------------------------------
     var jquery = fs.readFileSync(__dirname + '/../../../../../js/jquery-1.8.3.min.js').toString();
     var jQuery;
@@ -152,6 +156,8 @@ router.get('/', function(req, res) {
             {'site':'pepperfry.com','code':'Pepperfry'},
             {'site':'paytm.com','code':'paytm'},
             {'site':'forever21.com','code':'forever21'},
+            {'site':'fabindia.com','code':'fabindia'},
+            {'site':'zara.com','code':'zara'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -501,6 +507,14 @@ router.get('/', function(req, res) {
             if( $('font#ItemName').length > 0 ){
                 ptitle = $('font#ItemName').text();
             }
+        }else if( website_detected == 'fabindia'){
+            if( $('div#product-col-middle').find('h1').length > 0 ){
+                ptitle = $('div#product-col-middle').find('h1').text();
+            }
+        }else if( website_detected == 'zara'){
+            if( $('div.right').find('h1').length > 0 ){
+                ptitle = $('div.right').find('h1').text();
+            }
         }
         if (ptitle)
             ptitle = ptitle.trim();
@@ -579,12 +593,25 @@ router.get('/', function(req, res) {
             price = getPrice(price);
         }
         else if( website_detected == 'trendin'){
-            if($('div.price_block').find('h1').length > 0 ){
-                price = $('div.lhs_block price_block').find('h1').text();
+            $('script').each(function(){
+                var scriptText = $(this).text();
+                if( scriptText.indexOf('discount_price') != -1 ){
+                    price = getTextBetween('var discount_price=',';',scriptText);
+                }
+            });
+            if( typeof price == 'undefined' || price == '' || price == 0 || price == null){
+                if( $('div.lhs_block price_block').find('h1').length > 0 ){
+                    price = $('div.lhs_block price_block').find('h1').text();
+                }
             }
-            if( price == '' || price == 0 || price == null){
-                if($('.price_detail_block').find('h1').length > 0 ){
-                    price = $('.price_detail_block').find('h1').text();
+            if( typeof price == 'undefined' || price == '' || price == 0 || price == null){
+                if($('div.price_block').find('h1').length > 0 ){
+                    price = $('div.lhs_block price_block').find('h1').text();
+                }
+            }
+            if( typeof price == 'undefined' || price == '' || price == 0 || price == null){
+                if($('div.price_detail_block').find('h1').length > 0 ){
+                    price = $('div.price_detail_block').find('h1').text();
                 }
             }
             price = getPrice(price);
@@ -795,6 +822,10 @@ router.get('/', function(req, res) {
         }
         else if (website_detected == 'jabong') {
             price = getPrice($('#price_div').find('span.price').text());
+        }else if( website_detected == 'fabindia'){
+            price = getPrice($('span.regular-price').find('span.price').text());
+        }else if( website_detected == 'zara'){
+            price = getPrice($('span.price').attr('data-price'));
         }
 
         if (typeof price == 'undefined' || price == 'undefined' || price == false || price.length == 0) {
@@ -1051,7 +1082,31 @@ router.get('/', function(req, res) {
     function getImages() {
         var main_image = '';
         var more_images = [];
-        if (website_detected == 'forever21') {
+        if (website_detected == 'zara') {
+            if ($('img.image-big').length > 0) {
+                $('img.image-big').each(function() {
+                    var img = $(this).attr('data-src');
+                    img = img.replace("//",'');
+                    img = 'http://'+img;
+                    more_images.push(img);
+                });
+            }
+            if( more_images.length > 0 ){
+                main_image = more_images[0];
+            }
+        } 
+        else if (website_detected == 'fabindia') {
+            if ($('div.MagicToolboxContainer').find('a').find('img').length > 0) {
+                $('div.MagicToolboxContainer').find('a').each(function() {
+                    var img = $(this).attr('href');
+                    more_images.push(img);
+                });
+            }
+            if( more_images.length > 0 ){
+                main_image = more_images[0];
+            }
+        } 
+        else if (website_detected == 'forever21') {
             if ($('ul#scroller').find('li').find('img').length > 0) {
                 $('ul#scroller').find('li').find('img').each(function() {
                     var small_img = $(this).attr('src');
@@ -1368,6 +1423,9 @@ router.get('/', function(req, res) {
         if(website_detected == 'paytm'){
             url = 'https://catalog.paytm.com/v1/p/'+getLastSlash(url);
         }
+        if( url.indexOf('fabindia') != -1 ){
+              headers['Cookie'] = '_we_wk_ss_lsf_=true; external_no_cache=1; frontend=be584b4464d789a49bfa17d1da6e371b; sub_cookie_page=50; __utma=33308457.168459215.1427283275.1427434183.1427438273.4; __utmb=33308457.11.10.1427438273; __utmc=33308457; __utmz=33308457.1427434183.3.2.utmcsr=pricegenie.co|utmccn=(referral)|utmcmd=referral|utmcct=/dev/admin/admin/stats-website-catalog-urls.php; my_fab_store=ind';
+            }
         
         var options = {
             url: url,
@@ -1400,7 +1458,8 @@ router.get('/', function(req, res) {
         });
     }
     
-    function processUrl(template, website_detected, data, cat_id, callback) {
+    function processUrl(template, website_detected, url,urlsource,data, cat_id, callback) {
+        var adminEmailAlert = '';
         pageHTML = template;
         if (typeof data == "undefined") {
             data = false;
@@ -1439,8 +1498,28 @@ router.get('/', function(req, res) {
 
                 console.log('price found to be ' + price);
                 console.log('name found to be ' + name);
+                
+                if( typeof price == 'undefined' || price == '' || price == 0 ){
+                    adminEmailAlert += ' price found :: '+price+'<br>';
+                }
+                if( typeof name == 'undefined' || name == '' ){
+                    adminEmailAlert += ' name not found <br>';
+                }
+                
+                if( adminEmailAlert != ''){
+                    adminEmailAlert += '<hr>';
+                    adminEmailAlert += 'url source : '+urlsource+'<br>';
+                    adminEmailAlert += 'website :: '+website_detected+'<br>';
+                    adminEmailAlert += 'url :: '+url+'<br>';
+                    var alertSubject = 'Product Parse Error : '+'Fashioniq : ' + website_detected;
+                    var alertMsgData = {
+                        subject:alertSubject,
+                        body:adminEmailAlert,
+                    };
+                    req.mailer.send('arun@excellencetechnologies.in',alertSubject,'template',alertMsgData);
+                }
+                
                 if (data) {
-
                     data.set('price_found', price);
                     data.set('name_found', name);
                     data.set('isbn_found', isbn);
@@ -1494,6 +1573,7 @@ router.get('/', function(req, res) {
             } else {
                 console.log(website_detected);
                 console.log('yes product page hai !!!');
+                console.log(' !! URL SOURCE :: '+urlsource);
                 getHTML(url, false, function(err, data) {
                     if (err) {
                         res.json({
@@ -1501,7 +1581,7 @@ router.get('/', function(req, res) {
                             msg:err
                         });
                     } else {
-                        processUrl(data, website_detected, false, false, function(ret) {
+                        processUrl(data, website_detected,url ,urlsource,false, false, function(ret) {
                             res.json({
                                 error:0,
                                 data:ret

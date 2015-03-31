@@ -201,6 +201,29 @@ router.all('/view', function (req, res, next) {
                                         }
                                         console.log(' !!! where_variant !!! ');
                                         console.log(where_variant);
+                                        website_scrap_data.find(where_variant, {"score": {"$meta": "textScore"}}, {limit: 10, sort: {'score': {'$meta': "textScore"}}}, data_var_res);
+                                         function data_var_res(err, data_var) {
+                                            if (err) {
+                                                res.json({
+                                                    error: 2,
+                                                    message: err.err,
+                                                });
+                                            } else {
+                                                if (data_var) {
+                                                    for (var i = 0; i < data_var.length; i++) {
+                                                        var row = data_var[i];
+                                                        var obj = row;
+                                                        variant_arr.push(productObj.getProductPermit(req, obj));
+                                                    }
+                                                    
+                                                }
+                                                product_data.variant = variant_arr;
+                                                req.toCache = true;
+                                                req.cache_data = product_data;
+                                                next();
+                                            }
+                                         }
+                                        /*
                                         website_scrap_data.aggregate(
                                                 {$match: where_variant},
                                         {$sort: {score: {$meta: "textScore"}}},
@@ -286,6 +309,7 @@ router.all('/view', function (req, res, next) {
                                                 }
                                             }
                                         }
+                                        */
                                     }
                                 }
                             }
