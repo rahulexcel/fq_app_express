@@ -158,6 +158,7 @@ router.get('/', function(req, res) {
             {'site':'forever21.com','code':'forever21'},
             {'site':'fabindia.com','code':'fabindia'},
             {'site':'zara.com','code':'zara'},
+            {'site':'bata.in','code':'bata'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -516,6 +517,11 @@ router.get('/', function(req, res) {
                 ptitle = $('div.right').find('h1').text();
             }
         }
+        else if( website_detected == 'bata'){
+            if( $('div.product-name').find('h1').length > 0 ){
+                ptitle = $('div.product-name').find('h1').text();
+            }
+        }
         if (ptitle)
             ptitle = ptitle.trim();
         else {
@@ -566,16 +572,18 @@ router.get('/', function(req, res) {
             price = getPrice(price);
         }
         else if( website_detected == 'shoppersstop'){
-            if( $('div.price-box').find('span.price').length > 0 ){
-                price = $('div.price-box').find('span.price').text();
-            }
-            if( ( price == 0 || price == '') && $('div.price-box').find('span.special-price').length > 0 ){
+            if( $('div.price-box').find('span.special-price').length > 0 ){
                 price = $('div.price-box').find('span.special-price').text();
+                price = getPrice(price);
             }
             if( ( price == 0 || price == '') && $('div.price-box').find('span.regular-price').length > 0 ){
                 price = $('div.price-box').find('span.regular-price').text();
+                price = getPrice(price);
             }
-            price = getPrice(price);
+            if( ( price == 0 || price == '') &&  $('div.price-box').find('span.price').length > 0 ){
+                price = $('div.price-box').find('span.price').text();
+                price = getPrice(price);
+            }
         }
         else if( website_detected == 'zansaar'){
             if( $('span[itemprop="price"]').length > 0 ){
@@ -826,6 +834,11 @@ router.get('/', function(req, res) {
             price = getPrice($('span.regular-price').find('span.price').text());
         }else if( website_detected == 'zara'){
             price = getPrice($('span.price').attr('data-price'));
+        }else if( website_detected == 'bata'){
+            price =getPrice($('#inrPrice').attr('value'));
+            if( price == '' || price == 0 ){
+                price = getPrice($('span.amount').text());
+            }
         }
 
         if (typeof price == 'undefined' || price == 'undefined' || price == false || price.length == 0) {
@@ -915,6 +928,15 @@ router.get('/', function(req, res) {
     }
     function getPrice(price) {
         return getPriceWithPoint(price);
+    }
+    function getStockStatus(){
+        var stock = 1;
+        if( website_detected == 'amazon'){
+            if( $('div#outOfStock').length > 0 ){
+                stock = 0;
+            }
+        }
+        return stock;
     }
     // For http://www.amazon.in/
     function getPriceWithPoint(price) {
@@ -1392,6 +1414,16 @@ router.get('/', function(req, res) {
                     more_images.push(ii);
                 });
             }
+        }else if( website_detected == 'bata'){
+            if($('div.small-list-all').find('li').find('img.productImg').length > 0 ){
+                $('div.small-list-all').find('li').find('img.productImg').each(function(){
+                    var ii = $(this).attr('src');
+                    more_images.push(ii);
+                });
+                if( more_images.length > 0 ){
+                    main_image == more_images[0];
+                }
+            }
         }
         return {
             'main_image': main_image,
@@ -1481,6 +1513,7 @@ router.get('/', function(req, res) {
                     var name = json_data.name;
                     var main_image = json_data.image_url;
                     var more_images = json_data.other_images;
+                    var stock = 1;
                     more_images.push(main_image);
                 }else{
                     var price = getPriceHtml();
@@ -1488,6 +1521,7 @@ router.get('/', function(req, res) {
                     var images = getImages();
                     var main_image = images.main_image;
                     var more_images = images.more_images;
+                    var stock = getStockStatus();
                 }
                 
                 var isbn = '';
@@ -1499,11 +1533,16 @@ router.get('/', function(req, res) {
                 console.log('price found to be ' + price);
                 console.log('name found to be ' + name);
                 
-                if( typeof price == 'undefined' || price == '' || price == 0 ){
-                    adminEmailAlert += ' price found :: '+price+'<br>';
-                }
-                if( typeof name == 'undefined' || name == '' ){
-                    adminEmailAlert += ' name not found <br>';
+                if( stock == 1 ){
+                    console.log('!!! In STOCK Product !!!');
+                    if( typeof price == 'undefined' || price == '' || price == 0 ){
+                        adminEmailAlert += ' price found :: '+price+'<br>';
+                    }
+                    if( typeof name == 'undefined' || name == '' ){
+                        adminEmailAlert += ' name not found <br>';
+                    }
+                }else{
+                    console.log('!!! Out Of STOCK Product !!!');
                 }
                 
                 if( adminEmailAlert != ''){
