@@ -318,7 +318,7 @@ function updateLatestFeedData(req, done, next) {
         'type': 'women',
         'where': {
             '$or': [
-                {'cat_id': {'$in': [50, 51, 52, 54]}},
+                {'cat_id': {'$in': [50, 52, 54]}},
                 {'sub_cat_id': {'$in': [6202, 6302]}}
             ]
         },
