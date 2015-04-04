@@ -159,6 +159,7 @@ router.get('/', function(req, res) {
             {'site':'fabindia.com','code':'fabindia'},
             {'site':'zara.com','code':'zara'},
             {'site':'bata.in','code':'bata'},
+            {'site':'miracas.com','code':'miracas'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -521,6 +522,10 @@ router.get('/', function(req, res) {
             if( $('div.product-name').find('h1').length > 0 ){
                 ptitle = $('div.product-name').find('h1').text();
             }
+        }else if( website_detected == 'miracas'){
+            if( $('div#pb-left-column').find('h1').length > 0 ){
+                ptitle = $('div#pb-left-column').find('h1').text();
+            }
         }
         if (ptitle)
             ptitle = ptitle.trim();
@@ -838,6 +843,11 @@ router.get('/', function(req, res) {
             price =getPrice($('#inrPrice').attr('value'));
             if( price == '' || price == 0 ){
                 price = getPrice($('span.amount').text());
+            }
+        }else if( website_detected == 'miracas'){
+            if( $('#our_price_display').length > 0 ){
+                pp = $('#our_price_display').text();
+                price = getPrice(pp);
             }
         }
 
@@ -1423,6 +1433,15 @@ router.get('/', function(req, res) {
                 if( more_images.length > 0 ){
                     main_image == more_images[0];
                 }
+            }
+        }else if (website_detected == 'miracas') {
+            if ( $('div#image-block').find('img').length > 0 ) {
+                main_image =  $('div#image-block').find('img').attr('src');
+            }
+            if( $('div#thumbs_list').find('a.thickbox').length > 0 ){
+                $('div#thumbs_list').find('a.thickbox').each(function(){
+                    more_images.push($(this).attr('href'));
+                });
             }
         }
         return {
