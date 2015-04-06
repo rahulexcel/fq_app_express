@@ -156,7 +156,8 @@ router.all('/filters', function (req, res, next) {
                     error: 0,
                     data: finalData,
                 });
-            }else if( is_cat_id_set == true && is_sub_cat_id_set == false ){
+            }
+            else if( is_cat_id_set == true && is_sub_cat_id_set == false && request_filter_sub_cat_id != -1 ){
                 if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
                     for( var i = 0; i < father_wise_listing.length ; i++){
                         if( typeof father_wise_listing[i].data != 'undefined' && father_wise_listing[i].data.length > 0 ){
@@ -183,7 +184,8 @@ router.all('/filters', function (req, res, next) {
                     error: 0,
                     data: finalData,
                 });
-            }else{
+            }
+            else{
                 if( is_cat_id_set == false  && is_sub_cat_id_set == true ){
                     var where_filter = {
                         'sub_cat_id': request_filter_sub_cat_id * 1
