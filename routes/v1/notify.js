@@ -1,9 +1,6 @@
 var express = require('express');
 var router = express.Router();
 var mongoose = require('mongoose');
-
-
-
 //subscribe to price alerts
 router.all('/item/price_alert', function (req, res, next) {
     var body = req.body;
@@ -25,6 +22,7 @@ router.all('/item/price_alert', function (req, res, next) {
                     });
                 } else {
 
+                    var product_id = product_row.get('_id');
                     var unique = product_row.get('unique');
                     var website = product_row.get('website');
                     var name = product_row.get('name');
@@ -33,7 +31,6 @@ router.all('/item/price_alert', function (req, res, next) {
                     var cat_id = product_row.get('cat_id');
                     var sub_cat_id = product_row.get('sub_cat_id');
                     var img = product_row.get('img');
-
                     user_watch_map.findOne({
                         for_fashion_iq: true,
                         unique: unique,
@@ -42,7 +39,7 @@ router.all('/item/price_alert', function (req, res, next) {
                         if (err) {
                             next(err);
                         } else {
-                            if (row._id) {
+                            if (row && row.get('_id')) {
 
                                 user_watch_map.update({
                                     _id: row._id
@@ -59,7 +56,6 @@ router.all('/item/price_alert', function (req, res, next) {
                                         });
                                     }
                                 });
-
                             } else {
                                 var watch_model = new user_watch_map({
                                     for_fashion_iq: true,
@@ -106,15 +102,12 @@ router.all('/item/price_alert', function (req, res, next) {
         });
     }
 });
-
 //stop price alerts for a user
 router.all('/stop_alert', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
     var alert_id = body.alert_id;
-
     var user_watch_map = req.user_watch_map;
-
     user_watch_map.find({
         _id: mongoose.Types.Object(alert_id)
     }).lean().exec(function (err, row) {
@@ -123,9 +116,7 @@ router.all('/stop_alert', function (req, res, next) {
         } else {
 
             var user_ids = row.user_id;
-
             var new_user_ids = [];
-
             for (var i = 0; i < user_ids.length; i++) {
                 if (user_ids[i] + "" !== user_id + "") {
                     new_user_ids.push(user_ids[i]);
@@ -148,11 +139,9 @@ router.all('/stop_alert', function (req, res, next) {
                     });
                 }
             });
-
         }
     });
 });
-
 //change price in price alert
 router.all('/modify_alerts', function (req, res, next) {
     var body = req.body;
@@ -160,7 +149,6 @@ router.all('/modify_alerts', function (req, res, next) {
     var item_id = body.item_id;
     var price = body.price;
     var user_watch_map = req.user_watch_map;
-
     if (user_id && item_id && price) {
 
         user_watch_map.find({
@@ -177,7 +165,6 @@ router.all('/modify_alerts', function (req, res, next) {
                     }
 
                     var new_user_setting = [];
-
                     for (var i = 0; i < user_setting.length; i++) {
                         if (user_setting[i].user_id + "" !== user_id + "") {
                             new_user_setting.push(user_setting[i]);
@@ -205,7 +192,6 @@ router.all('/modify_alerts', function (req, res, next) {
                             });
                         }
                     });
-
                 } else {
                     res.json({
                         error: 1,
@@ -214,7 +200,6 @@ router.all('/modify_alerts', function (req, res, next) {
                 }
             }
         });
-
     } else {
         res.json({
             error: 0,
@@ -224,20 +209,17 @@ router.all('/modify_alerts', function (req, res, next) {
 
 });
 
-router.all('/get_alerts', function (req, res, next) {
+//get single alert by id
+
+router.all('/get_alert', function (req, res, next) {
     var body = req.body;
-    var user_id = body.user_id;
+    var alert_id = body.alert_id;
     var user_watch_map = req.user_watch_map;
 
-    var page = 0;
-    if (body.page) {
-        page = body.page;
-    }
-    if (user_id) {
-        user_watch_map.find({
-            user_id: user_id,
-            for_fashion_iq: true
-        }).skip(page * 10).sort({created: -1}).limit(10).lean().exec(function (err, data) {
+    if (alert_id) {
+        user_watch_map.findOne({
+            _id: mongoose.Types.ObjectId(alert_id)
+        }).lean().exec(function (err, data) {
             if (err) {
                 next(err);
             } else {
@@ -255,21 +237,47 @@ router.all('/get_alerts', function (req, res, next) {
     }
 });
 
+//get all alerts page wise
+router.all('/get_alerts', function (req, res, next) {
+    var body = req.body;
+    var user_id = body.user_id;
+    var user_watch_map = req.user_watch_map;
+    var page = 0;
+    if (body.page) {
+        page = body.page;
+    }
+    if (user_id) {
+        user_watch_map.find({
+            user_id: user_id,
+            for_fashion_iq: true
+        }).sort({start_time_pretty: -1}).skip(page * 10).limit(10).lean().exec(function (err, data) {
+            if (err) {
+                next(err);
+            } else {
+                res.json({
+                    error: 0,
+                    data: data
+                });
+            }
+        });
+    } else {
+        res.json({
+            error: 0,
+            message: 'Invalid Request'
+        });
+    }
+});
 router.all('/register', function (req, res, next) {
     var body = req.body;
-
     var user_id = body.user_id;
     var reg_id = body.reg_id;
     var device = body.device;
-
-
     var model = '';
     if (device.model) {
         model = device.model;
     }
 
     var GCM = req.GCM;
-
     if (user_id && reg_id && device) {
         GCM.findOne({
             user_id: user_id,
@@ -317,14 +325,11 @@ router.all('/register', function (req, res, next) {
         });
     }
 });
-
 router.all('/alert', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
     var data = body.data;
     var expiry = body.expiry;
-
-
     var gcm = require('node-gcm');
     var message = new gcm.Message({
 //        collapseKey: 'demo',
@@ -332,10 +337,8 @@ router.all('/alert', function (req, res, next) {
         timeToLive: expiry,
         data: data
     });
-
     var GCM = req.GCM;
     var registrationIds = [];
-
     var where = {};
     console.log(typeof user_id);
     if (typeof user_id !== 'string') {
@@ -356,7 +359,6 @@ router.all('/alert', function (req, res, next) {
             }
             console.log(registrationIds);
             var sender = new gcm.Sender('AIzaSyABDceQztvkstpKksCz86-hQAFeshqoBV4');
-
             console.log(data.meta);
             if (data.meta && data.meta.type && data.meta.type == 'item_add') {
                 pushItemToUserFeed(data.meta.item_id, user_id, req);
@@ -376,9 +378,7 @@ router.all('/alert', function (req, res, next) {
             });
         }
     });
-
 });
-
 function pushItemToUserFeed(item_id, user_id, req) {
     var redis = req.redis;
     redis.lpush('user_feed_' + user_id, item_id, function (err) {
