@@ -946,6 +946,11 @@ router.get('/', function(req, res) {
                 stock = 0;
             }
         }
+        else if( website_detected == 'Flipkart'){
+            if( $('div.out-of-stock-section').length > 0 ){
+                stock = 0;
+            }
+        }
         return stock;
     }
     // For http://www.amazon.in/
@@ -1613,6 +1618,7 @@ router.get('/', function(req, res) {
     console.log("Parsing URL :: ");
     console.log(url);
     console.log('---------------------');
+    
     var pageHTML = '';
     if (url.length > 1) {
         var iden_website = identifyWebsite(url);
