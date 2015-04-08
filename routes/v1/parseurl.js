@@ -6,12 +6,24 @@ var zlib = require('zlib');
 var jsdom = require('jsdom');
 var fs = require('fs');
 var util = require('util'); 
+var mongoose = require('mongoose');
+
+var conn4 = mongoose.createConnection('mongodb://pricegenie.co/scrap_db3');
+var scrap_data_schema2 = mongoose.Schema({}, {
+    strict: false,
+    collection: 'website_scrap_data'
+});
+var scrap_data = conn4.model('website_scrap_data', scrap_data_schema2);
 
 router.get('/', function(req, res) {
     var url = req.query.url;
     var urlsource = req.query.source;
     if( typeof urlsource == 'undefined' || urlsource == '' ){
         urlsource = '-NA-';
+    }
+    var pid = req.query.pid;
+    if( typeof pid == 'undefined' || pid == '' ){
+        pid = false;
     }
     //-----------------------------------------------------------------------------------------------
     var jquery = fs.readFileSync(__dirname + '/../../../../../js/jquery-1.8.3.min.js').toString();
@@ -939,6 +951,28 @@ router.get('/', function(req, res) {
     function getPrice(price) {
         return getPriceWithPoint(price);
     }
+    function getColorArray(){
+        var colors = [];
+        if ( website_detected == 'bewakoof') {
+            if( $('div.xcolor_lable').length > 0 ){
+                c = $('div.xcolor_lable').text();
+                c = stringToArray( c,':');
+                if( c.length == 2 ){
+                    colors.push(c[1].trim());
+                }
+            }
+        }
+        else if ( website_detected == 'zivame') {
+            if( $('ul.product_colors').find('img.colorswatch').length > 0 ){
+                c = $('ul.product_colors').find('img.colorswatch').attr('alt');
+                c = c.trim();
+                if( c.length > 0 ){
+                    colors.push(c);
+                }
+            }
+        }
+        return colors;
+    }
     function getStockStatus(){
         var stock = 1;
         if( website_detected == 'amazon'){
@@ -1528,6 +1562,7 @@ router.get('/', function(req, res) {
                 jQuery = w.$;
                 $ = w.$;
                 window = w;
+                colors = [];
                 if( website_detected == 'paytm'){
                     json_data = JSON.parse(template);
                     var price = json_data.offer_price;
@@ -1546,6 +1581,30 @@ router.get('/', function(req, res) {
                     var main_image = images.main_image;
                     var more_images = images.more_images;
                     var stock = getStockStatus();
+                    colors = getColorArray();
+                    console.log('colors found');
+                    console.log(colors);
+                    if( pid != false && colors.length > 0 ){
+                        console.log(pid);
+                        console.log(colors);
+                        where_rec = {
+                            '_id': mongoose.Types.ObjectId(pid),
+                        };
+                        var to_be_update_data = {};
+                        to_be_update_data['$set'] = {
+                            color: colors,
+                            color_update_from:'parseurl.js'
+                        };
+                        scrap_data.update(where_rec,to_be_update_data,function(err,dd){
+                            if (err) {
+                                console.log("error on  updating product");
+                                console.log(err);
+                            }else{
+                                console.log('color update done!');
+                            }
+                        });
+                        
+                    }
                 }
                 
                 var isbn = '';
@@ -1587,6 +1646,7 @@ router.get('/', function(req, res) {
                     data.set('name_found', name);
                     data.set('isbn_found', isbn);
                     data.set('title_found', $('title').html());
+                    
 
                     data.set('notify', 1);
                     data.set('notify_type', 'user');
@@ -1605,7 +1665,8 @@ router.get('/', function(req, res) {
                         isbn: isbn,
                         title: $('title').html(),
                         image:main_image,
-                        more_images:more_images
+                        more_images:more_images,
+                        colors:colors,
                     });
                 }
 

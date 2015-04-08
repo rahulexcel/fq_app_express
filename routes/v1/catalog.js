@@ -981,10 +981,22 @@ router.all('/products', function (req, res, next) {
                                             where[fltr_key]['$in'].push(fltr_val);
                                         }
                                     } else if (fltr_key == 'color') {
+                                        fltr_key_is_in_where = false;
+                                        Object.keys(where).forEach(function(cc) {
+                                            if (cc == fltr_key) {
+                                                fltr_key_is_in_where = true;
+                                            }
+                                        });
+                                        if (fltr_key_is_in_where == false) {
+                                            where[fltr_key] = {
+                                                '$in': [],
+                                            };
+                                        }
                                         color_filter_is_set = true;
-                                        var query_colors = [];
-                                        query_colors.push(fltr_val);
-
+                                        //var query_colors = [];
+                                        //query_colors.push(fltr_val);
+                                        // no need for below seconday and sub colors as now colors will work only as main color
+                                        /*
                                         if (typeof fltr_str_arr[3] != 'undefined' && fltr_str_arr[4] == 'subcolor') {
                                             set_empty_colors_filters = true;
                                             console.log(' arun kuma COLORS UNSET HERE');
@@ -1027,15 +1039,14 @@ router.all('/products', function (req, res, next) {
                                             });
 
                                         }
-
+                                        */
                                         console.log('query_colors');
-                                        console.log(query_colors);
-
-
-                                        where[fltr_key] = {
-                                            '$in': query_colors
-                                        };
-
+                                        console.log(fltr_val);
+                                        //console.log(query_colors);
+                                        //where[fltr_key] = {
+                                           // '$in': query_colors
+                                        //};
+                                        where[fltr_key]['$in'].push(getRegexString(fltr_val));
                                     }
                                     else {
                                         where[fltr_key] = new RegExp(fltr_val, "i");

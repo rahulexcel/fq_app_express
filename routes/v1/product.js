@@ -221,7 +221,11 @@ router.all('/similar', function (req, res, next) {
                         }
                         console.log('!! where_similar !!!');
                         console.log(where_similar);
-                        website_scrap_data.find(where_similar, {"score": {"$meta": "textScore"}}, {limit: 10, sort: {'score': {'$meta': "textScore"}}}, data_sim_res);
+                        website_scrap_data.find(where_similar, {"score": {"$meta": "textScore"}}, {
+                            limit: 10, 
+                            sort: {'score': {'$meta': "textScore"}},
+                            select: product_data_list,
+                        }, data_sim_res);
                         function data_sim_res(err, data_sim) {
                             if (err) {
                                 res.json({
@@ -233,9 +237,8 @@ router.all('/similar', function (req, res, next) {
                                     for (var i = 0; i < data_sim.length; i++) {
                                         var row = data_sim[i];
                                         var obj = row;
-                                        similar_arr.push(productObj.getProductPermit(req, obj));
+                                        similar_arr.push( productObj.getProductPermit(req, obj));
                                     }
-                                    product_data.similar = similar_arr;
                                 }
                                 res.json({
                                     error: 0,
@@ -266,6 +269,23 @@ router.all('/variant', function (req, res, next) {
                 message: 'product_id is not found',
             });
         } else {
+            var project_project = {
+                //'cat_id' : '$data.cat_id',
+                //'sub_cat_id' : '$_id.sub_cat_id',
+                //'name' : '$_id.name',
+                //'website':'$_id.website',
+                //'brand':'$_id.brand',
+                //'price':'$_id.price',
+                //'img':'$_id.img',
+                //'href':'$_id.href',
+                //'offrate':'$_id.offrate',
+                //'price_history':'$_id.price_history',
+                //'price_diff':'$_id.price_diff',
+                //'sort_score':'$_id.sort_score',
+                //'model_no':'$_id.model_no',
+                //'cat_id sub_cat_id name website brand price img href offrate price_history price_diff sort_score model_no'
+            };
+            
             var variant_arr = [];
             var where = {
                 '_id': mongoose.Types.ObjectId(product_id),
@@ -323,6 +343,7 @@ router.all('/variant', function (req, res, next) {
                             {$sort: {score: {$meta: "textScore"}}},
                             //{$limit: 1000},
                             {$group: {'_id': '$website', 'data': {$push: "$$ROOT"}}},
+                            //{$project: project_project},
                             data_var_res
                         );
                         function data_var_res(err, data_var) {
@@ -332,6 +353,7 @@ router.all('/variant', function (req, res, next) {
                                     message: err.err,
                                 });
                             } else {
+                                //console.log(data_var);
                                 if (typeof data_var != 'undefined' && data_var.length > 0) {
                                     for (var k = 0; k < data_var.length; k++) {
                                         if (data_var[k].data && data_var[k].data.length > 0) {
@@ -365,15 +387,18 @@ router.all('/variant', function (req, res, next) {
                                             {$sort: {score: {$meta: "textScore"}}},
                                             //{$limit: 1000},
                                             {$group: {'_id': '$website', 'data': {$push: "$$ROOT"}}},
+                                            //{$project: project_project},
                                             data_var_res2
                                         );
                                         function data_var_res2(err, data_var2) {
+                                            
                                             if (err) {
                                                 res.json({
                                                     error: 2,
                                                     message: err.err,
                                                 });
                                             } else {
+                                                //console.log(data_var2);
                                                 for (var k = 0; k < data_var2.length; k++) {
                                                     if (data_var2[k].data && data_var2[k].data.length > 0) {
                                                         var website_wise = data_var2[k].data;
