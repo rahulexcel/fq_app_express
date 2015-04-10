@@ -172,6 +172,7 @@ router.get('/', function(req, res) {
             {'site':'zara.com','code':'zara'},
             {'site':'bata.in','code':'bata'},
             {'site':'miracas.com','code':'miracas'},
+            {'site':'faballey.com','code':'faballey'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -455,7 +456,14 @@ router.get('/', function(req, res) {
             }
             ptitle = ptitle.replace("(", "");
             ptitle = ptitle.replace(")", "");
-        } else if (website_detected == 'Landmark') {
+        } 
+        else if( website_detected == 'faballey'){
+            if( $('div.prodRightSec').find('div.title7').find('h1').length > 0 ){
+                price = $('div.prodRightSec').find('div.title7').find('h1').text();
+            }
+            price = getPrice(price);
+        }
+        else if (website_detected == 'Landmark') {
             ptitle = $('h1:first').text();
         } else if (website_detected == 'ezeekart') {
             ptitle = $('.product_name').text();
@@ -585,6 +593,12 @@ router.get('/', function(req, res) {
         if( website_detected == 'forever21'){
             if( $('font.items_price').length > 0 ){
                 price = $('font.items_price').text();
+            }
+            price = getPrice(price);
+        }
+        else if( website_detected == 'faballey'){
+            if( $('div.prodRightSec').find('div.title7').find('h3').length > 0 ){
+                price = $('div.prodRightSec').find('div.title7').find('h3').text();
             }
             price = getPrice(price);
         }
@@ -1170,6 +1184,17 @@ router.get('/', function(req, res) {
             if ($('div.MagicToolboxContainer').find('a').find('img').length > 0) {
                 $('div.MagicToolboxContainer').find('a').each(function() {
                     var img = $(this).attr('href');
+                    more_images.push(img);
+                });
+            }
+            if( more_images.length > 0 ){
+                main_image = more_images[0];
+            }
+        } 
+        else if (website_detected == 'faballey') {
+            if ($('div.mt-more-images').find('img.sliderimage').length > 0) {
+                $('div.mt-more-images').find('img.sliderimage').each(function() {
+                    var img = $(this).attr('src');
                     more_images.push(img);
                 });
             }
