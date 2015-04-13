@@ -173,6 +173,7 @@ router.get('/', function(req, res) {
             {'site':'bata.in','code':'bata'},
             {'site':'miracas.com','code':'miracas'},
             {'site':'faballey.com','code':'faballey'},
+            {'site':'elitify.com','code':'elitify'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -465,6 +466,8 @@ router.get('/', function(req, res) {
         }
         else if (website_detected == 'Landmark') {
             ptitle = $('h1:first').text();
+        }else if (website_detected == 'elitify') {
+            ptitle = $('h1.product_name').text();
         } else if (website_detected == 'ezeekart') {
             ptitle = $('.product_name').text();
         } else if (website_detected == 'Croma') {
@@ -985,6 +988,17 @@ router.get('/', function(req, res) {
                 }
             }
         }
+        else if ( website_detected == 'elitify') {
+            if( $('ul.color').find('li.color').length > 0 ){
+                $('ul.color').find('li.color').each(function(){
+                    c = $(this).attr('data-option-title');
+                    c = c.trim();
+                    if( c.length > 0 ){
+                        colors.push(c);
+                    }
+                });
+            }
+        }
         return colors;
     }
     function getStockStatus(){
@@ -1167,7 +1181,16 @@ router.get('/', function(req, res) {
     function getImages() {
         var main_image = '';
         var more_images = [];
-        if (website_detected == 'zara') {
+        
+        if (website_detected == 'elitify') {
+            if( $('meta[property="og:image"]').length > 0 ){
+                more_images.push( $('meta[property="og:image"]').attr('content'));
+            }
+            if( more_images.length > 0 ){
+                main_image = more_images[0];
+            }
+        } 
+        else if (website_detected == 'zara') {
             if ($('img.image-big').length > 0) {
                 $('img.image-big').each(function() {
                     var img = $(this).attr('data-src');
