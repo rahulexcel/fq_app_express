@@ -38,6 +38,39 @@ function modifyPriceHistoryForJson(data) {
     }
     return return_data;
 }
+function manipulateVariantData(data){
+    var per_website =4;
+    var ret_data = [];
+    var websites_wise = {};
+    if( typeof data != 'undefined' && data.length > 0 ){
+        for( var i = 0 ; i < data.length; i++ ){
+            var web_exists = false;
+            var row = data[i];
+            var website = row.get('website');
+            Object.keys(websites_wise).forEach(function(cc) {
+                if (cc == website) {
+                    web_exists = true;
+                }
+            });
+            if (web_exists == false) {
+                websites_wise[website] = 0;
+            }
+            if( websites_wise[website] < per_website){
+                ret_data.push(row);
+            }
+            websites_wise[website] += 1;
+        }
+    }
+    if (ret_data.length > 0) {
+        ret_data.sort(function (a, b) {
+            return a.sort_score - b.sort_score;
+        });
+    }
+    
+    return ret_data;
+}
+
+
 
 router.all('/view', function (req, res, next) {
     if (req.method === 'OPTIONS') {
@@ -237,6 +270,135 @@ router.all('/similar', function (req, res, next) {
     }
 });
 router.all('/variant', function (req, res, next) {
+    var mongoose = req.mongoose;
+    var body = req.body;
+    var product_id = body.product_id;
+    var productObj = req.productObj;
+    //var product_id = '552cac783df12f4d5d08e00f'; //for testing
+    var category = req.conn_category;
+    var website_scrap_data = req.conn_website_scrap_data;
+    if (typeof product_id === 'undefined') {
+        res.json({
+            error: 1,
+            message: 'product_id is not found',
+        });
+    } else {
+        var variant_arr = [];
+        var where = {
+            '_id': mongoose.Types.ObjectId(product_id),
+        };
+        var product_data_list = req.config.product_data_list;
+        website_scrap_data.where(where).select(product_data_list).findOne(result);
+        function result(err, data) {
+            if (err) {
+                next(err);
+            } else {
+                if (data == null || data.length == 0) {
+                    res.json({
+                        error: 1,
+                        message: 'product not found for product_id ' + product_id,
+                    });
+                } else {
+                    var is_model_no_product = false;
+                    product_name = data.get('name');
+                    product_website = data.get('website');
+                    product_cat_id = data.get('cat_id');
+                    product_sub_cat_id = data.get('sub_cat_id');
+                    product_brand = data.get('brand');
+                    product_model_no = '';
+                    if (typeof data.get('model_no') != 'undefined' && data.get('model_no') != '') {
+                        product_model_no = data.get('model_no');
+                        is_model_no_product = true;
+                        console.log(' product_model_no found :: ' + product_model_no);
+                    }
+                    //--------------------------------------------------
+                    where_variant = {
+                        '_id': {
+                            '$nin': [
+                                mongoose.Types.ObjectId(product_id),
+                            ]
+                        },
+                        'cat_id': product_cat_id * 1,
+                        'sub_cat_id': product_sub_cat_id * 1,
+                        'website': {'$ne': product_website},
+                        '$text': {'$search': product_name},
+                    };
+                    if (typeof product_brand != 'undefined' && product_brand != '') {
+                        where_variant['brand'] = new RegExp(product_brand, "i");
+                    }
+                    if (is_model_no_product == true) {
+                        where_variant['model_no'] = new RegExp(product_model_no, "i");
+                    }
+                    console.log('!! where_variant !!!');
+                    console.log(where_variant);
+                    website_scrap_data.find(where_variant, {"score": {"$meta": "textScore"}}, {
+                        limit: 500,
+                        sort: {'score': {'$meta': "textScore"}},
+                        select: product_data_list,
+                    }, data_var_res);
+                    function data_var_res(err, data_var) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            if ( typeof data_var != 'undefined' && data_var.length > 0 ) {
+                                for (var i = 0; i < data_var.length; i++) {
+                                    var row = data_var[i];
+                                    var obj = row;
+                                    variant_arr.push(productObj.getProductPermit(req, obj));
+                                }
+                                res.json({
+                                    error: 0,
+                                    data: manipulateVariantData(variant_arr),
+                                });
+                            }else if( is_model_no_product == true ){
+                                console.log('!!model -- will check without model no!!!');
+                                delete where_variant.model_no;
+                                console.log(where_variant);
+                                website_scrap_data.find(where_variant, {"score": {"$meta": "textScore"}}, {
+                                    limit: 500,
+                                    sort: {'score': {'$meta': "textScore"}},
+                                    select: product_data_list,
+                                }, data_var_res2);
+                                function data_var_res2(err, data_var2) {
+                                    if (err) {
+                                        next(err);
+                                    } else {
+                                        if ( typeof data_var2 != 'undefined' && data_var2.length > 0 ) {
+                                            for (var i = 0; i < data_var2.length; i++) {
+                                                var row = data_var2[i];
+                                                var obj = row;
+                                                variant_arr.push(productObj.getProductPermit(req, obj));
+                                            }
+                                            res.json({
+                                                error: 0,
+                                                data: manipulateVariantData(variant_arr),
+                                            });
+                                        }else{
+                                            res.json({
+                                                error: 0,
+                                                data: variant_arr,
+                                            });
+                                        }
+                                    }
+                                }
+                            }else{
+                                res.json({
+                                    error: 0,
+                                    data: variant_arr,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+});
+
+
+
+
+router.all('/variant_old', function (req, res, next) {
     if (req.method === 'OPTIONS') {
         res.json('');
     } else {
@@ -412,9 +574,6 @@ router.all('/variant', function (req, res, next) {
         }
     }
 });
-
-
-
 router.all('/view_old', function (req, res, next) {
     if (req.method === 'OPTIONS') {
         res.json('');
