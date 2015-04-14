@@ -167,7 +167,8 @@ module.exports = function (mongoose) {
     auth_schema.index({'api_key': -1});
     var gcm_schema = mongoose.Schema({
         user_id: {type: String, required: true},
-        reg_id: {type: String, required: true},
+        reg_id: {type: String},
+        token:  {type: String},
         created_at: {type: Date, default: Date.now},
         device: {type: Schema.Types.Mixed}
     });
