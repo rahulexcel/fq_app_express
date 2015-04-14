@@ -63,7 +63,7 @@ module.exports = function(){
                         } 
                         father_wise_listing.forEach(function (val, key) {
                             if (val.father_key == father_key) {
-                                if( org_father_key == 'furniture' || org_father_key == 'home_decor' ){
+                                if( org_father_key == 'furniture' || org_father_key == 'home_decor' || org_father_key == 'cases_covers' ){
                                     //this will without parent i.e direct categroy will shown
                                     parent_wise = val.data;
                                     generateSubCat = {};
