@@ -22,12 +22,10 @@ module.exports = function (mongoose) {
             console.log('setting cache key ' + key);
             var data = req.cache_data;
             data = JSON.stringify(data);
-            redis.hset(key, 'data', data, function (err, response) {
+            redis.setex(key, 60 * 60, data, function (err, response) {
                 if (err) {
                     console.log(err);
                 }
-                //setting cache for 1hr. this can be easily increase
-                redis.expire(key, 60 * 60);
             });
             res.json({
                 error: 0,
@@ -53,13 +51,13 @@ module.exports = function (mongoose) {
                 var redis = req.redis;
 
                 console.log('checking cache key ' + key);
-                redis.hexists(key, 'data', function (err, response) {
+                redis.exists(key, function (err, response) {
                     console.log('response ' + response);
                     if (err) {
                         console.log(err);
                     }
                     if (response === 1) {
-                        redis.hget(key, 'data', function (err, data) {
+                        redis.get(key, function (err, data) {
                             if (err) {
                                 console.log(err);
                             }

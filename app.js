@@ -97,7 +97,9 @@ app.use(function (req, res, next) {
 
     var cache_paths = [
         'catalog/products',
-//        'product/view',
+        'product/view',
+        'product/similar',
+        'product/variant'
         'catalog/filters'
     ];
     req.cache = false;

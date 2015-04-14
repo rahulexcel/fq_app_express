@@ -459,6 +459,8 @@ router.all('/item/list', function (req, res, next) {
         page = 0;
     }
 
+    var ignore_item_id = body.ignore_item_id;
+
     var Wishlist = req.Wishlist;
     var website_scrap_data = req.conn_website_scrap_data;
     var WishlistItemAssoc = req.WishlistItemAssoc;
@@ -492,6 +494,7 @@ router.all('/item/list', function (req, res, next) {
                                 for (var i = 0; i < data.length; i++) {
                                     (function (ff, i) {
                                         var wishlist_row = ff.get('item_id');
+
                                         if (!wishlist_row) {
                                             ret[i] = false;
                                             if (k == (data.length - 1)) {
@@ -505,7 +508,19 @@ router.all('/item/list', function (req, res, next) {
                                             }
                                             k++;
                                         } else {
-                                            if (wishlist_row.get('type') == 'product') {
+                                            if (ignore_item_id && ignore_item_id == wishlist_row.get('_id') + "") {
+                                                ret[i] = false;
+                                                if (k == (data.length - 1)) {
+                                                    res.json({
+                                                        error: 0,
+                                                        data: {
+                                                            list: list,
+                                                            items: ret
+                                                        }
+                                                    });
+                                                }
+                                                k++;
+                                            } else if (wishlist_row.get('type') == 'product') {
 
                                                 var unique = wishlist_row.get('unique');
                                                 var website = wishlist_row.get('website');

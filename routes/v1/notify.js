@@ -1,7 +1,38 @@
 var express = require('express');
 var router = express.Router();
 var mongoose = require('mongoose');
+var apn = require('apn');
 //subscribe to price alerts
+
+console.log('connecting to apn');
+var apn_service = new apn.connection({production: false});
+
+apn_service.on("connected", function () {
+    console.log("Connected");
+});
+
+apn_service.on("transmitted", function (notification, device) {
+    console.log("Notification transmitted to:" + device.token.toString("hex"));
+});
+
+apn_service.on("transmissionError", function (errCode, notification, device) {
+    console.error("Notification caused error: " + errCode + " for device ", device, notification);
+    if (errCode === 8) {
+        console.log("A error code of 8 indicates that the device token is invalid. This could be for a number of reasons - are you using the correct environment? i.e. Production vs. Sandbox");
+    }
+});
+
+apn_service.on("timeout", function () {
+    console.log("Connection Timeout");
+});
+
+apn_service.on("disconnected", function () {
+    console.log("Disconnected from APNS");
+});
+
+apn_service.on("socketError", console.error);
+
+
 router.all('/item/price_alert', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
@@ -270,7 +301,6 @@ router.all('/get_alerts', function (req, res, next) {
 router.all('/register', function (req, res, next) {
     var body = req.body;
     var user_id = body.user_id;
-    var reg_id = body.reg_id;
     var device = body.device;
     var model = '';
     if (device.model) {
@@ -278,7 +308,7 @@ router.all('/register', function (req, res, next) {
     }
 
     var GCM = req.GCM;
-    if (user_id && reg_id && device) {
+    if (user_id && device) {
         GCM.findOne({
             user_id: user_id,
             'device.model': model
@@ -286,35 +316,72 @@ router.all('/register', function (req, res, next) {
             if (err) {
                 next(err);
             } else if (gcm_row && gcm_row._id) {
-                GCM.update({
-                    _id: gcm_row._id
-                }, {
-                    $set: {
+                if (body.reg_id) {
+                    GCM.update({
+                        _id: gcm_row._id
+                    }, {
+                        $set: {
+                            reg_id: reg_id,
+                            device: device
+                        }
+                    }, function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0
+                            });
+                        }
+                    });
+                } else {
+                    var token = body.token;
+                    GCM.update({
+                        _id: gcm_row._id
+                    }, {
+                        $set: {
+                            token: token,
+                            device: device
+                        }
+                    }, function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({
+                                error: 0
+                            });
+                        }
+                    });
+                }
+            } else {
+                if (body.reg_id) {
+                    var reg_id = body.reg_id;
+                    var new_gcm = new GCM({
+                        user_id: user_id,
                         reg_id: reg_id,
                         device: device
-                    }
-                }, function (err) {
-                    if (err) {
-                        next(err);
-                    } else {
-                        res.json({
-                            error: 0
-                        });
-                    }
-                })
-            } else {
-                var new_gcm = new GCM({
-                    user_id: user_id,
-                    reg_id: reg_id,
-                    device: device
-                });
-                new_gcm.save(function (err) {
-                    if (err) {
-                        next(err);
-                    } else {
-                        res.json({error: 0});
-                    }
-                });
+                    });
+                    new_gcm.save(function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({error: 0});
+                        }
+                    });
+                } else {
+                    var token = body.token;
+                    var new_gcm = new GCM({
+                        user_id: user_id,
+                        token: token,
+                        device: device
+                    });
+                    new_gcm.save(function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            res.json({error: 0});
+                        }
+                    });
+                }
             }
 
         });
@@ -354,28 +421,45 @@ router.all('/alert', function (req, res, next) {
         if (err) {
             next(err);
         } else {
-            for (var i = 0; i < rows.length; i++) {
-                registrationIds.push(rows[i].reg_id);
-            }
-            console.log(registrationIds);
-            var sender = new gcm.Sender('AIzaSyABDceQztvkstpKksCz86-hQAFeshqoBV4');
-            console.log(data.meta);
+
             if (data.meta && data.meta.type && data.meta.type == 'item_add') {
                 pushItemToUserFeed(data.meta.item_id, user_id, req);
             }
 
-            sender.send(message, registrationIds, 1, function (err, result) {
-                if (err)
-                    res.json({
-                        error: 0,
-                        data: err
-                    });
-                else
-                    res.json({
-                        error: 0,
-                        data: result
-                    });
-            });
+            for (var i = 0; i < rows.length; i++) {
+                if (rows[i].reg_id)
+                    registrationIds.push(rows[i].reg_id);
+            }
+            console.log(registrationIds);
+            var sender = new gcm.Sender('AIzaSyABDceQztvkstpKksCz86-hQAFeshqoBV4');
+            console.log(data.meta);
+            if (registrationIds) {
+                sender.send(message, registrationIds, 1, function (err, result) {
+                    if (err)
+                        res.json({
+                            error: 0,
+                            data: err
+                        });
+                    else
+                        res.json({
+                            error: 0,
+                            data: result
+                        });
+                });
+            }
+
+            //ios below
+            var tokens = [];
+            for (var i = 0; i < rows.length; i++) {
+                if (rows[i].token) {
+                    tokens.push();
+                }
+            }
+            var note = new apn.notification();
+            note.setAlertText(data.title);
+            note.badge = 1;
+            note.payload = data;
+            apn_service.pushNotification(note, tokens);
         }
     });
 });
