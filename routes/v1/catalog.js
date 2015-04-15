@@ -931,7 +931,8 @@ router.all('/products', function (req, res, next) {
                     raw_filters = data[0].get('filters').api_filters;
                     filters = raw_filters;
                     var colors_data = filters.color.data; // will be used when color filter is applied
-                    var sizes_data = filters.sizes.data; // will be used when color filter is applied
+                    var sizes_data = filters.sizes.data; // will be used when size filter is applied
+                    var brands_data = filters.brand.data; // will be used when brand filter is applied
                     var color_filter_is_set = false;
                     var set_empty_colors_filters = false;
                     //-start---process set filters---------
@@ -963,13 +964,30 @@ router.all('/products', function (req, res, next) {
                                                 Object.keys(sizes_data).forEach(function(ss_size) {
                                                     size_detail = sizes_data[ss_size];
                                                     size_detail_text = size_detail.text;
-                                                    if (fltr_val == size_detail_text) {
+                                                    if (fltr_val.toLowerCase() == size_detail_text.toLowerCase()) {
                                                         var size_query_params = size_detail.query_params;
                                                         if (typeof size_query_params != 'undefined' && size_query_params.length > 0) {
                                                             for (var jj = 0; jj < size_query_params.length; jj++) {
                                                                 var s_size = size_query_params[jj];
                                                                 s_size = new RegExp(s_size, 'i');
                                                                 where[fltr_key]['$in'].push(s_size);
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        }else if (fltr_key == 'brand') {
+                                            if (typeof brands_data != 'undefined' && brands_data.length > 0) {
+                                                Object.keys(brands_data).forEach(function(ss_brand) {
+                                                    brand_detail = brands_data[ss_brand];
+                                                    brand_detail_text = brand_detail.text;
+                                                    if (fltr_val.toLowerCase() == brand_detail_text.toLowerCase() ) {
+                                                        var brand_query_params = brand_detail.query_params;
+                                                        if (typeof brand_query_params != 'undefined' && brand_query_params.length > 0) {
+                                                            for (var jj = 0; jj < brand_query_params.length; jj++) {
+                                                                var s_brand = brand_query_params[jj];
+                                                                s_brand = getRegexString(s_brand);
+                                                                where[fltr_key]['$in'].push(s_brand);
                                                             }
                                                         }
                                                     }
