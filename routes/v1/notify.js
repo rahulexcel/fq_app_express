@@ -317,6 +317,7 @@ router.all('/register', function (req, res, next) {
                 next(err);
             } else if (gcm_row && gcm_row._id) {
                 if (body.reg_id) {
+                    var reg_id = body.reg_id;
                     GCM.update({
                         _id: gcm_row._id
                     }, {
