@@ -308,7 +308,7 @@ function updateLatestFeedData(req, done, next) {
         'type': 'men',
         'where': {
             '$or': [
-                {'cat_id': {'$in': [30, 40, 42,43, 44]}},
+                {'cat_id': {'$in': [30, 40, 42, 44]}},
                 {'sub_cat_id': {'$in': [6201, 6301]}}
             ]
         },
@@ -318,7 +318,7 @@ function updateLatestFeedData(req, done, next) {
         'type': 'women',
         'where': {
             '$or': [
-                {'cat_id': {'$in': [50, 52,53, 54,55]}},
+                {'cat_id': {'$in': [50, 52,54]}},
                 {'sub_cat_id': {'$in': [6202, 6302]}}
             ]
         },
