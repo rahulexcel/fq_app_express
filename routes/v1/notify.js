@@ -418,14 +418,25 @@ router.all('/alert', function (req, res, next) {
             user_id: user_id
         };
     }
+
+    if (typeof user_id === 'string') {
+        if (data.meta && data.meta.type && data.meta.type == 'item_add') {
+            pushItemToUserFeed(data.meta.item_id, user_id, req);
+        }
+    } else {
+        if (data.meta && data.meta.type && data.meta.type == 'item_add') {
+            for (var i = 0; i < user_id.length; i++) {
+                pushItemToUserFeed(data.meta.item_id, user_id[i], req);
+            }
+        }
+    }
+
+
     GCM.find(where, function (err, rows) {
         if (err) {
             next(err);
         } else {
 
-            if (data.meta && data.meta.type && data.meta.type == 'item_add') {
-                pushItemToUserFeed(data.meta.item_id, user_id, req);
-            }
 
             for (var i = 0; i < rows.length; i++) {
                 if (rows[i].reg_id)
