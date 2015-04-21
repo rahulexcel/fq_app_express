@@ -88,6 +88,9 @@ router.all('/item/price_alert', function (req, res, next) {
                                     }
                                 });
                             } else {
+                                if (body.price && body.price != -1) {
+                                    price = body.price;
+                                }
                                 var watch_model = new user_watch_map({
                                     for_fashion_iq: true,
                                     fq_product_id: product_id,

@@ -1754,7 +1754,8 @@ router.all('/friends/list', function (req, res, next) {
                         ret.push({
                             id: friends[i].get('_id'),
                             name: friends[i].get('name'),
-                            picture: friends[i].get('picture')
+                            picture: friends[i].get('picture'),
+                            status: friends[i].get('status'),
                         });
                     }
                     res.json({
