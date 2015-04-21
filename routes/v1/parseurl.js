@@ -1260,9 +1260,16 @@ router.get('/', function(req, res) {
                 json_data = JSON.parse(amazon_raw_json);
                 if( json_data.length > 0 ){
                     for( var i = 0; i < json_data.length; i++ ){
-                        more_images.push(json_data[i].hiRes);
+                        more_img = json_data[i].large;
+                        if( typeof more_img != 'undefined' && more_img != '' && more_img != null && more_img != 'null'){
+                            more_images.push(json_data[i].large);
+                        }
                     }
                 }
+                if( more_images.length > 0 ){
+                    main_image  = more_images[0];
+                }
+                
             }catch(e){
                 console.log(e);
                 console.log('!!! check amazon more images catch line 1054 !!!');
