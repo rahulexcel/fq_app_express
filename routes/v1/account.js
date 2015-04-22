@@ -716,4 +716,62 @@ router.all('/login', function (req, res, next) {
         });
     }
 });
+
+router.all('/forgot_password',function(req,res,next){
+    var body = req.body;
+    var email = body.email;
+    //email = 'arun@excellencetechnologies.in';
+    var UserModel = req.User;
+    
+    if( email.length > 0 ){
+        UserModel.findOne({
+            email: email
+        }).lean().exec(function (err, user) {
+            if( err ){
+                next(err);
+            }else{
+                if( user ){
+                    var new_password = Math.floor(Math.random() * 9000) + 1000;
+                    var crypto = require('crypto');
+                    var md5 = crypto.createHash('md5');
+                    md5.update(new_password.toString());
+                    var new_pass_md5 = md5.digest('hex');
+                    UserModel.update({
+                        email: email
+                    }, {
+                        $set: {
+                            password: new_pass_md5
+                        }
+                    }, function (err) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            var newPasswordMsg = {
+                                subject:'New Password',
+                                body:'New Password :: '+new_password,
+                            };
+                            req.mailer.send(email,'New Password','template',newPasswordMsg);
+                                res.json({
+                                    error: 0,
+                                    message: 'Password Updated. Check your email for new password.',
+                            });
+                        }
+                    });
+                }else{
+                    res.json({
+                        error: 0,
+                        message: 'Email Id Not Found',
+                    });
+                }
+            }
+        });
+    }else{
+        res.json({
+            error: 0,
+            message: 'No Email Set',
+        });
+    }
+    console.log(email);
+});
+
 module.exports = router;
