@@ -1543,6 +1543,54 @@ router.get('/', function(req, res) {
             'more_images': more_images
         }
     }
+    function getOffers(){
+        var offers = [];
+        if (website_detected == 'Flipkart' || website_detected == 'flipkart') {
+            if( $('.offers-info-wrap').find('.offers').find('li.offer').length > 0 ){
+                $('.offers-info-wrap').find('.offers').find('li.offer').each(function(){
+                    var offer_text = $(this).find('span.offer-text').text();
+                    if( typeof offer_text != 'undefined' && offer_text.length > 0 ){
+                        offers.push( offer_text.trim());
+                    }
+                });
+            }
+        }
+        else if (website_detected == 'snapdeal' || website_detected == 'Snapdeal') {
+            if( $('div.ClsModalOfferInner').find('div.ClsPromoRow').length > 0 ){
+                $('div.ClsModalOfferInner').find('div.ClsPromoRow').each(function(){
+                    var offer_text = '';
+                    if( $(this).find('span.ClsPromoCode').length > 0 ){
+                        offer_text += $(this).find('span.ClsPromoCode').text();
+                    }
+                    if( $(this).find('span.ClsPromoCaption').length > 0 ){
+                        offer_text += $(this).find('span.ClsPromoCaption').text();
+                    }
+                    if( offer_text.length > 0 ){
+                        offer_text = offer_text.replace(/[\n\r\t]/g,'');
+                        offers.push( offer_text.trim());
+                    }
+                });
+            }
+        }
+        return offers;
+    }
+    function getDeliveryCharges(){
+        var ret  = '';
+        if (website_detected == 'Flipkart' || website_detected == 'flipkart') {
+            if( $('div.default-shipping-charge').length > 0 ){
+                $('div.default-shipping-charge').find('.delivery-charge-help-ico').remove();
+                $('div.default-shipping-charge').find('.delivery-charge-help-text').remove();
+                ret = $('div.default-shipping-charge').text();
+            }
+        }
+        else if (website_detected == 'snapdeal' || website_detected == 'Snapdeal') {
+             if( $('#Ship_charges').length > 0 ){
+                 ret = $('#Ship_charges').text();
+                 ret = ret.replace(/[\n\r\t]/g,'');
+            }
+        }
+        return ret.trim();
+    }
     function getLastSlash(url) {
         if (typeof url == "undefined" || !url)
             return;
@@ -1618,6 +1666,8 @@ router.get('/', function(req, res) {
                 $ = w.$;
                 window = w;
                 colors = [];
+                var offers = [];
+                var shipping_charges = 0;
                 if( website_detected == 'paytm'){
                     json_data = JSON.parse(template);
                     var price = json_data.offer_price;
@@ -1629,6 +1679,9 @@ router.get('/', function(req, res) {
                     var more_images = json_data.other_images;
                     var stock = 1;
                     more_images.push(main_image);
+                    if( typeof json_data.promo_text != 'undefined' && json_data.promo_text != ''){
+                        offers.push(json_data.promo_text);
+                    }
                 }else{
                     var price = getPriceHtml();
                     var name = getNameHtml();
@@ -1637,6 +1690,8 @@ router.get('/', function(req, res) {
                     var more_images = images.more_images;
                     var stock = getStockStatus();
                     colors = getColorArray();
+                    offers = getOffers();
+                    delivery_charge = getDeliveryCharges();
                     console.log('colors found');
                     console.log(colors);
                     if( pid != false && colors.length > 0 ){
@@ -1684,16 +1739,33 @@ router.get('/', function(req, res) {
                 }
                 
                 if( adminEmailAlert != ''){
-                    adminEmailAlert += '<hr>';
-                    adminEmailAlert += 'url source : '+urlsource+'<br>';
-                    adminEmailAlert += 'website :: '+website_detected+'<br>';
-                    adminEmailAlert += 'url :: '+url+'<br>';
-                    var alertSubject = 'Product Parse Error : '+'Fashioniq : ' + website_detected;
-                    var alertMsgData = {
-                        subject:alertSubject,
-                        body:adminEmailAlert,
-                    };
-                    req.mailer.send('arun@excellencetechnologies.in',alertSubject,'template',alertMsgData);
+                    console.log("!!! parseurl_checklist updated with new data !!!!");
+                    var parseurl_checklist = req.conn_parseurl_checklist;
+                    var parseurl_checklist_data = new parseurl_checklist({
+                        "insert_time":Math.round(+new Date()/1000),
+                        "insert_dt":Date(),
+                        "pid":pid,
+                        "urlsource":urlsource,
+                        "website_detected":website_detected,
+                        "url":url,
+                        "message":adminEmailAlert
+                    });
+                    parseurl_checklist_data.save(function (err) {
+                        if (err) {
+                            console.log('err while updating parseurl_checklist');
+                        } else {
+                        }
+                    });
+                    //adminEmailAlert += '<hr>';
+                    //adminEmailAlert += 'url source : '+urlsource+'<br>';
+                    //adminEmailAlert += 'website :: '+website_detected+'<br>';
+                    //adminEmailAlert += 'url :: '+url+'<br>';
+                    //var alertSubject = 'Product Parse Error : '+'Fashioniq : ' + website_detected;
+                    //var alertMsgData = {
+                       // subject:alertSubject,
+                        //body:adminEmailAlert,
+                    //};
+                    //req.mailer.send('arun@excellencetechnologies.in',alertSubject,'template',alertMsgData);
                 }
                 
                 if (data) {
@@ -1722,6 +1794,8 @@ router.get('/', function(req, res) {
                         image:main_image,
                         more_images:more_images,
                         colors:colors,
+                        offers:offers,
+                        delivery_charge:delivery_charge
                     });
                 }
 
