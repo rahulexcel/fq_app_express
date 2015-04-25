@@ -1,24 +1,24 @@
 function stringToArray(str, expby) {
-            var ret = new Array();
-            if (str) {
-                var split = str.split(expby);
-                for (i = 0; i < split.length; i++) {
-                    ss = split[i];
-                    ss = ss.trim();
-                    if (ss.length > 0) {
-                        ret.push(ss);
-                    }
-                }
+    var ret = new Array();
+    if (str) {
+        var split = str.split(expby);
+        for (i = 0; i < split.length; i++) {
+            ss = split[i];
+            ss = ss.trim();
+            if (ss.length > 0) {
+                ret.push(ss);
             }
-            return ret;
         }
+    }
+    return ret;
+}
 function getRegexString(string) {
     string = fltr_val.replace(/\[/g, '');
     string = fltr_val.replace(/\]/g, '');
     string = new RegExp(string, "i");
     return string;
 }
-        
+
 var express = require('express');
 var router = express.Router();
 router.all('/list', function (req, res) {
@@ -58,7 +58,7 @@ router.all('/filters', function (req, res, next) {
     } else {
         var is_search_filter = false;
         var search_text = req.body.search;
-        if( typeof search_text != 'undefined' && search_text.length > 0){
+        if (typeof search_text != 'undefined' && search_text.length > 0) {
             is_search_filter = true;
         }
         var father_key = req.body.father_key;
@@ -67,10 +67,10 @@ router.all('/filters', function (req, res, next) {
         var filters_category_wise = req.conn_filters_category_wise;
         var is_cat_id_set = false;
         var is_sub_cat_id_set = false;
-        if( typeof request_filter_cat_id !='undefined' && request_filter_cat_id != -1 ){
+        if (typeof request_filter_cat_id != 'undefined' && request_filter_cat_id != -1) {
             is_cat_id_set = true;
         }
-        if( typeof request_filter_sub_cat_id !='undefined' && request_filter_sub_cat_id != -1 ){
+        if (typeof request_filter_sub_cat_id != 'undefined' && request_filter_sub_cat_id != -1) {
             is_sub_cat_id_set = true;
         }
         var applied_filters = req.body.filters;
@@ -85,89 +85,89 @@ router.all('/filters', function (req, res, next) {
                     fltr_type = fltr_str_arr[1];
                     fltr_key = fltr_str_arr[2];
                     fltr_val = fltr_str_arr[3];
-                    if( fltr_type == 'integer'){
-                        if( fltr_key == 'cat_id'){
+                    if (fltr_type == 'integer') {
+                        if (fltr_key == 'cat_id') {
                             request_filter_cat_id = fltr_val;
                             is_cat_id_set = true;
                         }
-                        if( fltr_key == 'sub_cat_id'){
+                        if (fltr_key == 'sub_cat_id') {
                             request_filter_sub_cat_id = fltr_val;
                             is_sub_cat_id_set = true;
                         }
-                    }   
+                    }
                 }
             });
         }
         var is_father_request = false;
-        if( typeof father_key != 'undefined' && father_key != '' ){
+        if (typeof father_key != 'undefined' && father_key != '') {
             is_father_request = true;
         }
         if (!req.body.cat_id && !req.body.sub_cat_id && is_father_request == false && is_filter_applied == false) {
             res.json({
                 error: 0,
-                data:[]
+                data: []
             });
             return;
         } else {
             var finalData = {};
             finalData.filters = {};
-            
-            
+
+
             var sortBy_arr = new Array;
-            sortBy_arr.push({'text': 'Popular','param': 'popular','sort': {'sort_score': 1}});
-            sortBy_arr.push({'text': 'New Arrivals','param': 'new','sort': {'is_new_insert': -1, 'time': -1}});
-            sortBy_arr.push({'text': 'Price -- Low to High','param': 'pricelth','sort': {'price': 1}});
-            sortBy_arr.push({'text': 'Price -- High to Low','param': 'pricehtl','sort': {'price': -1}});
+            sortBy_arr.push({'text': 'Popular', 'param': 'popular', 'sort': {'sort_score': 1}});
+            sortBy_arr.push({'text': 'New Arrivals', 'param': 'new', 'sort': {'is_new_insert': -1, 'time': -1}});
+            sortBy_arr.push({'text': 'Price -- Low to High', 'param': 'pricelth', 'sort': {'price': 1}});
+            sortBy_arr.push({'text': 'Price -- High to Low', 'param': 'pricehtl', 'sort': {'price': -1}});
             //sortBy_arr.push({'text': 'Off % -- Low to High','param': 'offlth','sort': {'offrate': 1}});
             //sortBy_arr.push({'text': 'Off % -- High to Low','param': 'offhtl','sort': {'offrate': -1}});
-            sortBy_arr.push({'text': 'Price Change','param': 'pricechange','sort': {'price_diff': -1}});
-            if( is_search_filter == false ){
+            sortBy_arr.push({'text': 'Price Change', 'param': 'pricechange', 'sort': {'price_diff': -1}});
+            if (is_search_filter == false) {
                 // if search page no need of sort
                 finalData.sort = sortBy_arr; //filter
             }
             var father_wise_listing = req.recycle_data.father_wise_listing;
             var category_filters = [];
-            if( is_father_request == true && is_filter_applied == false ){
-                if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
-                    for( var i = 0; i < father_wise_listing.length ; i++){
+            if (is_father_request == true && is_filter_applied == false) {
+                if (typeof (father_wise_listing) != 'undefined' && father_wise_listing.length > 0) {
+                    for (var i = 0; i < father_wise_listing.length; i++) {
                         var chk_father_key = father_wise_listing[i].father_key;
-                        if( father_key == chk_father_key && typeof father_wise_listing[i].data != 'undefined' && father_wise_listing[i].data.length > 0 ){
-                            for( k = 0; k < father_wise_listing[i].data.length; k++ ){
+                        if (father_key == chk_father_key && typeof father_wise_listing[i].data != 'undefined' && father_wise_listing[i].data.length > 0) {
+                            for (k = 0; k < father_wise_listing[i].data.length; k++) {
                                 delete father_wise_listing[i].data[k].data;
                                 $p_cat_data = father_wise_listing[i].data[k];
                                 $p_cat_data.text = father_wise_listing[i].data[k].name;
-                                if( father_wise_listing[i].data[k].sub_cat_id != -1 && father_wise_listing[i].data[k].sub_cat_id != 1){
+                                if (father_wise_listing[i].data[k].sub_cat_id != -1 && father_wise_listing[i].data[k].sub_cat_id != 1) {
                                     // for watches and sunglasses
-                                    $p_cat_data.param = 'filter__integer__sub_cat_id__'+father_wise_listing[i].data[k].sub_cat_id;
-                                }else{
-                                    $p_cat_data.param = 'filter__integer__cat_id__'+father_wise_listing[i].data[k].cat_id;
+                                    $p_cat_data.param = 'filter__integer__sub_cat_id__' + father_wise_listing[i].data[k].sub_cat_id;
+                                } else {
+                                    $p_cat_data.param = 'filter__integer__cat_id__' + father_wise_listing[i].data[k].cat_id;
                                 }
                                 category_filters.push($p_cat_data);
                             }
                         }
                     }
                 }
-                finalData.filters.category_filters =  {
-                    text:'Category',
-                    key:'category_filter',
-                    data : category_filters
+                finalData.filters.category_filters = {
+                    text: 'Category',
+                    key: 'category_filter',
+                    data: category_filters
                 };
                 res.json({
                     error: 0,
                     data: finalData,
                 });
             }
-            else if( is_cat_id_set == true && is_sub_cat_id_set == false && request_filter_sub_cat_id != -1 ){
-                if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
-                    for( var i = 0; i < father_wise_listing.length ; i++){
-                        if( typeof father_wise_listing[i].data != 'undefined' && father_wise_listing[i].data.length > 0 ){
-                            for( k = 0; k < father_wise_listing[i].data.length; k++ ){
+            else if (is_cat_id_set == true && is_sub_cat_id_set == false && request_filter_sub_cat_id != -1) {
+                if (typeof (father_wise_listing) != 'undefined' && father_wise_listing.length > 0) {
+                    for (var i = 0; i < father_wise_listing.length; i++) {
+                        if (typeof father_wise_listing[i].data != 'undefined' && father_wise_listing[i].data.length > 0) {
+                            for (k = 0; k < father_wise_listing[i].data.length; k++) {
                                 var chk_cat_id = father_wise_listing[i].data[k].cat_id;
-                                if( chk_cat_id == request_filter_cat_id ){
-                                    for( j = 0 ; j < father_wise_listing[i].data[k].data.length; j++ ){
+                                if (chk_cat_id == request_filter_cat_id) {
+                                    for (j = 0; j < father_wise_listing[i].data[k].data.length; j++) {
                                         $p_cat_data = father_wise_listing[i].data[k].data[j];
                                         $p_cat_data.text = father_wise_listing[i].data[k].data[j].name;
-                                        $p_cat_data.param = 'filter__integer__sub_cat_id__'+father_wise_listing[i].data[k].data[j].sub_cat_id;
+                                        $p_cat_data.param = 'filter__integer__sub_cat_id__' + father_wise_listing[i].data[k].data[j].sub_cat_id;
                                         category_filters.push($p_cat_data);
                                     }
                                 }
@@ -175,22 +175,22 @@ router.all('/filters', function (req, res, next) {
                         }
                     }
                 }
-                finalData.filters.sub_category_filters =  {
-                    text:'Sub-Category',
-                    key:'sub_category_filter',
-                    data : category_filters
+                finalData.filters.sub_category_filters = {
+                    text: 'Sub-Category',
+                    key: 'sub_category_filter',
+                    data: category_filters
                 };
                 res.json({
                     error: 0,
                     data: finalData,
                 });
             }
-            else{
-                if( is_cat_id_set == false  && is_sub_cat_id_set == true ){
+            else {
+                if (is_cat_id_set == false && is_sub_cat_id_set == true) {
                     var where_filter = {
                         'sub_cat_id': request_filter_sub_cat_id * 1
                     };
-                }else{
+                } else {
                     var where_filter = {
                         'cat_id': request_filter_cat_id * 1,
                         'sub_cat_id': request_filter_sub_cat_id * 1
@@ -209,13 +209,13 @@ router.all('/filters', function (req, res, next) {
                             return;
                         } else {
                             raw_filters = data[0].get('filters').api_filters;
-                            if( is_search_filter == true ){
+                            if (is_search_filter == true) {
                                 Object.keys(raw_filters).forEach(function (key) {
-                                   if( key == 'brand' || key == 'price'){
-                                   }else{
-                                       delete raw_filters[key];
-                                   }
-                               });
+                                    if (key == 'brand' || key == 'price') {
+                                    } else {
+                                        delete raw_filters[key];
+                                    }
+                                });
                             }
                             finalData.filters = raw_filters;
                             res.json({
@@ -274,7 +274,7 @@ router.all('/products_old', function (req, res, next) {
 
         var productObj = req.productObj;
 
-        
+
         //var products_per_page = 20;
         //var product_data_list = 'name website brand price img href offrate'; // add here to get fields in product info
         var search_limit = 30; //products count to be shown while searching
@@ -569,14 +569,14 @@ router.all('/products_old', function (req, res, next) {
                             query_sort = val.sort;
                         }
                     });
-                    
+
                     if (param_sort_by == 'pricechange') {
                         where['price_diff'] = {
                             '$exists': true,
                             '$lt': 0 * 1,
                         };
                     }
-                    
+
                     /*
                      if (param_sort_by == 'popular') {
                      where['sort_score'] = {
@@ -646,7 +646,7 @@ router.all('/products_old', function (req, res, next) {
                     console.log('!!! START :: redis check !!!');
                     var where_size = Object.keys(where).length;
                     var check_in_redis = false;
-                    if ( check_in_redis == true && where_size == 2 && typeof where.cat_id != 'undefined' && where.cat_id != '' && where.sub_cat_id != 'undefined' && where.sub_cat_id != '') {
+                    if (check_in_redis == true && where_size == 2 && typeof where.cat_id != 'undefined' && where.cat_id != '' && where.sub_cat_id != 'undefined' && where.sub_cat_id != '') {
                         var catlog_redis_key = 'catalog_' + where.cat_id + '_' + where.sub_cat_id;
                         console.log('redis key :: ' + catlog_redis_key);
 
@@ -719,13 +719,13 @@ router.all('/products_old', function (req, res, next) {
                         });
                         console.log('!!! STOP :: redis check !!!');
                         //------check for redis data------
-                        } else {
-                            finalData.results_from = 'mongo';
-                            website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
-                            var end = new Date().getTime() - start;
-                            console.log('time taken ' + end);
-                        }
-                    
+                    } else {
+                        finalData.results_from = 'mongo';
+                        website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
+                        var end = new Date().getTime() - start;
+                        console.log('time taken ' + end);
+                    }
+
 
                     function query_results(err, data) {
                         if (err) {
@@ -831,7 +831,7 @@ router.all('/products', function (req, res, next) {
         finalData.current_page = requested_page; // page filters are set here
         var skip_count = (requested_page - 1) * products_per_page;
         console.log('page : ' + requested_page);
-        
+
         if (is_father_request == true) {
             requested_cat_id = 0;
             requested_sub_cat_id = 0;
@@ -848,13 +848,13 @@ router.all('/products', function (req, res, next) {
         }
         //-start sorting---------------------------------------------------------------
         var sortBy_arr = new Array;
-        sortBy_arr.push({'text': 'Popular','param': 'popular','sort': {'sort_score': 1}});
-        sortBy_arr.push({'text': 'New Arrivals','param': 'new','sort': {'is_new_insert': -1, 'time': -1}});
-        sortBy_arr.push({'text': 'Price -- Low to High','param': 'pricelth','sort': {'price': 1}});
-        sortBy_arr.push({'text': 'Price -- High to Low','param': 'pricehtl','sort': {'price': -1}});
+        sortBy_arr.push({'text': 'Popular', 'param': 'popular', 'sort': {'sort_score': 1}});
+        sortBy_arr.push({'text': 'New Arrivals', 'param': 'new', 'sort': {'is_new_insert': -1, 'time': -1}});
+        sortBy_arr.push({'text': 'Price -- Low to High', 'param': 'pricelth', 'sort': {'price': 1}});
+        sortBy_arr.push({'text': 'Price -- High to Low', 'param': 'pricehtl', 'sort': {'price': -1}});
         //sortBy_arr.push({'text': 'Off % -- Low to High','param': 'offlth','sort': {'offrate': 1}});
         //sortBy_arr.push({'text': 'Off % -- High to Low','param': 'offhtl','sort': {'offrate': -1}});
-        sortBy_arr.push({'text': 'Price Change','param': 'pricechange','sort': {'price_diff': 1}});
+        sortBy_arr.push({'text': 'Price Change', 'param': 'pricechange', 'sort': {'price_diff': 1}});
         /*
          $sortOptions['pricechange'] = array('sort' => array('price_diff' => -1), 'name' => 'Price Change');
          if( sizeof( $premiumBrands) >  0){
@@ -875,7 +875,7 @@ router.all('/products', function (req, res, next) {
         if (typeof params.sortby != 'undefined') {
             param_sort_by = params.sortby;
         }
-        sortBy_arr.forEach(function(val, key) {
+        sortBy_arr.forEach(function (val, key) {
             if (val.param == param_sort_by) {
                 query_sort = val.sort;
             }
@@ -887,7 +887,7 @@ router.all('/products', function (req, res, next) {
                 '$lt': 0 * 1,
             };
         }
-         /*
+        /*
          if (param_sort_by == 'popular') {
          where['sort_score'] = {
          '$exists': true,
@@ -902,7 +902,7 @@ router.all('/products', function (req, res, next) {
          }
          */
         //-end sorting---------------------------------------------------------------
-        
+
         //-------------------------------------------------------------------
         where_filter = {
             'cat_id': requested_cat_id * 1,
@@ -915,7 +915,7 @@ router.all('/products', function (req, res, next) {
             where['sub_cat_id'] = requested_sub_cat_id * 1;
         }
         if (is_father_request == true && requested_father_cats.length > 0) {
-            where['cat_id'] = { '$in': requested_father_cats    };
+            where['cat_id'] = {'$in': requested_father_cats};
         }
         //---------------------------------------------------------------------------
         filters_category_wise.where(where_filter).find(results);
@@ -937,7 +937,7 @@ router.all('/products', function (req, res, next) {
                     var set_empty_colors_filters = false;
                     //-start---process set filters---------
                     if (typeof applied_filters != 'undefined' && applied_filters.length > 0) {
-                        Object.keys(applied_filters).forEach(function(key) {
+                        Object.keys(applied_filters).forEach(function (key) {
                             fltr = applied_filters[key].param;
                             fltr_str_arr = stringToArray(fltr, '__');
                             check = fltr_str_arr[0];
@@ -949,7 +949,7 @@ router.all('/products', function (req, res, next) {
                                     fltr_val = fltr_val.replace(/_/g, ' ');
                                     if (fltr_key == 'brand' || fltr_key == 'website' || fltr_key == 'sizes') {
                                         fltr_key_is_in_where = false;
-                                        Object.keys(where).forEach(function(cc) {
+                                        Object.keys(where).forEach(function (cc) {
                                             if (cc == fltr_key) {
                                                 fltr_key_is_in_where = true;
                                             }
@@ -961,7 +961,7 @@ router.all('/products', function (req, res, next) {
                                         }
                                         if (fltr_key == 'sizes') {
                                             if (typeof sizes_data != 'undefined' && sizes_data.length > 0) {
-                                                Object.keys(sizes_data).forEach(function(ss_size) {
+                                                Object.keys(sizes_data).forEach(function (ss_size) {
                                                     size_detail = sizes_data[ss_size];
                                                     size_detail_text = size_detail.text;
                                                     if (fltr_val.toLowerCase() == size_detail_text.toLowerCase()) {
@@ -976,12 +976,15 @@ router.all('/products', function (req, res, next) {
                                                     }
                                                 });
                                             }
-                                        }else if (fltr_key == 'brand') {
+                                        } else if (fltr_key == 'brand') {
                                             if (typeof brands_data != 'undefined' && brands_data.length > 0) {
-                                                Object.keys(brands_data).forEach(function(ss_brand) {
+                                                Object.keys(brands_data).forEach(function (ss_brand) {
                                                     brand_detail = brands_data[ss_brand];
                                                     brand_detail_text = brand_detail.text;
-                                                    if (fltr_val.toLowerCase() == brand_detail_text.toLowerCase() ) {
+                                                    if (brand_detail_text) {
+                                                        brand_detail_text = brand_detail_text + "";
+                                                    }
+                                                    if (fltr_val.toLowerCase() == brand_detail_text.toLowerCase()) {
                                                         var brand_query_params = brand_detail.query_params;
                                                         if (typeof brand_query_params != 'undefined' && brand_query_params.length > 0) {
                                                             for (var jj = 0; jj < brand_query_params.length; jj++) {
@@ -1000,7 +1003,7 @@ router.all('/products', function (req, res, next) {
                                         }
                                     } else if (fltr_key == 'color') {
                                         fltr_key_is_in_where = false;
-                                        Object.keys(where).forEach(function(cc) {
+                                        Object.keys(where).forEach(function (cc) {
                                             if (cc == fltr_key) {
                                                 fltr_key_is_in_where = true;
                                             }
@@ -1015,54 +1018,54 @@ router.all('/products', function (req, res, next) {
                                         //query_colors.push(fltr_val);
                                         // no need for below seconday and sub colors as now colors will work only as main color
                                         /*
-                                        if (typeof fltr_str_arr[3] != 'undefined' && fltr_str_arr[4] == 'subcolor') {
-                                            set_empty_colors_filters = true;
-                                            console.log(' arun kuma COLORS UNSET HERE');
-                                            if (typeof fltr_str_arr[5] != 'undefined') {
-
-                                                var list_sub_colors = fltr_str_arr[5];
-                                                list_sub_colors = list_sub_colors.replace(/_/g, ' ');
-                                                var arr_sub_colors = stringToArray(list_sub_colors, ',');
-                                                for (var i = 0; i < arr_sub_colors.length; i++) {
-                                                    var subclr = arr_sub_colors[i];
-                                                    query_colors.push(subclr);
-                                                }
-                                                //console.log(list_sub_colors);
-                                                //console.log('arun kumar');
-                                                //console.log(arr_sub_colors);
-                                            }
-                                        } else {
-
-                                            //where[fltr_key] = new RegExp(fltr_val, "i");
-                                            Object.keys(colors_data).forEach(function(sscc) {
-                                                sscc_data = colors_data[sscc];
-                                                sscc_color = sscc_data.color;
-                                                sscc_data_secondary_colors = sscc_data.secondary_colors;
-                                                if (sscc_color == fltr_val) {
-                                                    //console.log('aa :: ' +fltr_key);
-                                                    //console.log(fltr_val);
-                                                    filters.color.data = sscc_data_secondary_colors;
-                                                    console.log(' arun kuma COLORS SET HERE');
-                                                    for (var i = 0; i < sscc_data_secondary_colors.length; i++) {
-                                                        var row = sscc_data_secondary_colors[i];
-                                                        query_colors.push(row.color);
-                                                        if (typeof row.sub_colors != 'undefined' && row.sub_colors.length > 0) {
-                                                            for (var j = 0; j < row.sub_colors.length; j++) {
-                                                                var rowss = row.sub_colors[j];
-                                                                query_colors.push(getRegexString(rowss));
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            });
-
-                                        }
-                                        */
+                                         if (typeof fltr_str_arr[3] != 'undefined' && fltr_str_arr[4] == 'subcolor') {
+                                         set_empty_colors_filters = true;
+                                         console.log(' arun kuma COLORS UNSET HERE');
+                                         if (typeof fltr_str_arr[5] != 'undefined') {
+                                         
+                                         var list_sub_colors = fltr_str_arr[5];
+                                         list_sub_colors = list_sub_colors.replace(/_/g, ' ');
+                                         var arr_sub_colors = stringToArray(list_sub_colors, ',');
+                                         for (var i = 0; i < arr_sub_colors.length; i++) {
+                                         var subclr = arr_sub_colors[i];
+                                         query_colors.push(subclr);
+                                         }
+                                         //console.log(list_sub_colors);
+                                         //console.log('arun kumar');
+                                         //console.log(arr_sub_colors);
+                                         }
+                                         } else {
+                                         
+                                         //where[fltr_key] = new RegExp(fltr_val, "i");
+                                         Object.keys(colors_data).forEach(function(sscc) {
+                                         sscc_data = colors_data[sscc];
+                                         sscc_color = sscc_data.color;
+                                         sscc_data_secondary_colors = sscc_data.secondary_colors;
+                                         if (sscc_color == fltr_val) {
+                                         //console.log('aa :: ' +fltr_key);
+                                         //console.log(fltr_val);
+                                         filters.color.data = sscc_data_secondary_colors;
+                                         console.log(' arun kuma COLORS SET HERE');
+                                         for (var i = 0; i < sscc_data_secondary_colors.length; i++) {
+                                         var row = sscc_data_secondary_colors[i];
+                                         query_colors.push(row.color);
+                                         if (typeof row.sub_colors != 'undefined' && row.sub_colors.length > 0) {
+                                         for (var j = 0; j < row.sub_colors.length; j++) {
+                                         var rowss = row.sub_colors[j];
+                                         query_colors.push(getRegexString(rowss));
+                                         }
+                                         }
+                                         }
+                                         }
+                                         });
+                                         
+                                         }
+                                         */
                                         console.log('query_colors');
                                         console.log(fltr_val);
                                         //console.log(query_colors);
                                         //where[fltr_key] = {
-                                           // '$in': query_colors
+                                        // '$in': query_colors
                                         //};
                                         where[fltr_key]['$in'].push(getRegexString(fltr_val));
                                     }
@@ -1130,7 +1133,7 @@ router.all('/products', function (req, res, next) {
                     console.log('!!! START :: redis check !!!');
                     var where_size = Object.keys(where).length;
                     var check_in_redis = false;
-                    if ( check_in_redis == true && where_size == 2 && typeof where.cat_id != 'undefined' && where.cat_id != '' && where.sub_cat_id != 'undefined' && where.sub_cat_id != '') {
+                    if (check_in_redis == true && where_size == 2 && typeof where.cat_id != 'undefined' && where.cat_id != '' && where.sub_cat_id != 'undefined' && where.sub_cat_id != '') {
                         var catlog_redis_key = 'catalog_' + where.cat_id + '_' + where.sub_cat_id;
                         console.log('redis key :: ' + catlog_redis_key);
 
@@ -1203,7 +1206,7 @@ router.all('/products', function (req, res, next) {
                         });
                         console.log('!!! STOP :: redis check !!!');
                         //------check for redis data------
-                        } else {
+                    } else {
                         finalData.results_from = 'mongo';
                         website_scrap_data.where(where).sort(query_sort).skip(skip_count).limit(products_per_page).select(product_data_list).find(query_results);
                         var end = new Date().getTime() - start;
@@ -1213,33 +1216,33 @@ router.all('/products', function (req, res, next) {
             }
         }
         function query_results(err, data) {
-                if (err) {
-                    next(err);
+            if (err) {
+                next(err);
+            } else {
+                finalData.products = [];
+                if (data.length == 0) {
+                    res.json({
+                        error: 0,
+                        data: finalData
+                    });
                 } else {
-                    finalData.products = [];
-                    if (data.length == 0) {
-                        res.json({
-                            error: 0,
-                            data: finalData
-                        });
-                    } else {
-                        var modify_data = {};
-                        for (var j = 0; j < data.length; j++) {
-                            var row1 = data[j];
-                            var product_price_diff = row1.get('price_diff');
-                            if (typeof product_price_diff != 'undefined') {
-                                row1.set('price_drop', product_price_diff);
-                            } else {
-                                row1.set('price_drop', 0);
-                            }
-                            finalData.products.push(productObj.getProductPermit(req, row1));
+                    var modify_data = {};
+                    for (var j = 0; j < data.length; j++) {
+                        var row1 = data[j];
+                        var product_price_diff = row1.get('price_diff');
+                        if (typeof product_price_diff != 'undefined') {
+                            row1.set('price_drop', product_price_diff);
+                        } else {
+                            row1.set('price_drop', 0);
                         }
-                        req.toCache = true;
-                        req.cache_data = finalData;
-                        next();
+                        finalData.products.push(productObj.getProductPermit(req, row1));
                     }
+                    req.toCache = true;
+                    req.cache_data = finalData;
+                    next();
                 }
             }
+        }
     }
     //----------------------------------------------------------------------------
     // --params are available in req.body -- in modules/config.js files
@@ -1265,60 +1268,60 @@ router.all('/search', function (req, res) {
     var father_key = body.father_key;
     var current_page = body.page;
     var products_per_page = req.config.products_per_page;
-    if( typeof current_page === 'undefined' || current_page == -1) {
+    if (typeof current_page === 'undefined' || current_page == -1) {
         current_page = 1;
-    } 
+    }
     var skip_count = (current_page - 1) * products_per_page;
-    
-    console.log('current_page :: '+ current_page);
-    console.log('skip :: '+skip_count);
-    
+
+    console.log('current_page :: ' + current_page);
+    console.log('skip :: ' + skip_count);
+
     var where = {};
-    
+
     var is_cat_sub_cat_search = false;
     var search_cat_id = body.cat_id;
     var search_sub_cat_id = body.sub_cat_id;
-    
+
     //search_cat_id = 30;
     //search_sub_cat_id = 3003;
     var is_cat_id_set = false;
     var is_sub_cat_id_set = false;
-    if( typeof search_cat_id !='undefined' && search_cat_id != -1 ){
+    if (typeof search_cat_id != 'undefined' && search_cat_id != -1) {
         where = {
-            'cat_id':search_cat_id*1,
+            'cat_id': search_cat_id * 1,
         };
         is_cat_id_set = true;
     }
-    if( typeof search_sub_cat_id !='undefined' && search_sub_cat_id != -1 ){
+    if (typeof search_sub_cat_id != 'undefined' && search_sub_cat_id != -1) {
         where = {
-            'sub_cat_id':search_sub_cat_id*1,
+            'sub_cat_id': search_sub_cat_id * 1,
         };
         is_sub_cat_id_set = true;
     }
-    
-    if( is_cat_id_set == true || is_sub_cat_id_set == true ){
+
+    if (is_cat_id_set == true || is_sub_cat_id_set == true) {
         is_cat_sub_cat_search = true;
     }
-    
-    
-    
+
+
+
     var all_cat_id_found = false;
     var father_wise_listing = req.recycle_data.father_wise_listing;
-    if( typeof father_key != 'undefined' && father_key !='' && is_cat_sub_cat_search == false){
-        console.log(father_key+' :: ');
-        if( typeof(father_wise_listing) !='undefined' && father_wise_listing.length > 0 ){
-            for( var i = 0; i < father_wise_listing.length ; i++){
+    if (typeof father_key != 'undefined' && father_key != '' && is_cat_sub_cat_search == false) {
+        console.log(father_key + ' :: ');
+        if (typeof (father_wise_listing) != 'undefined' && father_wise_listing.length > 0) {
+            for (var i = 0; i < father_wise_listing.length; i++) {
                 var chk_father_key = father_wise_listing[i].father_key;
-                console.log( chk_father_key + ' :: '+father_key);
-                if( father_key == chk_father_key  ){
-                    console.log( 'yes found => ' +chk_father_key + ' :: '+father_key);
+                console.log(chk_father_key + ' :: ' + father_key);
+                if (father_key == chk_father_key) {
+                    console.log('yes found => ' + chk_father_key + ' :: ' + father_key);
                     var father_all_cat_id = father_wise_listing[i].all_cat_id;
                     console.log(father_all_cat_id);
-                    if( typeof father_all_cat_id  != 'undefined' && father_all_cat_id.length > 0){
+                    if (typeof father_all_cat_id != 'undefined' && father_all_cat_id.length > 0) {
                         all_cat_id_found = true;
                         where = {
-                            'cat_id':{
-                                '$in':father_wise_listing[i].all_cat_id,
+                            'cat_id': {
+                                '$in': father_wise_listing[i].all_cat_id,
                             }
                         };
                     }
@@ -1326,7 +1329,7 @@ router.all('/search', function (req, res) {
             }
         }
     }
-    
+
     var applied_filters = body.filters;
     console.log('!!! applied filtere !!!');
     console.log(applied_filters);
@@ -1341,103 +1344,103 @@ router.all('/search', function (req, res) {
                 fltr_key = fltr_str_arr[2];
                 fltr_val = fltr_str_arr[3];
                 if (fltr_type == 'text') {
-                                    fltr_val = fltr_val.replace(/_/g, ' ');
-                                    if (fltr_key == 'brand' || fltr_key == 'website' || fltr_key == 'sizes') {
-                                        fltr_key_is_in_where = false;
-                                        Object.keys(where).forEach(function (cc) {
-                                            if (cc == fltr_key) {
-                                                fltr_key_is_in_where = true;
+                    fltr_val = fltr_val.replace(/_/g, ' ');
+                    if (fltr_key == 'brand' || fltr_key == 'website' || fltr_key == 'sizes') {
+                        fltr_key_is_in_where = false;
+                        Object.keys(where).forEach(function (cc) {
+                            if (cc == fltr_key) {
+                                fltr_key_is_in_where = true;
+                            }
+                        });
+                        if (fltr_key_is_in_where == false) {
+                            where[fltr_key] = {
+                                '$in': [],
+                            };
+                        }
+                        if (fltr_key == 'sizes') {
+                            if (typeof sizes_data != 'undefined' && sizes_data.length > 0) {
+                                Object.keys(sizes_data).forEach(function (ss_size) {
+                                    size_detail = sizes_data[ss_size];
+                                    size_detail_text = size_detail.text;
+                                    if (fltr_val == size_detail_text) {
+                                        var size_query_params = size_detail.query_params;
+                                        if (typeof size_query_params != 'undefined' && size_query_params.length > 0) {
+                                            for (var jj = 0; jj < size_query_params.length; jj++) {
+                                                var s_size = size_query_params[jj];
+                                                s_size = new RegExp(s_size, 'i');
+                                                where[fltr_key]['$in'].push(s_size);
                                             }
-                                        });
-                                        if (fltr_key_is_in_where == false) {
-                                            where[fltr_key] = {
-                                                '$in': [],
-                                            };
                                         }
-                                        if (fltr_key == 'sizes') {
-                                            if (typeof sizes_data != 'undefined' && sizes_data.length > 0) {
-                                                Object.keys(sizes_data).forEach(function (ss_size) {
-                                                    size_detail = sizes_data[ss_size];
-                                                    size_detail_text = size_detail.text;
-                                                    if (fltr_val == size_detail_text) {
-                                                        var size_query_params = size_detail.query_params;
-                                                        if (typeof size_query_params != 'undefined' && size_query_params.length > 0) {
-                                                            for (var jj = 0; jj < size_query_params.length; jj++) {
-                                                                var s_size = size_query_params[jj];
-                                                                s_size = new RegExp(s_size, 'i');
-                                                                where[fltr_key]['$in'].push(s_size);
-                                                            }
-                                                        }
-                                                    }
-                                                });
-                                            }
-                                        } else {
-                                            fltr_val = new RegExp(fltr_val, 'i');
-                                            console.log(fltr_val);
-                                            where[fltr_key]['$in'].push(fltr_val);
-                                        }
-                                    } else if (fltr_key == 'color') {
-                                        color_filter_is_set = true;
-                                        var query_colors = [];
-                                        query_colors.push(fltr_val);
-
-                                        if (typeof fltr_str_arr[3] != 'undefined' && fltr_str_arr[4] == 'subcolor') {
-                                            set_empty_colors_filters = true;
-                                            console.log(' arun kuma COLORS UNSET HERE');
-                                            if (typeof fltr_str_arr[5] != 'undefined') {
-
-                                                var list_sub_colors = fltr_str_arr[5];
-                                                list_sub_colors = list_sub_colors.replace(/_/g, ' ');
-                                                var arr_sub_colors = stringToArray(list_sub_colors, ',');
-                                                for (var i = 0; i < arr_sub_colors.length; i++) {
-                                                    var subclr = arr_sub_colors[i];
-                                                    query_colors.push(subclr);
-                                                }
-                                                //console.log(list_sub_colors);
-                                                //console.log('arun kumar');
-                                                //console.log(arr_sub_colors);
-                                            }
-                                        } else {
-
-                                            //where[fltr_key] = new RegExp(fltr_val, "i");
-                                            Object.keys(colors_data).forEach(function (sscc) {
-                                                sscc_data = colors_data[sscc];
-                                                sscc_color = sscc_data.color;
-                                                sscc_data_secondary_colors = sscc_data.secondary_colors;
-                                                if (sscc_color == fltr_val) {
-                                                    //console.log('aa :: ' +fltr_key);
-                                                    //console.log(fltr_val);
-                                                    filters.color.data = sscc_data_secondary_colors;
-                                                    console.log(' arun kuma COLORS SET HERE');
-                                                    for (var i = 0; i < sscc_data_secondary_colors.length; i++) {
-                                                        var row = sscc_data_secondary_colors[i];
-                                                        query_colors.push(row.color);
-                                                        if (typeof row.sub_colors != 'undefined' && row.sub_colors.length > 0) {
-                                                            for (var j = 0; j < row.sub_colors.length; j++) {
-                                                                var rowss = row.sub_colors[j];
-                                                                query_colors.push(getRegexString(rowss));
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            });
-
-                                        }
-
-                                        console.log('query_colors');
-                                        console.log(query_colors);
-
-
-                                        where[fltr_key] = {
-                                            '$in': query_colors
-                                        };
-
                                     }
-                                    else {
-                                        where[fltr_key] = new RegExp(fltr_val, "i");
-                                    }
+                                });
+                            }
+                        } else {
+                            fltr_val = new RegExp(fltr_val, 'i');
+                            console.log(fltr_val);
+                            where[fltr_key]['$in'].push(fltr_val);
+                        }
+                    } else if (fltr_key == 'color') {
+                        color_filter_is_set = true;
+                        var query_colors = [];
+                        query_colors.push(fltr_val);
 
-                                } 
+                        if (typeof fltr_str_arr[3] != 'undefined' && fltr_str_arr[4] == 'subcolor') {
+                            set_empty_colors_filters = true;
+                            console.log(' arun kuma COLORS UNSET HERE');
+                            if (typeof fltr_str_arr[5] != 'undefined') {
+
+                                var list_sub_colors = fltr_str_arr[5];
+                                list_sub_colors = list_sub_colors.replace(/_/g, ' ');
+                                var arr_sub_colors = stringToArray(list_sub_colors, ',');
+                                for (var i = 0; i < arr_sub_colors.length; i++) {
+                                    var subclr = arr_sub_colors[i];
+                                    query_colors.push(subclr);
+                                }
+                                //console.log(list_sub_colors);
+                                //console.log('arun kumar');
+                                //console.log(arr_sub_colors);
+                            }
+                        } else {
+
+                            //where[fltr_key] = new RegExp(fltr_val, "i");
+                            Object.keys(colors_data).forEach(function (sscc) {
+                                sscc_data = colors_data[sscc];
+                                sscc_color = sscc_data.color;
+                                sscc_data_secondary_colors = sscc_data.secondary_colors;
+                                if (sscc_color == fltr_val) {
+                                    //console.log('aa :: ' +fltr_key);
+                                    //console.log(fltr_val);
+                                    filters.color.data = sscc_data_secondary_colors;
+                                    console.log(' arun kuma COLORS SET HERE');
+                                    for (var i = 0; i < sscc_data_secondary_colors.length; i++) {
+                                        var row = sscc_data_secondary_colors[i];
+                                        query_colors.push(row.color);
+                                        if (typeof row.sub_colors != 'undefined' && row.sub_colors.length > 0) {
+                                            for (var j = 0; j < row.sub_colors.length; j++) {
+                                                var rowss = row.sub_colors[j];
+                                                query_colors.push(getRegexString(rowss));
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                        }
+
+                        console.log('query_colors');
+                        console.log(query_colors);
+
+
+                        where[fltr_key] = {
+                            '$in': query_colors
+                        };
+
+                    }
+                    else {
+                        where[fltr_key] = new RegExp(fltr_val, "i");
+                    }
+
+                }
                 else if (fltr_type == 'range') {
                     range_arr = stringToArray(fltr_val, '_');
                     fltr_val_low = range_arr[0];
@@ -1447,19 +1450,19 @@ router.all('/search', function (req, res) {
                         '$lte': fltr_val_high * 1
                     };
                 }
-                else if( fltr_type == 'integer'){
+                else if (fltr_type == 'integer') {
                     console.log('yahan par hai');
                     console.log(fltr_key);
                     console.log(fltr_val);
                     console.log('**********');
-                    where[fltr_key] = fltr_val*1;
+                    where[fltr_key] = fltr_val * 1;
                     console.log(where);
                     console.log('*************');
                 }
             }
         });
     }
-    
+
     console.log(where);
     //search_text = 'adidas';
     var product_data_list = req.config.product_data_list;
@@ -1475,19 +1478,19 @@ router.all('/search', function (req, res) {
         var search_products = [];
         final_data.text = search_text;
         final_data.result = search_products;
-        where['$text'] = {'$search':search_text};
+        where['$text'] = {'$search': search_text};
         console.log('!!! where !!!');
         console.log(where);
-        website_scrap_data.find(where,{ "score": { "$meta": "textScore" }},{ 
-            skip:skip_count,
-            limit : products_per_page,
-            sort:{ 'score': { '$meta': "textScore" } }
-        } , search_results);
-        function search_results( err,data){
+        website_scrap_data.find(where, {"score": {"$meta": "textScore"}}, {
+            skip: skip_count,
+            limit: products_per_page,
+            sort: {'score': {'$meta': "textScore"}}
+        }, search_results);
+        function search_results(err, data) {
             if (err) {
                 next(err);
             } else {
-                if (typeof data != 'undefined' && data.length > 0 ) {
+                if (typeof data != 'undefined' && data.length > 0) {
                     for (var i = 0; i < data.length; i++) {
                         var row = data[i];
                         var obj = row;
@@ -1497,7 +1500,7 @@ router.all('/search', function (req, res) {
                     res.json({
                         error: 0,
                         data: {
-                            current_page:current_page,
+                            current_page: current_page,
                             products: search_products
                         }
                     });
