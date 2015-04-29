@@ -26,7 +26,7 @@ router.get('/', function(req, res) {
         pid = false;
     }
     //-----------------------------------------------------------------------------------------------
-    var jquery = fs.readFileSync(__dirname + '/../../../../../js/jquery-1.8.3.min.js').toString();
+    var jquery = fs.readFileSync(__dirname + '/../../jquery-1.8.3.min.js').toString();
     var jQuery;
     var $;
     var window;
@@ -1296,7 +1296,13 @@ router.get('/', function(req, res) {
             }
             if( $('div#xcontent_product_row1_col1').find('img').length > 0 ){
                 $('div#xcontent_product_row1_col1').find('img').each(function(){
-                    more_images.push($(this).attr('src'));
+                    var ii = $(this).attr('src');
+                    if( ii.indexOf('thumbs96_108') != -1 ){
+                        ii = ii.replace('thumbs96_108','thumbs480_540');
+                    }
+                    if( ii != '' && ii != null){
+                        more_images.push(ii);
+                    }
                 });
             }
         }
@@ -1503,11 +1509,16 @@ router.get('/', function(req, res) {
         else if( website_detected == 'urbanladder'){
             if( $('ul.slider').find('li').length > 0 ){
                 main_image =  $('ul.slider').find('li:first').find('img').attr('src');
-                $('ul.slider').find('li').each(function(){
+                $('ul.slider:first').find('li').each(function(){
                     ii = $(this).find('img').attr('data-src');
-                    more_images.push(ii);
+                    if( typeof ii != 'undefined' && ii != '' && ii != null){
+                        if( ii.indexOf('//') != -1 ){
+                            ii = ii.replace('//','http://');
+                        }
+                        more_images.push(ii);
+                    }
                 });
-            } 
+            }
         }else if( website_detected == 'Pepperfry'){
             if( $('.vip_large_img').find('img').length >  0){
                 main_image = $('.vip_large_img').find('img').attr('src');
