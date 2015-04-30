@@ -8,7 +8,7 @@ var fs = require('fs');
 var util = require('util'); 
 var mongoose = require('mongoose');
 
-var conn4 = mongoose.createConnection('mongodb://pricegenie.co/scrap_db3');
+var conn4 = mongoose.createConnection('mongodb://127.0.0.1/scrap_db3');
 var scrap_data_schema2 = mongoose.Schema({}, {
     strict: false,
     collection: 'website_scrap_data'
@@ -26,7 +26,7 @@ router.get('/', function(req, res) {
         pid = false;
     }
     //-----------------------------------------------------------------------------------------------
-    var jquery = fs.readFileSync(__dirname + '/../../../../../js/jquery-1.8.3.min.js').toString();
+    var jquery = fs.readFileSync(__dirname + '/../../jquery-1.11.2.js').toString();
     var jQuery;
     var $;
     var window;
