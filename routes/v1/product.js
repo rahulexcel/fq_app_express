@@ -38,16 +38,16 @@ function modifyPriceHistoryForJson(data) {
     }
     return return_data;
 }
-function manipulateVariantData(data){
-    var per_website =4;
+function manipulateVariantData(data) {
+    var per_website = 4;
     var ret_data = [];
     var websites_wise = {};
-    if( typeof data != 'undefined' && data.length > 0 ){
-        for( var i = 0 ; i < data.length; i++ ){
+    if (typeof data != 'undefined' && data.length > 0) {
+        for (var i = 0; i < data.length; i++) {
             var web_exists = false;
             var row = data[i];
             var website = row.get('website');
-            Object.keys(websites_wise).forEach(function(cc) {
+            Object.keys(websites_wise).forEach(function (cc) {
                 if (cc == website) {
                     web_exists = true;
                 }
@@ -55,7 +55,7 @@ function manipulateVariantData(data){
             if (web_exists == false) {
                 websites_wise[website] = 0;
             }
-            if( websites_wise[website] < per_website){
+            if (websites_wise[website] < per_website) {
                 ret_data.push(row);
             }
             websites_wise[website] += 1;
@@ -66,7 +66,7 @@ function manipulateVariantData(data){
             return a.sort_score - b.sort_score;
         });
     }
-    
+
     return ret_data;
 }
 
@@ -187,20 +187,29 @@ router.all('/similar', function (req, res, next) {
     var mongoose = req.mongoose;
     var body = req.body;
     var product_id = body.product_id;
+    var unique = body.unique;
+    var website = body.website;
     var productObj = req.productObj;
     //var product_id = '54f5b06c06bd9c9c40fe5458'; //for testing
     var category = req.conn_category;
     var website_scrap_data = req.conn_website_scrap_data;
-    if (typeof product_id === 'undefined') {
+    if (typeof product_id === 'undefined' && typeof unique === 'undefined') {
         res.json({
             error: 1,
-            message: 'product_id is not found',
+            message: 'Invalid Request',
         });
     } else {
         var similar_arr = [];
-        var where = {
-            '_id': mongoose.Types.ObjectId(product_id),
-        };
+        if (product_id) {
+            var where = {
+                '_id': mongoose.Types.ObjectId(product_id)
+            };
+        } else {
+            var where = {
+                'unique': unique,
+                website: website
+            };
+        }
         var product_data_list = req.config.product_data_list;
         website_scrap_data.where(where).select(product_data_list).findOne(result);
         function result(err, data) {
@@ -226,17 +235,32 @@ router.all('/similar', function (req, res, next) {
                         console.log(' product_model_no found :: ' + product_model_no);
                     }
                     //--------------------------------------------------
-                    where_similar = {
-                        '_id': {
-                            '$nin': [
-                                mongoose.Types.ObjectId(product_id),
-                            ]
-                        },
-                        'cat_id': product_cat_id * 1,
-                        'sub_cat_id': product_sub_cat_id * 1,
-                        'website': product_website,
-                        '$text': {'$search': product_name},
-                    };
+
+                    if (product_id) {
+                        where_similar = {
+                            '_id': {
+                                '$nin': [
+                                    mongoose.Types.ObjectId(product_id),
+                                ]
+                            },
+                            'cat_id': product_cat_id * 1,
+                            'sub_cat_id': product_sub_cat_id * 1,
+                            'website': product_website,
+                            '$text': {'$search': product_name},
+                        };
+                    } else {
+                        where_similar = {
+                            'unique': {
+                                '$nin': [
+                                    unique
+                                ]
+                            },
+                            'cat_id': product_cat_id * 1,
+                            'sub_cat_id': product_sub_cat_id * 1,
+                            'website': product_website,
+                            '$text': {'$search': product_name},
+                        };
+                    }
                     if (typeof product_brand != 'undefined' && product_brand != '') {
                         where_similar['brand'] = new RegExp(product_brand, "i");
                     }
@@ -340,7 +364,7 @@ router.all('/variant', function (req, res, next) {
                         if (err) {
                             next(err);
                         } else {
-                            if ( typeof data_var != 'undefined' && data_var.length > 0 ) {
+                            if (typeof data_var != 'undefined' && data_var.length > 0) {
                                 for (var i = 0; i < data_var.length; i++) {
                                     var row = data_var[i];
                                     var obj = row;
@@ -350,7 +374,7 @@ router.all('/variant', function (req, res, next) {
                                     error: 0,
                                     data: manipulateVariantData(variant_arr),
                                 });
-                            }else if( is_model_no_product == true ){
+                            } else if (is_model_no_product == true) {
                                 console.log('!!model -- will check without model no!!!');
                                 delete where_variant.model_no;
                                 console.log(where_variant);
@@ -363,7 +387,7 @@ router.all('/variant', function (req, res, next) {
                                     if (err) {
                                         next(err);
                                     } else {
-                                        if ( typeof data_var2 != 'undefined' && data_var2.length > 0 ) {
+                                        if (typeof data_var2 != 'undefined' && data_var2.length > 0) {
                                             for (var i = 0; i < data_var2.length; i++) {
                                                 var row = data_var2[i];
                                                 var obj = row;
@@ -373,7 +397,7 @@ router.all('/variant', function (req, res, next) {
                                                 error: 0,
                                                 data: manipulateVariantData(variant_arr),
                                             });
-                                        }else{
+                                        } else {
                                             res.json({
                                                 error: 0,
                                                 data: variant_arr,
@@ -381,7 +405,7 @@ router.all('/variant', function (req, res, next) {
                                         }
                                     }
                                 }
-                            }else{
+                            } else {
                                 res.json({
                                     error: 0,
                                     data: variant_arr,

@@ -99,7 +99,7 @@ app.use(function (req, res, next) {
         'catalog/products',
         'product/view',
         'product/similar',
-        'product/variant'
+        'product/variant',
         'catalog/filters'
     ];
     req.cache = false;

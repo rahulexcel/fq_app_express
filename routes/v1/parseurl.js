@@ -26,7 +26,7 @@ router.get('/', function(req, res) {
         pid = false;
     }
     //-----------------------------------------------------------------------------------------------
-    var jquery = fs.readFileSync(__dirname + '/../../jquery-1.8.3.min.js').toString();
+    var jquery = fs.readFileSync(__dirname + '/../../jquery-1.11.2.js').toString();
     var jQuery;
     var $;
     var window;
