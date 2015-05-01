@@ -33,10 +33,15 @@ module.exports = function (mongoose) {
         strict: false,
         collection: 'parseurl_checklist'
     });
+    var schema_category = mongoose.Schema({}, {
+        strict: false,
+        collection: 'category'
+    });
     var final_fashion_filters = conn.model('final_fashion_filters', schema_final_fashion_filters);
     var filters_category_wise = conn.model('filters_category_wise', schema_filters_category_wise);
     var website_scrap_data = conn.model('website_scrap_data', schema_website_scrap_data);
     var parseurl_checklist = conn.model('parseurl_checklist',schema_parseurl_checklist);
+    var category = conn.model('category',schema_category);
     var genderTypes = ['M', 'F'];
     var allowedConnectinoType = ['facebook', 'google', 'contacts', 'signup'];
     var wishlistTypes = ['private', 'public', 'shared'];
@@ -237,6 +242,7 @@ module.exports = function (mongoose) {
         req.conn_filters_category_wise = filters_category_wise;
         req.conn_website_scrap_data = website_scrap_data;
         req.conn_parseurl_checklist = parseurl_checklist;
+        req.conn_category = category;
         req.Auth = Auth;
         req.User = User;
         req.Wishlist = Wishlist;
