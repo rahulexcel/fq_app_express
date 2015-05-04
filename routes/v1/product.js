@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+var mongoose = require('mongoose');
 
 function stringToArray(str, expby) {
     var ret = new Array();
@@ -76,7 +77,6 @@ router.all('/view', function (req, res, next) {
     if (req.method === 'OPTIONS') {
         res.json('');
     } else {
-        var mongoose = req.mongoose;
         var body = req.body;
         var productObj = req.productObj;
         var product_id = body.product_id;
@@ -184,7 +184,6 @@ router.all('/view', function (req, res, next) {
     }
 });
 router.all('/similar', function (req, res, next) {
-    var mongoose = req.mongoose;
     var body = req.body;
     var product_id = body.product_id;
     var unique = body.unique;
@@ -235,7 +234,19 @@ router.all('/similar', function (req, res, next) {
                         console.log(' product_model_no found :: ' + product_model_no);
                     }
                     //--------------------------------------------------
+                    if (product_name) {
+                        var split_name = product_name.split(' ');
+                        var split_brand = product_brand.split(' ');
+                        if (split_brand.length > 1) {
+                            //three words
 
+                            product_name = split_name.slice(0, 3).join(" ");
+
+                        } else {
+                            //two words
+                            product_name = split_name.slice(0, 2).join(" ");
+                        }
+                    }
                     if (product_id) {
                         where_similar = {
                             '_id': {
@@ -294,7 +305,6 @@ router.all('/similar', function (req, res, next) {
     }
 });
 router.all('/variant', function (req, res, next) {
-    var mongoose = req.mongoose;
     var body = req.body;
     var product_id = body.product_id;
     var productObj = req.productObj;
@@ -336,6 +346,20 @@ router.all('/variant', function (req, res, next) {
                         console.log(' product_model_no found :: ' + product_model_no);
                     }
                     //--------------------------------------------------
+
+                    if (product_name) {
+                        var split_name = product_name.split(' ');
+                        var split_brand = product_brand.split(' ');
+                        if (split_brand.length > 1) {
+                            //three words
+
+                            product_name = split_name.slice(0, 3).join(" ");
+
+                        } else {
+                            //two words
+                            product_name = split_name.slice(0, 2).join(" ");
+                        }
+                    }
                     where_variant = {
                         '_id': {
                             '$nin': [
@@ -426,7 +450,6 @@ router.all('/variant_old', function (req, res, next) {
     if (req.method === 'OPTIONS') {
         res.json('');
     } else {
-        var mongoose = req.mongoose;
         var body = req.body;
         var product_id = body.product_id;
         //var product_id = '54f9635f489382cc47db2684'; //for testing
@@ -602,7 +625,6 @@ router.all('/view_old', function (req, res, next) {
     if (req.method === 'OPTIONS') {
         res.json('');
     } else {
-        var mongoose = req.mongoose;
         var body = req.body;
         var product_id = body.product_id;
 

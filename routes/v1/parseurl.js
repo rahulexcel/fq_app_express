@@ -7,13 +7,13 @@ var jsdom = require('jsdom');
 var fs = require('fs');
 var util = require('util'); 
 var mongoose = require('mongoose');
-
-var conn4 = mongoose.createConnection('mongodb://pricegenie.co/scrap_db3');
-var scrap_data_schema2 = mongoose.Schema({}, {
-    strict: false,
-    collection: 'website_scrap_data'
-});
-var scrap_data = conn4.model('website_scrap_data', scrap_data_schema2);
+//
+//var conn4 = mongoose.createConnection('mongodb://pricegenie.co/scrap_db3');
+//var scrap_data_schema2 = mongoose.Schema({}, {
+//    strict: false,
+//    collection: 'website_scrap_data'
+//});
+//var scrap_data = conn4.model('website_scrap_data', scrap_data_schema2);
 
 router.get('/', function(req, res) {
     var url = req.query.url;
@@ -1716,14 +1716,14 @@ router.get('/', function(req, res) {
                             color: colors,
                             color_update_from:'parseurl.js'
                         };
-                        scrap_data.update(where_rec,to_be_update_data,function(err,dd){
-                            if (err) {
-                                console.log("error on  updating product");
-                                console.log(err);
-                            }else{
-                                console.log('color update done!');
-                            }
-                        });
+//                        scrap_data.update(where_rec,to_be_update_data,function(err,dd){
+//                            if (err) {
+//                                console.log("error on  updating product");
+//                                console.log(err);
+//                            }else{
+//                                console.log('color update done!');
+//                            }
+//                        });
                         
                     }
                 }
