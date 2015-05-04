@@ -7,19 +7,11 @@ module.exports = function (mongoose) {
         console.log("Error Redis Connection" + err);
         process.exit(0);
     });
-    var conn = mongoose.createConnection('mongodb://144.76.83.246/scrap_db3');
+    var conn = mongoose.createConnection('mongodb://127.0.0.1/scrap_db3');
     var scrap_db3 = mongoose.connection;
 
-    conn.on('error', function () {
-        console.log('mongo db connection errro');
-        process.exit(0);
-    });
-    conn.on('open',function(){
-       console.log('mongodb connected');
-    });
 
-
-    //var conn1 = mongoose.createConnection('mongodb://127.0.0.1/pricegenie');
+    var conn1 = mongoose.createConnection('mongodb://127.0.0.1/pricegenie');
     var user_watch_schema = mongoose.Schema({}, {
         strict: false,
         collection: 'user_watch_map'
@@ -41,10 +33,15 @@ module.exports = function (mongoose) {
         strict: false,
         collection: 'parseurl_checklist'
     });
+    var schema_category = mongoose.Schema({}, {
+        strict: false,
+        collection: 'category'
+    });
     var final_fashion_filters = conn.model('final_fashion_filters', schema_final_fashion_filters);
     var filters_category_wise = conn.model('filters_category_wise', schema_filters_category_wise);
     var website_scrap_data = conn.model('website_scrap_data', schema_website_scrap_data);
-    var parseurl_checklist = conn.model('parseurl_checklist', schema_parseurl_checklist);
+    var parseurl_checklist = conn.model('parseurl_checklist',schema_parseurl_checklist);
+    var category = conn.model('category',schema_category);
     var genderTypes = ['M', 'F'];
     var allowedConnectinoType = ['facebook', 'google', 'contacts', 'signup'];
     var wishlistTypes = ['private', 'public', 'shared'];
@@ -181,7 +178,7 @@ module.exports = function (mongoose) {
     var gcm_schema = mongoose.Schema({
         user_id: {type: String, required: true},
         reg_id: {type: String},
-        token: {type: String},
+        token:  {type: String},
         created_at: {type: Date, default: Date.now},
         device: {type: Schema.Types.Mixed}
     });
@@ -234,24 +231,18 @@ module.exports = function (mongoose) {
         collection: 'calcuation_stats',
     });
     var Calculation = conn.model('calcuation_stats', schema_calc_stats);
-    var user_watch_map = conn.model('user_watch_map', user_watch_schema);
+    var user_watch_map = conn1.model('user_watch_map', user_watch_schema);
     var Grid = require('gridfs-stream');
     Grid.mongo = mongoose.mongo;
     var gfs = Grid(conn.db);
-    
-     var schema_category = mongoose.Schema({},{
-        strict: false,
-        collection: 'category',
-    });
-    var category = conn.model('category', schema_category);
     return function (req, res, next) {
         req.feed = feed;
         req.scrap_db3 = scrap_db3;
-        req.conn_category = category;
         req.conn_final_fashion_filters = final_fashion_filters;
         req.conn_filters_category_wise = filters_category_wise;
         req.conn_website_scrap_data = website_scrap_data;
         req.conn_parseurl_checklist = parseurl_checklist;
+        req.conn_category = category;
         req.Auth = Auth;
         req.User = User;
         req.Wishlist = Wishlist;
