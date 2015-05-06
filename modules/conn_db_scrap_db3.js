@@ -9,9 +9,7 @@ module.exports = function (mongoose) {
     });
     var conn = mongoose.createConnection('mongodb://127.0.0.1/scrap_db3');
     var scrap_db3 = mongoose.connection;
-
-
-    var conn1 = mongoose.createConnection('mongodb://127.0.0.1/pricegenie');
+    //var conn1 = mongoose.createConnection('mongodb://127.0.0.1/pricegenie');
     var user_watch_schema = mongoose.Schema({}, {
         strict: false,
         collection: 'user_watch_map'
@@ -40,8 +38,8 @@ module.exports = function (mongoose) {
     var final_fashion_filters = conn.model('final_fashion_filters', schema_final_fashion_filters);
     var filters_category_wise = conn.model('filters_category_wise', schema_filters_category_wise);
     var website_scrap_data = conn.model('website_scrap_data', schema_website_scrap_data);
-    var parseurl_checklist = conn.model('parseurl_checklist',schema_parseurl_checklist);
-    var category = conn.model('category',schema_category);
+    var parseurl_checklist = conn.model('parseurl_checklist', schema_parseurl_checklist);
+    var category = conn.model('category', schema_category);
     var genderTypes = ['M', 'F'];
     var allowedConnectinoType = ['facebook', 'google', 'contacts', 'signup'];
     var wishlistTypes = ['private', 'public', 'shared'];
@@ -62,7 +60,8 @@ module.exports = function (mongoose) {
         meta: {
             lists: {type: Number, default: 0},
             products: {type: Number, default: 0},
-            followers: {type: Number, default: 0}, //will addup followers from list also
+            followers: {type: Number, default: 0}, //will not addup followers from list
+            following: {type: Number, default: 0},
             score: {type: Number, default: 0}, //user score based on items which is updated daily
             score_updated: {type: String}
         },
@@ -178,7 +177,7 @@ module.exports = function (mongoose) {
     var gcm_schema = mongoose.Schema({
         user_id: {type: String, required: true},
         reg_id: {type: String},
-        token:  {type: String},
+        token: {type: String},
         created_at: {type: Date, default: Date.now},
         device: {type: Schema.Types.Mixed}
     });
@@ -231,7 +230,7 @@ module.exports = function (mongoose) {
         collection: 'calcuation_stats',
     });
     var Calculation = conn.model('calcuation_stats', schema_calc_stats);
-    var user_watch_map = conn1.model('user_watch_map', user_watch_schema);
+    var user_watch_map = conn.model('user_watch_map', user_watch_schema);
     var Grid = require('gridfs-stream');
     Grid.mongo = mongoose.mongo;
     var gfs = Grid(conn.db);

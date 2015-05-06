@@ -217,7 +217,8 @@ router.all('/similar', function (req, res, next) {
             } else {
                 if (data == null || data.length == 0) {
                     res.json({
-                        error: 1,
+                        error: 0,
+                        data: [],
                         message: 'product not found for product_id ' + product_id,
                     });
                 } else {

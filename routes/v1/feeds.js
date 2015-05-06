@@ -1055,6 +1055,7 @@ function calculateTopUsers(req, limit, skip, done) {
     var current_date = moment().tz("Asia/Kolkata").format('DD-MM-YYYY HH:mm');
     var User = req.User;
     var WishlistItem = req.WishlistItem;
+    var Wishlist = req.Wishlist;
     console.log('limit ' + limit + " skip " + skip);
     User.find({
         'meta.products': {$gt: 0}
@@ -1082,22 +1083,48 @@ function calculateTopUsers(req, limit, skip, done) {
                                 user_score = user_score + baseScore;
                             }
                         }
-                        console.log("user _id " + user.name + 'score ' + user_score + " with items " + items.length);
-                        User.update({
-                            _id: mongoose.Types.ObjectId(user_id)
-                        }, {
-                            $set: {
-                                'meta.score': user_score,
-                                'meta.score_updated': current_date
-                            }
-                        }, function (err) {
+
+                        var total_clips = items.length;
+
+
+                        User.count({
+                            followers: user_id
+                        }).exec(function (err, following_count) {
                             if (err) {
-                                console.log(err);
+                                following_count = 0;
                             }
-                            if (k === (result.length - 1)) {
-                                done(true);
-                            }
-                            k++;
+
+                            Wishlist.count({
+                                followers: user_id
+                            }).exec(function (err, following_list_count) {
+                                if (err) {
+                                    following_list_count = 0;
+                                }
+
+                                var followers_count = user.followers.length;
+
+                                console.log("user _id " + user.name + 'score ' + user_score + " with items " + items.length);
+                                User.update({
+                                    _id: mongoose.Types.ObjectId(user_id)
+                                }, {
+                                    $set: {
+                                        'meta.score': user_score * 1,
+                                        'meta.score_updated': current_date,
+                                        'meta.products': total_clips * 1,
+                                        'meta.following': following_count * 1 + following_list_count * 1,
+                                        'meta.followers': followers_count * 1
+                                    }
+                                }, function (err) {
+                                    if (err) {
+                                        console.log(err);
+                                    }
+                                    if (k === (result.length - 1)) {
+                                        done(true);
+                                    }
+                                    k++;
+                                });
+                            });
+
                         });
                     });
                 })(result[i]);
