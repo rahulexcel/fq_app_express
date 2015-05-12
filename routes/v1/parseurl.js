@@ -174,6 +174,8 @@ router.get('/', function(req, res) {
             {'site':'miracas.com','code':'miracas'},
             {'site':'faballey.com','code':'faballey'},
             {'site':'elitify.com','code':'elitify'},
+            {'site':'indianroots.com','code':'indianroots'},
+            {'site':'jaypore.com','code':'jaypore'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -878,6 +880,8 @@ router.get('/', function(req, res) {
                 pp = $('#our_price_display').text();
                 price = getPrice(pp);
             }
+        }else if( website_detected == 'indianroots' || website_detected == 'jaypore'){
+           price = 1;
         }
 
         if (typeof price == 'undefined' || price == 'undefined' || price == false || price.length == 0) {
@@ -1547,6 +1551,31 @@ router.get('/', function(req, res) {
                 $('div#thumbs_list').find('a.thickbox').each(function(){
                     more_images.push($(this).attr('href'));
                 });
+            }
+        }else if (website_detected == 'indianroots') {
+            if ( $('a#cloud_zoom').length > 0 ) {
+                main_image =  $('a#cloud_zoom').attr('href');
+            }
+            if( $('ul#mycarousel').find('a.cloud-zoom-gallery').find('img').length > 0 ){
+                 $('ul#mycarousel').find('a.cloud-zoom-gallery').find('img').each(function(){
+                    var aa = $(this).attr('src');
+                    if( typeof aa != 'undefined'){
+                        aa = aa.replace('thumbnail/94x106','image/435x489');
+                        more_images.push(aa);
+                    }
+                });
+            }
+        }else if( website_detected == 'jaypore'){
+            if( $('div#prdThumbs').find('img').length > 0 ){
+                $('div#prdThumbs').find('img').each(function(){
+                    var aa = $(this).attr('data-zoom');
+                    if( typeof aa != 'undefined'){
+                        more_images.push(aa);
+                    }
+                });
+                if( more_images.length > 0 ){
+                    main_image == more_images[0];
+                }
             }
         }
         return {
