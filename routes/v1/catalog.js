@@ -964,6 +964,7 @@ router.all('/products', function (req, res, next) {
                                                 Object.keys(sizes_data).forEach(function (ss_size) {
                                                     size_detail = sizes_data[ss_size];
                                                     size_detail_text = size_detail.text;
+                                                    size_detail_text  = size_detail_text.toString();
                                                     if (fltr_val.toLowerCase() == size_detail_text.toLowerCase()) {
                                                         var size_query_params = size_detail.query_params;
                                                         if (typeof size_query_params != 'undefined' && size_query_params.length > 0) {
@@ -1481,6 +1482,7 @@ router.all('/search', function (req, res) {
         where['$text'] = {'$search': search_text};
         console.log('!!! where !!!');
         console.log(where);
+        /*
         website_scrap_data.find(where, {"score": {"$meta": "textScore"}}, {
             skip: skip_count,
             limit: products_per_page,
@@ -1510,6 +1512,50 @@ router.all('/search', function (req, res) {
                         data: {}
                     });
                 }
+            }
+        }
+        */
+       
+       website_scrap_data.aggregate(
+            {$match: where},
+            {$sort: {score: {$meta: "textScore"}}},
+            {$skip: skip_count},
+            {$limit: products_per_page},
+            {$group: {'_id': '$name', 'data': {$push: "$$ROOT"}}},
+            //{$project: project_project},
+            search_results
+        );
+        function search_results(err, data) {
+            if (err) {
+                next(err);
+            } else {
+                 if (typeof data != 'undefined' && data.length > 0) {
+                for (var k = 0; k < data.length; k++) {
+                     if (data[k].data && data[k].data.length > 0) {
+                         var website_wise = data[k].data;
+                         for (var kk = 0; kk < 1; kk++) {
+                             var rec = website_wise[kk];
+                             if (rec)
+                                 search_products.push(productObj.getProductPermit(req, rec));
+                         }
+                     }
+                 }
+                 res.json({
+                             error: 0,
+                             data: {
+                                 current_page: current_page,
+                                 products: search_products
+                             }
+                         });
+                    }
+                    else {
+                    res.json({
+                        error: 0,
+                        data: {}
+                    });
+                }
+                                               // console.log(search_products);
+                                                
             }
         }
     }
