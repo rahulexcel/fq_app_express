@@ -248,6 +248,7 @@ router.all('/similar', function (req, res, next) {
                             product_name = split_name.slice(0, 2).join(" ");
                         }
                     }
+                    var where_2 = {};
                     if (product_id) {
                         where_similar = {
                             '_id': {
@@ -259,6 +260,17 @@ router.all('/similar', function (req, res, next) {
                             'sub_cat_id': product_sub_cat_id * 1,
                             'website': product_website,
                             '$text': {'$search': product_name},
+                        };
+                        where_2 = {
+                            '_id': {
+                                '$nin': [
+                                    mongoose.Types.ObjectId(product_id),
+                                ]
+                            },
+                            'cat_id': product_cat_id * 1,
+                            'sub_cat_id': product_sub_cat_id * 1,
+                            'website': product_website,
+                            'brand': product_brand
                         };
                     } else {
                         where_similar = {
@@ -272,7 +284,20 @@ router.all('/similar', function (req, res, next) {
                             'website': product_website,
                             '$text': {'$search': product_name},
                         };
+                        where_2 = {
+                            'unique': {
+                                '$nin': [
+                                    unique
+                                ]
+                            },
+                            'cat_id': product_cat_id * 1,
+                            'sub_cat_id': product_sub_cat_id * 1,
+                            'website': product_website,
+                            'brand': product_brand
+                        };
                     }
+
+
                     if (typeof product_brand != 'undefined' && product_brand != '') {
                         where_similar['brand'] = new RegExp(product_brand, "i");
                     }
@@ -282,7 +307,21 @@ router.all('/similar', function (req, res, next) {
                         limit: 10,
                         sort: {'score': {'$meta': "textScore"}},
                         select: product_data_list,
-                    }, data_sim_res);
+                    }, function (err, data) {
+                        if (err) {
+                            next(err);
+                        } else {
+                            if (data.length > 0) {
+                                data_sim_res(err, data)
+                            } else {
+                                website_scrap_data.find(where_2, {
+                                    limit: 10,
+                                    select: product_data_list,
+                                }).exec(data_sim_res);
+
+                            }
+                        }
+                    });
                     function data_sim_res(err, data_sim) {
                         if (err) {
                             next(err);

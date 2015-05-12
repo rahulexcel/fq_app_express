@@ -5,7 +5,7 @@ var apn = require('apn');
 //subscribe to price alerts
 
 console.log('connecting to apn');
-var apn_service = new apn.connection({production: false});
+var apn_service = new apn.connection({production: false,"passphrase":'java@123'});
 
 apn_service.on("connected", function () {
     console.log("Connected");
@@ -62,6 +62,14 @@ router.all('/item/price_alert', function (req, res, next) {
                     var cat_id = product_row.get('cat_id');
                     var sub_cat_id = product_row.get('sub_cat_id');
                     var img = product_row.get('img');
+
+                    if(price < 0){
+                        res.json({
+                            error: 0,
+                            data: 0
+                        });
+                    }
+
                     user_watch_map.findOne({
                         for_fashion_iq: true,
                         unique: unique,
@@ -118,7 +126,8 @@ router.all('/item/price_alert', function (req, res, next) {
                                         next(err);
                                     } else {
                                         res.json({
-                                            error: 0
+                                            error: 0,
+                                            data: 1
                                         });
                                     }
                                 });
@@ -435,6 +444,7 @@ router.all('/alert', function (req, res, next) {
     }
 
 
+    var logs = [];
     GCM.find(where, function (err, rows) {
         if (err) {
             next(err);
@@ -442,24 +452,27 @@ router.all('/alert', function (req, res, next) {
 
 
             for (var i = 0; i < rows.length; i++) {
-                if (rows[i].reg_id)
+                if (rows[i].reg_id){
                     registrationIds.push(rows[i].reg_id);
+                    logs.push('reg ids ' + rows[i].reg_id);
+                }
             }
             console.log(registrationIds);
+
             var sender = new gcm.Sender('AIzaSyABDceQztvkstpKksCz86-hQAFeshqoBV4');
             console.log(data.meta);
             if (registrationIds) {
                 sender.send(message, registrationIds, 1, function (err, result) {
-                    if (err)
-                        res.json({
-                            error: 0,
-                            data: err
-                        });
-                    else
-                        res.json({
-                            error: 0,
-                            data: result
-                        });
+                    // if (err)
+                    //     res.json({
+                    //         error: 0,
+                    //         data: err
+                    //     });
+                    // else
+                    //     res.json({
+                    //         error: 0,
+                    //         data: result
+                    //     });
                 });
             }
 
@@ -467,16 +480,23 @@ router.all('/alert', function (req, res, next) {
             var tokens = [];
             for (var i = 0; i < rows.length; i++) {
                 if (rows[i].token) {
-                    tokens.push();
+                    tokens.push(rows[i].token);
+                    logs.push('token ' + rows[i].token);
                 }
             }
             var note = new apn.notification();
-            note.setAlertText(data.title);
-            note.badge = 1;
+            note.setAlertText(data.message);
+            note.badge = 0;
+            data.meta = JSON.stringify(data.meta);
             note.payload = data;
             apn_service.pushNotification(note, tokens);
         }
+        res.json({
+            error: 0,
+            data: logs
+        });
     });
+    
 });
 function pushItemToUserFeed(item_id, user_id, req) {
     var redis = req.redis;
