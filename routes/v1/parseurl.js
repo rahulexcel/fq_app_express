@@ -176,6 +176,7 @@ router.get('/', function(req, res) {
             {'site':'elitify.com','code':'elitify'},
             {'site':'indianroots.com','code':'indianroots'},
             {'site':'jaypore.com','code':'jaypore'},
+            {'site':'indiacircus.com','code':'indiacircus'},
         ];
         //string matching on url basis
         //var value = location.hostname;
@@ -1708,6 +1709,7 @@ router.get('/', function(req, res) {
                 colors = [];
                 var offers = [];
                 var shipping_charges = 0;
+                var delivery_charge = '';
                 if( website_detected == 'paytm'){
                     json_data = JSON.parse(template);
                     var price = json_data.offer_price;
@@ -1722,7 +1724,31 @@ router.get('/', function(req, res) {
                     if( typeof json_data.promo_text != 'undefined' && json_data.promo_text != ''){
                         offers.push(json_data.promo_text);
                     }
-                }else{
+                }
+                else if( website_detected == 'indiacircus'){
+                    json_data = JSON.parse(template);
+                    var price = json_data.finalPrice;
+                    if( price == '' || price == 0 ){
+                        price = json_data.price;
+                    }
+                    var name = json_data.name;
+                    var main_image = '';
+                    if( typeof json_data.thumbnail.url != 'undefined'){
+                        main_image = json_data.thumbnail.url;
+                    }
+                    var more_images = [];
+                    var stock = 0;
+                    if( typeof json_data.inStock != 'undefined' && json_data.inStock == true ){
+                        stock = 1;
+                    }
+                    more_images.push(main_image);
+                     if( typeof json_data.images != 'undefined'){
+                         for( var i =0; i < json_data.images.length ;i++){
+                             more_images.push(json_data.images[i].url);
+                         }
+                    }
+                }
+                else{
                     var price = getPriceHtml();
                     var name = getNameHtml();
                     var images = getImages();
@@ -1868,7 +1894,53 @@ router.get('/', function(req, res) {
                 console.log(website_detected);
                 console.log('yes product page hai !!!');
                 console.log(' !! URL SOURCE :: '+urlsource);
-                getHTML(url, false, function(err, data) {
+                console.log('******************');
+                console.log('iden_website ::: '+iden_website);
+                console.log('******************');
+                if( iden_website == true && website_detected == 'indiacircus'){
+                    console.log(url);
+                    url_param = getLastSlash(url);
+                    if( typeof url_param != 'undefined' ){
+                        var id_url = "http://api.crunchcommerce.com/v2/53a4565652c8fda17b8b456b/search/uri/rewrites?q="+url_param;
+                        getHTML(id_url, false, function(err, data) {
+                            if (err) {
+                                res.json({
+                                    error:2,
+                                    msg:err
+                                });
+                            } else {
+                                data = JSON.parse(data);
+                                if( typeof data.resource.id != 'undefined'){
+                                    idid = data.resource.id;
+                                    var product_url =  'http://api.crunchcommerce.com/v2/53a4565652c8fda17b8b456b/catalog/products/'+idid+'?image%5Boptions%5D%5Bcrop%5D=pad&image%5Boptions%5D%5Bformat%5D=jpg&image%5Boptions%5D%5Bheight%5D=450&image%5Boptions%5D%5Bquality%5D=90&image%5Boptions%5D%5Bwidth%5D=450';
+                                    getHTML(product_url, false, function(err, data) {
+                                        if (err) {
+                                            res.json({
+                                                error:2,
+                                                msg:err
+                                            });
+                                        } else {
+                                            processUrl(data, website_detected,url ,urlsource,false, false, function(ret) {
+                                                res.json({
+                                                    error:0,
+                                                    data:ret
+                                                });
+                                            });
+                                        }
+                                    });
+                                }else{
+                                     res.json({
+                                        error:0,
+                                        data:[]
+                                    });
+                                }
+                            }
+                        });
+                    }
+                    
+                    console.log(url_param);
+                }else{
+                    getHTML(url, false, function(err, data) {
                     if (err) {
                         res.json({
                             error:2,
@@ -1883,6 +1955,8 @@ router.get('/', function(req, res) {
                         });
                     }
                 });
+                }
+                
             }
         }
     }else{
