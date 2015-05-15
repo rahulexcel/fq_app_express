@@ -92,6 +92,13 @@ module.exports = function () {
         }
     };
     user_helper.getUserDetail = function (user_id, req, done) {
+        if (user_id * 1 === -1) {
+            done(null, {
+                name: 'FashionIQ',
+                picture: 'fashioniq'
+            });
+            return;
+        }
         var User = req.User;
         User.findOne({
             _id: mongoose.Types.ObjectId(user_id)

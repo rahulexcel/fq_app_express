@@ -1484,18 +1484,18 @@ router.all('/item/pin', function (req, res, next) {
     var user_id = body.user_id;
     var item_id = body.item_id;
     var list_id = body.list_id;
-    var to_list_id = body.to_list_id;
+//    var to_list_id = body.to_list_id;
     var WishlistItem = req.WishlistItem;
     var WishlistItemAssoc = req.WishlistItemAssoc;
     if (user_id && item_id && list_id) {
         WishlistItemAssoc.findOne({
             item_id: item_id,
-            list_id: to_list_id
+            list_id: list_id
         }).populate('item_id list_id').lean().exec(function (err, row) {
             if (err) {
                 next(err);
             } else {
-                if (row) {
+                if (row && row.item_id && row.list_id) {
                     console.log(row);
                     res.json({
                         error: 0,
@@ -1517,14 +1517,19 @@ router.all('/item/pin', function (req, res, next) {
                                 });
                                 return;
                             }
-
+                            if (item_row.original.user_id + "" === '54b5123ae7dc201818feb732') {
+                                item_row.original.user_id = user_id;
+                            }
+                            if (item_row.original.list_id + "" === '552f5561e9cba6d52a155fda' || item_row.original.list_id + "" === '552f50bce9cba6d52a155fb6') {
+                                item_row.original.list_id = list_id;
+                            }
                             var pins = item_row.pins;
                             if (!pins) {
                                 pins = [];
                             }
                             pins.push({
                                 user_id: user_id
-                            })
+                            });
                             WishlistItem.update({
                                 _id: mongoose.Types.ObjectId(item_id)
                             }, {
@@ -1536,7 +1541,7 @@ router.all('/item/pin', function (req, res, next) {
                                     next(err);
                                 } else {
                                     var model = new WishlistItemAssoc({
-                                        list_id: to_list_id,
+                                        list_id: list_id,
                                         item_id: item_id
                                     });
                                     model.save(function (err) {

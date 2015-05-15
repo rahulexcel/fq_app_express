@@ -717,21 +717,22 @@ router.all('/login', function (req, res, next) {
     }
 });
 
-router.all('/forgot_password',function(req,res,next){
+router.all('/forgot_password', function (req, res, next) {
     var body = req.body;
     var email = body.email;
     //email = 'arun@excellencetechnologies.in';
     var UserModel = req.User;
-    
-    if( email.length > 0 ){
+
+    if (email.length > 0) {
         UserModel.findOne({
             email: email
         }).lean().exec(function (err, user) {
-            if( err ){
+            if (err) {
                 next(err);
-            }else{
-                if( user ){
-                    var new_password = Math.floor(Math.random() * 9000) + 1000;
+            } else {
+                if (user) {
+                    var generatePassword = require('password-generator');
+                    var new_password = generatePassword();
                     var crypto = require('crypto');
                     var md5 = crypto.createHash('md5');
                     md5.update(new_password.toString());
@@ -747,17 +748,17 @@ router.all('/forgot_password',function(req,res,next){
                             next(err);
                         } else {
                             var newPasswordMsg = {
-                                subject:'New Password',
-                                body:'New Password :: '+new_password,
+                                subject: 'New Password',
+                                body: 'New Password Generated ' + new_password,
                             };
-                            req.mailer.send(email,'New Password','template',newPasswordMsg);
-                                res.json({
-                                    error: 0,
-                                    message: 'Password Updated. Check your email for new password.',
+                            req.mailer.send(email, 'New Password', 'template', newPasswordMsg);
+                            res.json({
+                                error: 0,
+                                message: 'Password Updated. Check your email for new password.',
                             });
                         }
                     });
-                }else{
+                } else {
                     res.json({
                         error: 0,
                         message: 'Email Id Not Found',
@@ -765,7 +766,7 @@ router.all('/forgot_password',function(req,res,next){
                 }
             }
         });
-    }else{
+    } else {
         res.json({
             error: 0,
             message: 'No Email Set',

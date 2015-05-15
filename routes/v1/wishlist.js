@@ -785,56 +785,6 @@ router.all('/item/view/:item_id/:list_id', function (req, res, next) {
 
 //add item to wishlist
 
-function getWishlistItemSize(img, req, done) {
-    req.html_helper.getImage(img, function (err, data) {
-        if (!err) {
-            var dirname = require('path').dirname(__dirname) + '/../uploads/picture/';
-            var crypto = require('crypto');
-            var md5 = crypto.createHash('md5');
-            md5.update(img);
-            var fs_filename = md5.digest('hex');
-            var gfs = req.gfs;
-            var fs = require('fs');
-            var sharp = require('sharp');
-            var transformer = sharp();
-            transformer.png();
-            var r = data.pipe(transformer).pipe(fs.createWriteStream(dirname + fs_filename));
-            r.on('close', function (err) {
-                if (err) {
-                    done(err);
-                } else {
-                    var read_stream = fs.createReadStream(dirname + fs_filename);
-                    var writestream = gfs.createWriteStream({
-                        filename: fs_filename
-                    });
-                    writestream.on('error', function (err) {
-                        done(err);
-                    })
-                    read_stream.on('error', function (err) {
-                        done(err);
-                    })
-                    read_stream.pipe(writestream);
-                    writestream.on('close', function () {
-                        console.log(dirname + fs_filename);
-                        var sizeOf = require('image-size');
-                        sizeOf(dirname + fs_filename, function (err, dimensions) {
-                            if (err) {
-                                done(err);
-                            } else {
-                                done(false, {
-                                    filename: fs_filename,
-                                    size: dimensions
-                                });
-                            }
-                        });
-                    });
-                }
-            });
-        } else {
-            done(err);
-        }
-    }, 5000);
-}
 router.all('/item/add', function (req, res, next) {
     var body = req.body;
     var product_id = body.product_id;
@@ -940,7 +890,7 @@ router.all('/item/add', function (req, res, next) {
                                                                     message: 'Product Already In Your Wishlist'
                                                                 });
                                                             } else {
-                                                                getWishlistItemSize(img, req, function (err, data) {
+                                                                req.list_helper.getWishlistItemSize(img, req, function (err, data) {
                                                                     if (!err) {
                                                                         var new_image = data.filename;
                                                                         var dimension = data.size;
