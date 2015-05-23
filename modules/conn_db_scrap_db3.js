@@ -35,6 +35,15 @@ module.exports = function (mongoose) {
         strict: false,
         collection: 'category'
     });
+    var schema_category = mongoose.Schema({}, {
+        strict: false,
+        collection: 'category'
+    });
+    var schema_temp_latest = mongoose.Schema({}, {
+        strict: false,
+        collection: 'temp_latest'
+    });
+    var temp_latest = conn.model('temp_latest', schema_temp_latest);
     var final_fashion_filters = conn.model('final_fashion_filters', schema_final_fashion_filters);
     var filters_category_wise = conn.model('filters_category_wise', schema_filters_category_wise);
     var website_scrap_data = conn.model('website_scrap_data', schema_website_scrap_data);
@@ -236,6 +245,7 @@ module.exports = function (mongoose) {
     var gfs = Grid(conn.db);
     return function (req, res, next) {
         req.feed = feed;
+        req.temp_latest = temp_latest;
         req.scrap_db3 = scrap_db3;
         req.conn_final_fashion_filters = final_fashion_filters;
         req.conn_filters_category_wise = filters_category_wise;

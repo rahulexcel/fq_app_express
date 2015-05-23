@@ -312,8 +312,10 @@ router.all('/similar', function (req, res, next) {
                             next(err);
                         } else {
                             if (data.length > 0) {
+                                console.log('data found similar');
                                 data_sim_res(err, data)
                             } else {
+                                console.log('data not found in first similar search');
                                 website_scrap_data.find(where_2, {
                                     limit: 10,
                                     select: product_data_list,
@@ -333,10 +335,14 @@ router.all('/similar', function (req, res, next) {
                                     similar_arr.push(productObj.getProductPermit(req, obj));
                                 }
                             }
-                            res.json({
-                                error: 0,
-                                data: similar_arr,
-                            });
+//                            res.json({
+//                                error: 0,
+//                                data: similar_arr,
+//                            });
+                            req.toCache = true;
+                            req.cache_data = similar_arr;
+                            req.cache_time = 60 * 60 * 24;
+                            next();
                         }
                     }
                 }
@@ -470,10 +476,14 @@ router.all('/variant', function (req, res, next) {
                                     }
                                 }
                             } else {
-                                res.json({
-                                    error: 0,
-                                    data: variant_arr,
-                                });
+//                                res.json({
+//                                    error: 0,
+//                                    data: variant_arr,
+//                                });
+                                req.toCache = true;
+                                req.cache_data = variant_arr;
+                                req.cache_time = 60 * 60 * 24;
+                                next();
                             }
                         }
                     }

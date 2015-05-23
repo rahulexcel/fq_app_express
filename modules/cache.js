@@ -22,7 +22,11 @@ module.exports = function (mongoose) {
             console.log('setting cache key ' + key);
             var data = req.cache_data;
             data = JSON.stringify(data);
-            redis.setex(key, 60 * 60, data, function (err, response) {
+            var cache_time = 60 * 60;
+            if (req.cache_time) {
+                cache_time = req.cache_time;
+            }
+            redis.setex(key, cache_time, data, function (err, response) {
                 if (err) {
                     console.log(err);
                 }

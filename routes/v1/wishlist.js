@@ -718,53 +718,67 @@ router.all('/item/view/:item_id/:list_id', function (req, res, next) {
                         if (err) {
                             next(err);
                         } else {
-                            if (row && row.location) {
-                                var location = row.location;
-                                var zoom = row.zoom;
-                                if (location && location.length > 0) {
-                                    var new_location = {
-                                        lat: location[1],
-                                        lng: location[0],
-                                        zoom: zoom
-                                    };
-                                    row.location = new_location;
-                                }
-                            }
-                            if (row.comments) {
-                                var comments = row.comments;
-                                var new_comments = [];
-                                var k = 0;
-                                if (row.comments.length > 0) {
-                                    for (var i = 0; i < comments.length; i++) {
-                                        (function (comment) {
-                                            var user_id = comment.user_id;
-                                            User.findOne({
-                                                _id: mongoose.Types.ObjectId(user_id)
-                                            }).lean().exec(function (err, user_row) {
-                                                if (user_row) {
-                                                    comment.picture = user_row.picture;
-                                                    comment.user_name = user_row.name;
-                                                }
-                                                new_comments.push(comment);
-                                                if (k == (comments.length - 1)) {
-                                                    row.comments = new_comments;
-                                                    res.json({
-                                                        error: 0,
-                                                        data: row
-                                                    });
-                                                }
-                                                k++;
-                                            });
-                                        })(comments[i]);
+
+                            var likes = row.likes;
+                            var pins = row.item_id.pins;
+                            likes = likes.concat(pins);
+                            var async = require('async');
+                            async.mapLimit(likes, 3, function (like_row, callback) {
+                                var user_id = like_row.user_id;
+                                req.user_helper.getUserDetail(user_id, req, function (err, user_detail) {
+                                    //like_row.user_id = user_detail;
+                                    callback(err, user_detail);
+                                });
+                            }, function (err, result) {
+                                row.loves = result;
+                                if (row && row.location) {
+                                    var location = row.location;
+                                    var zoom = row.zoom;
+                                    if (location && location.length > 0) {
+                                        var new_location = {
+                                            lat: location[1],
+                                            lng: location[0],
+                                            zoom: zoom
+                                        };
+                                        row.location = new_location;
                                     }
-                                } else {
-                                    row.comments = [];
-                                    res.json({
-                                        error: 0,
-                                        data: row
-                                    });
                                 }
-                            }
+                                if (row.comments) {
+                                    var comments = row.comments;
+                                    var new_comments = [];
+                                    var k = 0;
+                                    if (row.comments.length > 0) {
+                                        for (var i = 0; i < comments.length; i++) {
+                                            (function (comment) {
+                                                var user_id = comment.user_id;
+                                                User.findOne({
+                                                    _id: mongoose.Types.ObjectId(user_id)
+                                                }).lean().exec(function (err, user_row) {
+                                                    if (user_row) {
+                                                        comment.picture = user_row.picture;
+                                                        comment.user_name = user_row.name;
+                                                    }
+                                                    new_comments.push(comment);
+                                                    if (k == (comments.length - 1)) {
+                                                        row.comments = new_comments;
+                                                        res.json({
+                                                            error: 0,
+                                                            data: row
+                                                        });
+                                                    }
+                                                    k++;
+                                                });
+                                            })(comments[i]);
+                                        }
+                                    } else {
+                                        row.comments = [];
+                                        res.json({
+                                            error: 0,
+                                            data: row
+                                        });
+                                    }
+                                }
+                            });
                         }
                     })
                 } else {
