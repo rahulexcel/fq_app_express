@@ -589,18 +589,22 @@ router.all('/user/profile/full', function (req, res, next) {
                     row.friends = [];
                 }
 
+                console.log('account step1');
+
                 req.user_helper.updateUserStats(row, req, function (err, new_user_row) {
                     if (new_user_row) {
                         row = new_user_row;
                         console.log('getting updated user');
                     }
 
+                    console.log('account step2');
                     Wishlist.find({
                         user_id: user_id
                     }).sort({created_at: -1}).lean().exec(function (err, lists) {
                         if (err) {
                             console.log(err);
                         }
+                        console.log('account step3');
                         if (!lists)
                             lists = [];
                         row.lists_mine = lists;
@@ -610,6 +614,7 @@ router.all('/user/profile/full', function (req, res, next) {
                             if (err) {
                                 console.log(err);
                             }
+                            console.log('account step4');
                             if (!lists)
                                 lists = [];
                             row.lists_their = lists;
@@ -625,12 +630,14 @@ router.all('/user/profile/full', function (req, res, next) {
                                 if (err) {
                                     console.log(err);
                                 }
+                                console.log('account step5');
                                 if (!shared)
                                     shared = [];
                                 row.lists_shared = shared;
                                 User.find({
                                     followers: user_id
                                 }).limit(10).lean().exec(function (err, following) {
+                                    console.log('account step6');
                                     if (err) {
                                         console.log(err);
                                     } else {
@@ -644,7 +651,7 @@ router.all('/user/profile/full', function (req, res, next) {
                                         row.friend_requests = friend_requests;
                                         //check if current user is following or is a friend
                                         // cannot check from above, because only loading 10 followers and friends
-
+                                        console.log('account step7');
                                         if (me) {
                                             row.is_friend = false;
                                             row.is_following = false;
@@ -657,6 +664,7 @@ router.all('/user/profile/full', function (req, res, next) {
                                             User.findOne({
                                                 _id: mongoose.Types.ObjectId(user_id)
                                             }, function (err, user_row) {
+                                                console.log('account step8');
                                                 row.is_friend = false;
                                                 row.is_following = false;
                                                 var friends = user_row.get('friends');
