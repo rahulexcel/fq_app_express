@@ -1725,6 +1725,39 @@ router.get('/', function(req, res) {
                         offers.push(json_data.promo_text);
                     }
                 }
+                else if( website_detected == 'myntra'){
+                    json_data = JSON.parse(template);
+                    json_data = json_data.data;
+                    var price = json_data.discountedPrice;
+                    if( price == '' || price == 0 ){
+                        price = json_data.price;
+                    }
+                    var name = json_data.productDisplayName;
+                    var main_image = '';
+                    if( typeof json_data.styleImages.default.imageURL != 'undefined'){
+                        main_image = json_data.styleImages.default.imageURL;
+                    }
+                    var more_images = [];
+                    if( typeof json_data.styleImages.default.imageURL != 'undefined'){
+                        more_images.push( json_data.styleImages.default.imageURL );
+                    }
+                    if( typeof json_data.styleImages.search.imageURL != 'undefined'){
+                        more_images.push( json_data.styleImages.search.imageURL );
+                    }
+                    if( typeof json_data.styleImages.back.imageURL != 'undefined'){
+                        more_images.push( json_data.styleImages.back.imageURL );
+                    }
+                    if( typeof json_data.styleImages.left.imageURL != 'undefined'){
+                        more_images.push( json_data.styleImages.left.imageURL );
+                    }
+                    if( typeof json_data.styleImages.front.imageURL != 'undefined'){
+                        more_images.push( json_data.styleImages.front.imageURL );
+                    }
+                    if( typeof json_data.styleImages.right.imageURL != 'undefined'){
+                        more_images.push( json_data.styleImages.right.imageURL );
+                    }
+                    var stock = 1;
+                }
                 else if( website_detected == 'indiacircus'){
                     json_data = JSON.parse(template);
                     var price = json_data.finalPrice;
@@ -1897,6 +1930,14 @@ router.get('/', function(req, res) {
                 console.log('******************');
                 console.log('iden_website ::: '+iden_website);
                 console.log('******************');
+                
+                if( iden_website == true && website_detected == 'myntra'){
+                    url = url.replace('/buy','');
+                    myntra_pid = getLastSlash(url);
+                    console.log(url);
+                    console.log(myntra_pid);
+                    url = 'http://developer.myntra.com/style/'+myntra_pid;
+                }
                 if( iden_website == true && website_detected == 'indiacircus'){
                     console.log(url);
                     url_param = getLastSlash(url);
@@ -1939,7 +1980,8 @@ router.get('/', function(req, res) {
                     }
                     
                     console.log(url_param);
-                }else{
+                }
+                else{
                     getHTML(url, false, function(err, data) {
                     if (err) {
                         res.json({
