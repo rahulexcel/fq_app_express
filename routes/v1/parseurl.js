@@ -970,6 +970,35 @@ router.get('/', function(req, res) {
 
         return price;
     }
+    function getPageBreadCrumbs(){
+        var ret = [];  
+        if( website_detected == 'amazon'){
+            if( $('#wayfinding-breadcrumbs_feature_div').find('.a-list-item').find('a.a-link-normal').length > 0 ){
+                $('#wayfinding-breadcrumbs_feature_div').find('.a-list-item').find('a.a-link-normal').each(function(){
+                   var bb_crumb = $(this).text();
+                   ret.push( bb_crumb.trim());
+                });
+            }
+        }
+        else if( website_detected == 'snapdeal' || website_detected == 'Snapdeal' ){
+            if( $('#breadCrumbWrapper').find('a.bCrumbOmniTrack').find('span').length > 0 ){
+                $('#breadCrumbWrapper').find('a.bCrumbOmniTrack').find('span').each(function(){
+                   var bb_crumb = $(this).text();
+                   ret.push( bb_crumb.trim());
+                });
+            }
+        }
+        else if( website_detected == 'Flipkart' || website_detected == 'flipkart' ){
+            if( $('div.clp-breadcrumb').find('ul').find('li').find('a').length > 0 ){
+                $('div.clp-breadcrumb').find('ul').find('li').find('a').each(function(){
+                   var bb_crumb = $(this).text();
+                   ret.push( bb_crumb.trim());
+                });
+            }
+        }
+        return ret;
+    }
+    
     function getPrice(price) {
         return getPriceWithPoint(price);
     }
@@ -1708,6 +1737,7 @@ router.get('/', function(req, res) {
                 window = w;
                 colors = [];
                 var offers = [];
+                var bread_crumbs = [];
                 var shipping_charges = 0;
                 var delivery_charge = '';
                 if( website_detected == 'paytm'){
@@ -1723,6 +1753,13 @@ router.get('/', function(req, res) {
                     more_images.push(main_image);
                     if( typeof json_data.promo_text != 'undefined' && json_data.promo_text != ''){
                         offers.push(json_data.promo_text);
+                    }
+                    if( typeof json_data.ancestors != 'undefined' && json_data.ancestors.length > 0  ){
+                        for( var i =0; i<json_data.ancestors.length;i++){
+                            if( typeof json_data.ancestors[i].name != 'undefined'){
+                                bread_crumbs.push( json_data.ancestors[i].name);
+                            }
+                        }
                     }
                 }
                 else if( website_detected == 'myntra'){
@@ -1788,6 +1825,7 @@ router.get('/', function(req, res) {
                     var main_image = images.main_image;
                     var more_images = images.more_images;
                     var stock = getStockStatus();
+                    bread_crumbs = getPageBreadCrumbs();
                     colors = getColorArray();
                     offers = getOffers();
                     delivery_charge = getDeliveryCharges();
@@ -1894,7 +1932,8 @@ router.get('/', function(req, res) {
                         more_images:more_images,
                         colors:colors,
                         offers:offers,
-                        delivery_charge:delivery_charge
+                        delivery_charge:delivery_charge,
+                        bread_crumbs : bread_crumbs
                     });
                 }
 
