@@ -996,6 +996,68 @@ router.get('/', function(req, res) {
                 });
             }
         }
+        else if (website_detected == 'acadzone' || website_detected == 'Bookadda') {
+        }
+        else if (website_detected == 'Tradus') {
+            if (jQuery('#breadcrumb').length > 0) {
+                jQuery('#breadcrumb').children('li').each(function(i) {
+                    var hrf = jQuery(this).children('a').attr("href");
+                    if (hrf) {
+                        var txt = jQuery(this).text();
+                        ret.push(txt);
+                    }
+                });
+            }
+        }
+        else if (website_detected == 'Homeshop') {
+            $('.breadcrumb').children('li').each(function() {
+                ret.push($(this).children('a').text());
+            });
+        }
+        else if (website_detected == 'jabong') {
+            $('.breadcrumbs').children('a.fs11').each(function() {
+                bcrumb = $(this).text();
+                bcrumb = bcrumb.trim();
+                ret.push(bcrumb);
+            });
+        }
+        else {
+            if (jQuery('a[itemprop="url"]').length > 0) {
+                jQuery('a[itemprop="url"]').
+                        each(function(i) {
+                            var hrf = jQuery(this).
+                                    attr("href");
+                            if (hrf) {
+                                var txt = jQuery(this).
+                                        text();
+                                ret.push(txt);
+                            }
+                        });
+            }
+            else if (jQuery('[itemprop="breadcrumb"]').length > 0) {
+                jQuery('[itemprop="breadcrumb"]').
+                        each(function() {
+                            var txt = $(this).
+                                    find('a:first').
+                                    text();
+                            ret.push(txt);
+                        });
+            }
+            else {
+                jQuery('.bradCrumbDiv,.breadcrumb,.bread-crumb,.fk-lbreadbcrumb,.breadcrumbs,#breadcrumb,.bbc-in,[itemtype="http://schema.org/WebPage"],.crumb_outer,.bread-crumbs,[itemprop="breadcrumb"],#browse-nodes,.breadcrum,#product-breadcrumbs,#pagenav .navigation,.breadcrumlnk,#do_categories_chain_main_container,.sc-breadbcrumb,.bread_spacing,#browse_nodes_bc,.detail-breadcrumb').
+                        find('a').
+                        each(function(
+                                i) {
+                            var hrf = jQuery(this).
+                                    attr("href");
+                            if (hrf) {
+                                var txt = jQuery(this).
+                                        text();
+                                ret.push(txt);
+                            }
+                        });
+            }
+        }
         return ret;
     }
     
