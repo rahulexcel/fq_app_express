@@ -283,35 +283,47 @@ function updateLatestFeedData(req, done, next) {
                         website: row.website
                     }, function (err, exists_row) {
                         if (!exists_row) {
-                            var temp_latest = req.temp_latest;
-                            temp_latest.count({
-                                unique: row.unique,
-                                website: row.website,
-                                createdAt: new Date()
-                            }, function (err, c) {
-                                if (c == 0) {
-                                    var temp_latest_model = new temp_latest({
+
+
+                            WishlistItem.findOne({
+                                name: row.name,
+                                website: row.website
+                            }, function (err, exists_row_name) {
+                                if (!exists_row_name) {
+                                    var temp_latest = req.temp_latest;
+                                    temp_latest.count({
                                         unique: row.unique,
-                                        website: row.website
-                                    });
-                                    temp_latest_model.save(function () {
-                                        req.list_helper.getWishlistItemSize(row.img, req, function (err, data) {
-                                            if (!err) {
-                                                var new_image = data.filename;
-                                                var dimension = data.size;
-                                                var old_image = row.img;
-                                                row.img = new_image;
-                                                row.dimension = dimension;
-                                                console.log('adding new in latest');
-                                                addToLatestMongo(req, row, lt_redis_key, callback);
-                                            } else {
-                                                console.log('skipping cause of exception');
-                                                callback();
-                                            }
-                                        });
+                                        website: row.website,
+                                        createdAt: new Date()
+                                    }, function (err, c) {
+                                        if (c == 0) {
+                                            var temp_latest_model = new temp_latest({
+                                                unique: row.unique,
+                                                website: row.website
+                                            });
+                                            temp_latest_model.save(function () {
+                                                req.list_helper.getWishlistItemSize(row.img, req, function (err, data) {
+                                                    if (!err) {
+                                                        var new_image = data.filename;
+                                                        var dimension = data.size;
+                                                        var old_image = row.img;
+                                                        row.img = new_image;
+                                                        row.dimension = dimension;
+                                                        console.log('adding new in latest');
+                                                        addToLatestMongo(req, row, lt_redis_key, callback);
+                                                    } else {
+                                                        console.log('skipping cause of exception');
+                                                        callback();
+                                                    }
+                                                });
+                                            });
+                                        } else {
+                                            console.log('this product is being skipped dur to previous error');
+                                            callback();
+                                        }
                                     });
                                 } else {
-                                    console.log('this product is being skipped dur to previous error');
+                                    console.log('this product is being skipped due duplicate name');
                                     callback();
                                 }
                             });
@@ -449,10 +461,11 @@ function getLatestData(latest_type, page, only_ids, req, next, done, recursion) 
     } else {
         list_id = mongoose.Types.ObjectId('552f50bce9cba6d52a155fb6');
     }
+    console.log(new Date(new Date().getTime() - 24 * 7 * 60 * 60 * 1000));
     WishlistItem.find({
-        created_at: {
-            $gt: new Date(new Date().getTime() - 24 * 7 * 60 * 60 * 1000)
-        },
+//        created_at: {
+//            $gt: new Date(new Date().getTime() - 24 * 7 * 60 * 60 * 1000)
+//        },
         'original.list_id': list_id
     }).sort({'created_at': -1}).limit(20).skip(page * 20).lean().exec(function (err, response) {
         if (err) {
