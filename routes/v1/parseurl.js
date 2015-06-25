@@ -200,12 +200,13 @@ router.get('/', function(req, res) {
                         continue;
                     }
                 } else if (website_detected == 'Indiatimes') {
-                    if (string1.indexOf('p_') != -1) {
-                    } else {
-                        log('p_ found hence indiatimes not detected!');
-                        website_detected = '';
-                        continue;
-                    }
+                    //commented by arun on 23 june 2015 since no p_in url 
+                    //if (string1.indexOf('p_') != -1) {
+                    //} else {
+                       // log('p_ found hence indiatimes not detected!');
+                        //website_detected = '';
+                        //continue;
+                    //}
                 }
                 //            foundKeys = websites[i].txt;
                 return true;
@@ -343,7 +344,7 @@ router.get('/', function(req, res) {
                 return false;
             }
         } else if (url.indexOf('next') != -1) {
-            if (url.indexOf('p/') !== -1) {
+            if (url.indexOf('product/') !== -1) {
                 return true;
             } else {
                 return false;
@@ -1021,6 +1022,27 @@ router.get('/', function(req, res) {
                 ret.push(bcrumb);
             });
         }
+        else if (website_detected == 'Indiatimes') {
+            $('.navigation').children('a').each(function() {
+                bcrumb = $(this).text();
+                bcrumb = bcrumb.trim();
+                ret.push(bcrumb);
+            });
+        }
+        else if (website_detected == 'ibhejo') {
+            $('#location').children('a.bread-crumb').each(function() {
+                bcrumb = $(this).text();
+                bcrumb = bcrumb.trim();
+                ret.push(bcrumb);
+            });
+        }
+        else if (website_detected == 'Next') {
+            $('.ish-breadcrumbs-list-item-link').each(function() {
+                bcrumb = $(this).text();
+                bcrumb = bcrumb.trim();
+                ret.push(bcrumb);
+            });
+        }
         else {
             if (jQuery('a[itemprop="url"]').length > 0) {
                 jQuery('a[itemprop="url"]').
@@ -1034,11 +1056,18 @@ router.get('/', function(req, res) {
                             }
                         });
             }
+            else if (jQuery('[itemprop="breadcrumb"]').find('a').length > 1) {
+                jQuery('[itemprop="breadcrumb"]').find('a').
+                        each(function() {
+                            var txt = $(this).text();
+                            ret.push(txt);
+                        });
+            }
             else if (jQuery('[itemprop="breadcrumb"]').length > 0) {
                 jQuery('[itemprop="breadcrumb"]').
                         each(function() {
                             var txt = $(this).
-                                    find('a:first').
+                                    find('a:first')
                                     text();
                             ret.push(txt);
                         });
